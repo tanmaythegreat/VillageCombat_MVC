@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  DB_Server:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: admin_tentellam
+      POSTGRES_PASSWORD: i_wont_tell_you
+      POSTGRES_DB: VillageGameDB
+    ports:
+      - "5432:5432"
