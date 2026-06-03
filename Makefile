@@ -8,3 +8,8 @@ migrate-up:
 # 3. The shortcut to roll changes DOWN (undo)
 migrate-down:
 	migrate -path db/migrations -database "$(DB_URL)" down 1
+
+# 4. The shortcut to generate new migration files
+# Usage: make migrate-create name=your_table_name
+migrate-create:
+	migrate create -ext sql -dir db/migrations -seq $(name)
