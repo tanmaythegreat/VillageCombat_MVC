@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS user_data CASCADE;
 DROP TABLE IF EXISTS construction_tasks CASCADE;
+DROP TABLE IF EXISTS trained_troops CASCADE;
 DROP TABLE IF EXISTS placed_buildings CASCADE;
 
 DROP TYPE IF EXISTS construction_type CASCADE;
