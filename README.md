@@ -1,6 +1,6 @@
 # MVC_ASSIGNMENT
 ## Database
-I have divided the database in 3 parts. that are 
+I have divided the database in 4 parts. that are 
 * `JWT` that contains a user and its jwt session token data.
 * `static data` this is the data that corresponds to stats of troops,buildings etc
     * defined enums are intuitive enough.
@@ -15,3 +15,13 @@ I have divided the database in 3 parts. that are
     * `user_data` this is different from the user in first migration, it contains user game data. 
     * `placed_buildings` name is self-explanatory.
     * `trained_troops` the troops that user have and can use it for battle/match.
+* `Battle data` when 2 players battles .i.e one player attacks the other then 
+    * I store the outcome of the battle that is what the attacker got (looted).
+    * also storing data about looses by both sides in separate tables
+
+## JSON WEB TOKENS
+I have implemented jwt with rotating refresh tokens.
+`AccessToken` have 3 parts `header.payload.signature` `signature = sha256(header.payload,key)`. I also generate a Random some bytes using `crypto/rand` (and not `math/rand`) which is the refresh token. when the token is about to expire frontend will ask the backend to refresh the `AccessToken` and this `RefreshToken` acts as password. I store the bcrypt hash of `RefreshToken` in the database.
+
+register and login handler are straightforward. at the end it generates JWT token.
+I tried my best to avoid time based vulnerabilities.

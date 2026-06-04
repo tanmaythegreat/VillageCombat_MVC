@@ -3,12 +3,20 @@ package Auth
 import (
 	"Village_combat/GO/Database"
 	"Village_combat/GO/Models"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+var jwtSecretKey = []byte("*************************")
 
 type UserLoginCreds struct {
 	Username     string `json:"username"`
@@ -17,9 +25,9 @@ type UserLoginCreds struct {
 }
 
 type JWT_Token struct {
-	AccessToken  string    `json:"access_token"`
-	RefreshToken string    `json:"refresh_token"`
-	ExpiresAt    time.Time `json:"expires_at"`
+	AccessToken     string    `json:"access_token"`
+	RefreshTokenb64 string    `json:"refresh_tokenb_64"`
+	ExpiresAt       time.Time `json:"expires_at"`
 }
 
 func RegisterHandler(writer http.ResponseWriter, request *http.Request) {
@@ -38,7 +46,9 @@ func RegisterHandler(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, "Missing required fields: username, email, password", http.StatusBadRequest)
 		return
 	}
-
+	// TODO : check if the password is strong enough
+	// TODO : check is the user name valid that is is it already taken,their should be no weird symbols like \{(&%$#';" etc
+	// TODO : may be Email Verification
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.PasswordText), bcrypt.DefaultCost)
 	if err != nil {
 		http.Error(writer, "Internal server error", http.StatusInternalServerError)
@@ -54,7 +64,7 @@ func RegisterHandler(writer http.ResponseWriter, request *http.Request) {
 	ipAddress := request.RemoteAddr
 	userAgent := request.UserAgent()
 
-	jwt, err := GenerateJWT_Token(registerUser, ipAddress, userAgent)
+	jwt, err := GenerateJWT_Token(registerUser.UserID, ipAddress, userAgent)
 	if err != nil {
 		http.Error(writer, "Failed to generate token session", http.StatusInternalServerError)
 		return
@@ -67,22 +77,181 @@ func RegisterHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 }
+func LoginHandler(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPost {
+		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-func GenerateJWT_Token(user *Models.User, ipAddress string, userAgent string) (JWT_Token, error) {
-	mockAccessToken := "signed_jwt_access_string_here"
-	mockRefreshToken := "random_cryptographic_refresh_string"
-	mockTokenHash := "hashed_version_of_refresh_token_for_db"
+	var userLoginCreds UserLoginCreds
+	if err := json.NewDecoder(request.Body).Decode(&userLoginCreds); err != nil {
+		http.Error(writer, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
 
-	err := Database.AddRefreshToken(user.UserID, mockTokenHash, ipAddress, userAgent)
+	if (userLoginCreds.Username == "" && userLoginCreds.Email == "") || userLoginCreds.PasswordText == "" {
+		http.Error(writer, "Missing required fields: username, email, or password", http.StatusBadRequest)
+		return
+	}
+
+	var registerUser *Models.User
+	var err error
+
+	if userLoginCreds.Username != "" {
+		registerUser, err = Database.GetUserByName(userLoginCreds.Username)
+	} else {
+		registerUser, err = Database.GetUserByEmail(userLoginCreds.Email)
+	}
+
+	if err != nil {
+		_ = bcrypt.CompareHashAndPassword([]byte("this is here to prevent time based attacks."), []byte(userLoginCreds.PasswordText))
+		http.Error(writer, "Invalid username/email or password", http.StatusUnauthorized)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(registerUser.PasswordHash), []byte(userLoginCreds.PasswordText))
+	if err != nil {
+		http.Error(writer, "Invalid username/email or password", http.StatusUnauthorized)
+		return
+	}
+
+	ipAddress := request.RemoteAddr
+	userAgent := request.UserAgent()
+
+	jwt, err := GenerateJWT_Token(registerUser.UserID, ipAddress, userAgent)
+	if err != nil {
+		http.Error(writer, "Failed to generate token session", http.StatusInternalServerError)
+		return
+	}
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusOK)
+
+	if err = json.NewEncoder(writer).Encode(jwt); err != nil {
+		http.Error(writer, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
+
+func createAccessToken(userID string, duration time.Duration) (string, time.Time, error) {
+	header := map[string]string{
+		"algorithm": "HS256",
+		"type":      "JWT",
+	}
+	headerJSON, _ := json.Marshal(header)
+	headerB64 := base64.RawURLEncoding.EncodeToString(headerJSON)
+
+	expireTime := time.Now().Add(duration)
+	payload := map[string]interface{}{
+		"user_id":   userID,
+		"issued_at": time.Now().Unix(),
+		"expire_at": expireTime.Unix(),
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	payloadB64 := base64.RawURLEncoding.EncodeToString(payloadJSON)
+
+	unsignedToken := headerB64 + "." + payloadB64
+
+	mac := hmac.New(sha256.New, jwtSecretKey)
+	mac.Write([]byte(unsignedToken))
+	signatureBytes := mac.Sum(nil)
+
+	signatureB64 := base64.RawURLEncoding.EncodeToString(signatureBytes)
+
+	jwt := unsignedToken + "." + signatureB64
+	return jwt, expireTime, nil
+}
+func GenerateJWT_Token(userId string, ipAddress string, userAgent string) (JWT_Token, error) {
+
+	accessToken, expireTime, err := createAccessToken(userId, 15*time.Minute)
 	if err != nil {
 		return JWT_Token{}, err
 	}
 
-	tokenResponse := JWT_Token{
-		AccessToken:  mockAccessToken,
-		RefreshToken: mockRefreshToken,
-		ExpiresAt:    time.Now().Add(24 * 7 * time.Hour),
+	plainRefreshToken := make([]byte, 64)
+	_, err = rand.Read(plainRefreshToken)
+	if err != nil {
+		return JWT_Token{}, err
+	}
+	hashedToken, err := bcrypt.GenerateFromPassword(plainRefreshToken, bcrypt.DefaultCost)
+	if err != nil {
+		return JWT_Token{}, err
 	}
 
-	return tokenResponse, nil
+	err = Database.AddRefreshToken(userId, string(hashedToken), ipAddress, userAgent, expireTime)
+	if err != nil {
+		return JWT_Token{}, err
+	}
+
+	return JWT_Token{
+		AccessToken:     accessToken,
+		RefreshTokenb64: base64.RawURLEncoding.EncodeToString(plainRefreshToken),
+		ExpiresAt:       expireTime,
+	}, nil
+}
+func RefreshAccessToken(userID string, refreshTokenB64 string, ipAddress string, userAgent string) (JWT_Token, error) {
+
+	storedTokenInfo, err := Database.GetRefreshTokenByUserID(userID)
+	if err != nil {
+		return JWT_Token{}, errors.New("invalid session")
+	}
+
+	if time.Now().After(storedTokenInfo.ExpiresAt) || storedTokenInfo.IPAddress != ipAddress || storedTokenInfo.UserAgent != userAgent {
+		Database.DeleteRefreshToken(userID)
+		return JWT_Token{}, errors.New("refresh token expired, please log in again")
+	}
+
+	refreshToken, err := base64.RawURLEncoding.DecodeString(refreshTokenB64)
+	if err != nil {
+		return JWT_Token{}, errors.New("invalid refresh token")
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(storedTokenInfo.JWTTokenHash), refreshToken)
+	if err != nil {
+		return JWT_Token{}, errors.New("invalid refresh token")
+	}
+
+	Database.DeleteRefreshToken(userID)
+	return GenerateJWT_Token(userID, ipAddress, userAgent)
+}
+func VerifyJWT_Token(token string) (string, bool) {
+	splited := strings.Split(token, ".")
+	if len(splited) != 3 {
+		return "", false
+	}
+	headerB64, payloadB64, signatureB64 := splited[0], splited[1], splited[2]
+	signingInput := headerB64 + "." + payloadB64
+	mac := hmac.New(sha256.New, jwtSecretKey)
+	mac.Write([]byte(signingInput))
+	expectedSignature := mac.Sum(nil)
+	actualSignature, err := base64.RawURLEncoding.DecodeString(signatureB64)
+	if err != nil || !hmac.Equal(actualSignature, expectedSignature) {
+		return "", false
+	}
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(payloadB64)
+	if err != nil {
+		return "", false
+	}
+	var payload map[string]interface{}
+	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
+		return "", false
+	}
+	userIDRaw, ok := payload["user_id"]
+	if !ok {
+		return "", false
+	}
+	userID, ok := userIDRaw.(string)
+	if !ok {
+		return "", false
+	}
+	expireRaw, ok := payload["expire_at"]
+	if !ok {
+		return "", false
+	}
+	expireTime, ok := expireRaw.(int64)
+	if !ok {
+		return "", false
+	}
+	if time.Now().Unix() > expireTime {
+		return "", false
+	}
+	return userID, true
 }

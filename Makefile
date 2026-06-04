@@ -1,6 +1,4 @@
-# ====================================================================================
-# CONFIGURATION
-# ====================================================================================
+
 # Your defaults are preserved here, but you can override them via terminal if needed
 DB_USER ?= admin_tentellam
 DB_PASS ?= i_wont_tell_you
@@ -13,10 +11,6 @@ DB_URL = postgres://$(DB_USER):$(DB_PASS)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmo
 MIGRATIONS_PATH = db/migrations
 
 .PHONY: migrate-current migrate-up migrate-down migrate-create db-force-clear help
-
-# ====================================================================================
-# ACTIONS
-# ====================================================================================
 
 ## migrate-current: Check which migration version the database is currently running
 migrate-current:

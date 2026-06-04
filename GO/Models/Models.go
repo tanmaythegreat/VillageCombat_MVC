@@ -61,8 +61,6 @@ type User struct {
 	UpdatedAt    time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
-func (User) TableName() string { return "users" }
-
 type RefreshToken struct {
 	ID           string    `gorm:"column:id;primaryKey" json:"id"`
 	UserID       string    `gorm:"column:user_id" json:"user_id"`
@@ -73,8 +71,6 @@ type RefreshToken struct {
 	CreatedAt    time.Time `gorm:"column:created_at" json:"created_at"`
 	IsUsed       bool      `gorm:"column:is_used" json:"is_used"`
 }
-
-func (RefreshToken) TableName() string { return "refresh_tokens" }
 
 type TroopConfig struct {
 	ID                 string            `gorm:"column:id;primaryKey" json:"id"`
@@ -90,16 +86,12 @@ type TroopConfig struct {
 	UpgradeCosts       []UpgradeCost     `gorm:"foreignKey:TroopID" json:"upgrade_costs,omitempty"`
 }
 
-func (TroopConfig) TableName() string { return "troop_configs" }
-
 type TroopLevelStats struct {
 	TroopID       string `gorm:"column:troop_id;primaryKey" json:"troop_id"`
 	Level         int    `gorm:"column:level;primaryKey" json:"level"`
 	Health        int    `gorm:"column:health" json:"health"`
 	DamagePerShot int    `gorm:"column:damage_per_shot" json:"damage_per_shot"`
 }
-
-func (TroopLevelStats) TableName() string { return "troop_level_stats" }
 
 type UpgradeCost struct {
 	ID                    string  `gorm:"column:id;primaryKey" json:"id"`
@@ -114,8 +106,6 @@ type UpgradeCost struct {
 	TownHallLevelRequired int     `gorm:"column:town_hall_level_required" json:"town_hall_level_required"`
 }
 
-func (UpgradeCost) TableName() string { return "upgrade_costs" }
-
 type BuildingConfigBase struct {
 	BuildingID   string               `gorm:"column:building_id;primaryKey" json:"building_id"`
 	Name         string               `gorm:"column:name" json:"name"`
@@ -126,15 +116,11 @@ type BuildingConfigBase struct {
 	UpgradeCosts []UpgradeCost        `gorm:"foreignKey:BuildingID" json:"upgrade_costs,omitempty"`
 }
 
-func (BuildingConfigBase) TableName() string { return "building_configs_base" }
-
 type BuildingLevelStats struct {
 	BuildingID string `gorm:"column:building_id;primaryKey" json:"building_id"`
 	Level      int    `gorm:"column:level;primaryKey" json:"level"`
 	Health     int    `gorm:"column:health" json:"health"`
 }
-
-func (BuildingLevelStats) TableName() string { return "building_level_stats" }
 
 type DefenseBuildingStats struct {
 	BuildingID         string                      `gorm:"column:building_id;primaryKey" json:"building_id"`
@@ -146,15 +132,11 @@ type DefenseBuildingStats struct {
 	LevelStats         []DefenseBuildingLevelStats `gorm:"foreignKey:BuildingID" json:"level_stats,omitempty"`
 }
 
-func (DefenseBuildingStats) TableName() string { return "defense_building_stats" }
-
 type DefenseBuildingLevelStats struct {
 	BuildingID    string `gorm:"column:building_id;primaryKey" json:"building_id"`
 	Level         int    `gorm:"column:level;primaryKey" json:"level"`
 	DamagePerShot int    `gorm:"column:damage_per_shot" json:"damage_per_shot"`
 }
-
-func (DefenseBuildingLevelStats) TableName() string { return "defense_building_level_stats" }
 
 type ResourceBuildingStats struct {
 	BuildingID   string                       `gorm:"column:building_id;primaryKey" json:"building_id"`
@@ -163,8 +145,6 @@ type ResourceBuildingStats struct {
 	LevelStats   []ResourceBuildingLevelStats `gorm:"foreignKey:BuildingID" json:"level_stats,omitempty"`
 }
 
-func (ResourceBuildingStats) TableName() string { return "resource_building_stats" }
-
 type ResourceBuildingLevelStats struct {
 	BuildingID            string  `gorm:"column:building_id;primaryKey" json:"building_id"`
 	Level                 int     `gorm:"column:level;primaryKey" json:"level"`
@@ -172,23 +152,17 @@ type ResourceBuildingLevelStats struct {
 	StorageCapacity       int     `gorm:"column:storage_capacity" json:"storage_capacity"`
 }
 
-func (ResourceBuildingLevelStats) TableName() string { return "resource_building_level_stats" }
-
 type ArmyBuildingStats struct {
 	BuildingID   string                   `gorm:"column:building_id;primaryKey" json:"building_id"`
 	BuildingType string                   `gorm:"column:building_type" json:"building_type"`
 	LevelStats   []ArmyBuildingLevelStats `gorm:"foreignKey:BuildingID" json:"level_stats,omitempty"`
 }
 
-func (ArmyBuildingStats) TableName() string { return "army_building_stats" }
-
 type ArmyBuildingLevelStats struct {
 	BuildingID    string `gorm:"column:building_id;primaryKey" json:"building_id"`
 	Level         int    `gorm:"column:level;primaryKey" json:"level"`
 	TroopCapacity int    `gorm:"column:troop_capacity" json:"troop_capacity"`
 }
-
-func (ArmyBuildingLevelStats) TableName() string { return "army_building_level_stats" }
 
 type PlacedBuilding struct {
 	ID            string          `gorm:"column:id;primaryKey" json:"id"`
@@ -202,8 +176,6 @@ type PlacedBuilding struct {
 	LastUpdatedAt time.Time       `gorm:"column:last_updated_at" json:"last_updated_at"`
 }
 
-func (PlacedBuilding) TableName() string { return "placed_buildings" }
-
 type TrainedTroop struct {
 	ID            string          `gorm:"column:id;primaryKey" json:"id"`
 	UserID        string          `gorm:"column:user_id" json:"user_id"`
@@ -213,8 +185,6 @@ type TrainedTroop struct {
 	LastUpdatedAt time.Time       `gorm:"column:last_updated_at" json:"last_updated_at"`
 	Count         int             `gorm:"count" json:"count"`
 }
-
-func (TrainedTroop) TableName() string { return "trained_troops" }
 
 type ConstructionTask struct {
 	ID               string           `gorm:"column:id;primaryKey" json:"id"`
@@ -226,8 +196,6 @@ type ConstructionTask struct {
 	DurationSeconds  int              `gorm:"column:duration_seconds" json:"duration_seconds"`
 }
 
-func (ConstructionTask) TableName() string { return "construction_tasks" }
-
 type UserData struct {
 	UserID            string    `gorm:"column:user_id;primaryKey" json:"user_id"`
 	TownHallLevel     int       `gorm:"column:town_hall_level" json:"town_hall_level"`
@@ -238,4 +206,26 @@ type UserData struct {
 	UpdatedAt         time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
-func (UserData) TableName() string { return "user_data" }
+type BattleHistory struct {
+	BattleID         string    `gorm:"type:uuid;primaryKey;default:uuid_generate_v4();column:battle_id"`
+	AttackerID       string    `gorm:"type:uuid;not null;column:attacker_id"`
+	DefenderID       string    `gorm:"type:uuid;not null;column:defender_id"`
+	ElixirLooted     int       `gorm:"default:0;column:elixir_looted"`
+	GoldLooted       int       `gorm:"default:0;column:gold_looted"`
+	DarkElixirLooted int       `gorm:"default:0;column:dark_elixir_looted"`
+	FoughtAt         time.Time `gorm:"default:CURRENT_TIMESTAMP;column:fought_at"`
+
+	TroopLosses     []BattleTroopLoss `gorm:"foreignKey:BattleID"`
+	BrokenBuildings []BuildingsBroken `gorm:"foreignKey:BattleID;constraint:OnDelete:CASCADE"`
+}
+
+type BattleTroopLoss struct {
+	BattleID  string `gorm:"type:uuid;primaryKey;column:battle_id"`
+	TroopID   string `gorm:"type:uuid;primaryKey;column:troop_id"`
+	LossCount int    `gorm:"not null;default:0;column:loss_count"`
+}
+
+type BuildingsBroken struct {
+	BattleID         string `gorm:"type:uuid;primaryKey;column:battle_id"`
+	PlacedBuildingID string `gorm:"type:uuid;primaryKey;column:placed_building_id"`
+}
