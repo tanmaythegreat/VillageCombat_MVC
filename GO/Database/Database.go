@@ -60,11 +60,6 @@ func GetUserByEmail(email string) (*Models.User, error) {
 	}
 	return &user, nil
 }
-func GetUsersPlacedBuildings(user *Models.User) ([]Models.PlacedBuilding, error) {
-	var buildings []Models.PlacedBuilding
-	err := DB.Omit("dynamic_state").Where("user_id = ?", user.UserID).Find(&buildings).Error
-	return buildings, err
-}
 
 func AddRefreshToken(userID string, tokenHash string, ipAddress string, userAgent string, expireTime time.Time) error {
 	tokenRecord := Models.RefreshToken{
@@ -76,9 +71,9 @@ func AddRefreshToken(userID string, tokenHash string, ipAddress string, userAgen
 	}
 	return DB.Select("user_id", "jwt_token_hash", "ip_address", "user_agent", "expires_at").Create(&tokenRecord).Error
 }
+
 func GetRefreshTokenByUserID(userID string) (*Models.RefreshToken, error) {
 	var token Models.RefreshToken
-
 	err := DB.Where("user_id = ?", userID).First(&token).Error
 	if err != nil {
 		return nil, err
@@ -87,19 +82,63 @@ func GetRefreshTokenByUserID(userID string) (*Models.RefreshToken, error) {
 }
 
 func DeleteRefreshToken(userID string) error {
-	err := DB.Where("user_id = ?", userID).Delete(&Models.RefreshToken{}).Error
-	return err
+	return DB.Where("user_id = ?", userID).Delete(&Models.RefreshToken{}).Error
 }
 
-//
+// region Unused Functions
 //func UpdateUserResources(userData *Models.UserData) error {
 //	return DB.Select("current_gold", "current_elixir", "current_dark_elixir", "current_gems", "updated_at").Save(userData).Error
 //}
-//
 //func UpdatePlacedBuilding(building *Models.PlacedBuilding) error {
 //	return DB.Select("current_level", "dynamic_state", "last_updated_at").Save(building).Error
 //}
-//
 //func UpdateUserTownHallLevel(userData *Models.UserData) error {
 //	return DB.Select("town_hall_level", "updated_at").Save(userData).Error
 //}
+//func SaveBattleResult(battle *Models.BattleHistory) error {
+//	return DB.Select(
+//		"attacker_id",
+//		"defender_id",
+//		"elixir_looted",
+//		"gold_looted",
+//		"dark_elixir_looted",
+//	).Create(battle).Error
+//}
+//func SaveBattleTroopLosses(losses []Models.BattleTroopLoss) error {
+//	return DB.Select("battle_id", "troop_id", "loss_count").Create(&losses).Error
+//}
+//func SaveBrokenBuildings(broken []Models.BuildingsBroken) error {
+//	return DB.Select("battle_id", "placed_building_id").Create(&broken).Error
+//}
+//func GetAttackerBattleHistory(userID string) ([]Models.BattleHistory, error) {
+//	var battles []Models.BattleHistory
+//	err := DB.Omit("TroopLosses", "BrokenBuildings").
+//		Where("attacker_id = ?", userID).
+//		Order("fought_at DESC").
+//		Find(&battles).Error
+//	return battles, err
+//}
+//func GetDefenderBattleHistory(userID string) ([]Models.BattleHistory, error) {
+//	var battles []Models.BattleHistory
+//	err := DB.Omit("TroopLosses", "BrokenBuildings").
+//		Where("defender_id = ?", userID).
+//		Order("fought_at DESC").
+//		Find(&battles).Error
+//	return battles, err
+//}
+//func GetFullBattleDetail(battleID string) (*Models.BattleHistory, error) {
+//	var battle Models.BattleHistory
+//	err := DB.
+//		Preload("TroopLosses").
+//		Preload("BrokenBuildings").
+//		Where("battle_id = ?", battleID).
+//		First(&battle).Error
+//	return &battle, err
+//}
+//func GetUsersPlacedBuildings(user *Models.User) ([]Models.PlacedBuilding, error) {
+//	var buildings []Models.PlacedBuilding
+//	err := DB.Omit("dynamic_state").Where("user_id = ?", user.UserID).Find(&buildings).Error
+//	return buildings, err
+//}
+//
+// endregion

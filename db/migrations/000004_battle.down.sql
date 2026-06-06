@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS buildings_broken CASCADE;
+DROP TABLE IF EXISTS battle_troop_losses CASCADE;
+DROP TABLE IF EXISTS battle_history CASCADE;

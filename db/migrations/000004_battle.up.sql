@@ -27,5 +27,9 @@ CREATE TABLE buildings_broken (
   placed_building_id UUID NOT NULL,
 
   CONSTRAINT fk_battle_building FOREIGN KEY (battle_id) REFERENCES battle_history(battle_id) ON DELETE CASCADE,
-  CONSTRAINT fk_placed_building FOREIGN KEY (placed_building_id) REFERENCES placed_buildings(id) ON DELETE CASCADE
+  CONSTRAINT fk_placed_building FOREIGN KEY (placed_building_id) REFERENCES placed_buildings(id)
 );
+
+CREATE INDEX idx_battle_history_attacker_log ON battle_history (attacker_id, fought_at DESC);
+CREATE INDEX idx_battle_history_defender_log ON battle_history (defender_id, fought_at DESC);
+CREATE INDEX idx_buildings_broken_battle_id ON buildings_broken (battle_id);
