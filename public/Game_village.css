@@ -1,0 +1,30 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden; /* Prevents scrollbars */
+    background-color: #000;
+}
+
+#game-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+}
+
+.game-ui {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    color: white;
+    font-family: 'Arial Black', sans-serif;
+    text-shadow: 2px 2px 0px #000;
+    pointer-events: none; /* Lets you click through the text to the 3D canvas */
+}

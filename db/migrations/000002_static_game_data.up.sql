@@ -1,5 +1,5 @@
 CREATE DOMAIN non_negative_int AS INT CHECK (VALUE >= 0);
-CREATE DOMAIN town_hall_range AS INT CHECK (VALUE BETWEEN 1 AND 4);
+CREATE DOMAIN town_hall_range AS INT CHECK (VALUE BETWEEN 1 AND 6);
 CREATE DOMAIN non_negative_numeric AS NUMERIC CHECK (VALUE >= 0.0);
 
 CREATE TYPE attack_type AS ENUM ('melee', 'ranged');

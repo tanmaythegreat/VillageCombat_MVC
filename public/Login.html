@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Village Combat - Authentication</title>
+    <link rel="stylesheet" href="Login.css">
+</head>
+<body>
+<div class="game-bg-overlay"></div>
+
+<div class="auth-container">
+    <div class="game-header">
+        <h1>VILLAGE COMBAT</h1>
+        <div class="sub-title">Secure Portal</div>
+    </div>
+
+    <div class="auth-tabs">
+        <button id="tab-login" class="tab-btn active" onclick="switchTab('login')">LOGIN</button>
+        <button id="tab-register" class="tab-btn" onclick="switchTab('register')">REGISTER</button>
+    </div>
+
+    <div class="auth-body">
+        <form id="login-form" class="auth-form">
+            <div class="input-group">
+                <label for="login-identifier">Username or Email</label>
+                <input type="text" id="login-identifier" placeholder="Enter warrior name or email" required>
+            </div>
+            <div class="input-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="game-btn gold-btn">ENTER VILLAGE</button>
+        </form>
+
+        <form id="register-form" class="auth-form hidden">
+            <div class="input-group">
+                <label for="reg-username">Warrior Name (Username)</label>
+                <input type="text" id="reg-username" placeholder="Choose username" autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label for="reg-email">E-mail Address</label>
+                <input type="email" id="reg-email" placeholder="clan@village.com" autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label for="reg-password">Password</label>
+                <input type="password" id="reg-password" placeholder="Create strong password">
+            </div>
+            <button type="submit" class="game-btn red-btn">REGISTER USER</button>
+        </form>
+    </div>
+
+    <div id="status-message" class="status-msg hidden"></div>
+</div>
+
+<script src="Login.js"></script>
+</body>
+</html>

@@ -10,13 +10,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
-
-var jwtSecretKey = []byte("*************************")
 
 type UserLoginCreds struct {
 	Username     string `json:"username"`
@@ -26,8 +25,17 @@ type UserLoginCreds struct {
 
 type JWT_Token struct {
 	AccessToken     string    `json:"access_token"`
-	RefreshTokenb64 string    `json:"refresh_tokenb_64"`
+	RefreshTokenB64 string    `json:"refresh_token_b64"`
 	ExpiresAt       time.Time `json:"expires_at"`
+}
+
+var jwtSecretKey []byte
+
+func init() {
+	jwtSecretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
+	if len(jwtSecretKey) == 0 {
+		panic("JWT_SECRET_KEY environment variable is not set")
+	}
 }
 
 func RegisterHandler(writer http.ResponseWriter, request *http.Request) {
@@ -184,7 +192,7 @@ func GenerateJWT_Token(userId string, ipAddress string, userAgent string) (JWT_T
 
 	return JWT_Token{
 		AccessToken:     accessToken,
-		RefreshTokenb64: base64.RawURLEncoding.EncodeToString(plainRefreshToken),
+		RefreshTokenB64: base64.RawURLEncoding.EncodeToString(plainRefreshToken),
 		ExpiresAt:       expireTime,
 	}, nil
 }
@@ -196,7 +204,6 @@ func RefreshAccessToken(userID string, refreshTokenB64 string, ipAddress string,
 	}
 
 	if time.Now().After(storedTokenInfo.ExpiresAt) || storedTokenInfo.IPAddress != ipAddress || storedTokenInfo.UserAgent != userAgent {
-		Database.DeleteRefreshToken(userID)
 		return JWT_Token{}, errors.New("refresh token expired, please log in again")
 	}
 
@@ -209,7 +216,6 @@ func RefreshAccessToken(userID string, refreshTokenB64 string, ipAddress string,
 		return JWT_Token{}, errors.New("invalid refresh token")
 	}
 
-	Database.DeleteRefreshToken(userID)
 	return GenerateJWT_Token(userID, ipAddress, userAgent)
 }
 func VerifyJWT_Token(token string) (string, bool) {
@@ -246,11 +252,11 @@ func VerifyJWT_Token(token string) (string, bool) {
 	if !ok {
 		return "", false
 	}
-	expireTime, ok := expireRaw.(int64)
+	expireTime, ok := expireRaw.(float64)
 	if !ok {
 		return "", false
 	}
-	if time.Now().Unix() > expireTime {
+	if time.Now().Unix() > int64(expireTime) {
 		return "", false
 	}
 	return userID, true
