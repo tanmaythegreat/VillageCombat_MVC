@@ -325,12 +325,12 @@ SELECT building_id, 6,   650 FROM building_configs_base WHERE name = 'Barracks';
 -- =============================================================================
 -- 6. DEFENSE BUILDING STATS (static per building, not per level)
 -- =============================================================================
-INSERT INTO defense_building_stats (building_id, building_type, attack_speed_seconds, attack_range, damage_type, unit_target)
-SELECT building_id, 'cannon',        1.0, 9.0, 'single_target'::damage_type, 'ground'::unit_target_type         FROM building_configs_base WHERE name = 'Cannon'
+INSERT INTO defense_building_stats (building_id, attack_speed_seconds, attack_range, damage_type, unit_target)
+SELECT building_id,        1.0, 9.0, 'single_target'::damage_type, 'ground'::unit_target_type         FROM building_configs_base WHERE name = 'Cannon'
 UNION ALL
-SELECT building_id, 'archer_tower',  0.5, 9.5, 'single_target'::damage_type, 'ground_and_air'::unit_target_type FROM building_configs_base WHERE name = 'Archer Tower'
+SELECT building_id, 0.5, 9.5, 'single_target'::damage_type, 'ground_and_air'::unit_target_type FROM building_configs_base WHERE name = 'Archer Tower'
 UNION ALL
-SELECT building_id, 'air_defense',   0.8, 9.0, 'single_target'::damage_type, 'air'::unit_target_type            FROM building_configs_base WHERE name = 'Air Defense';
+SELECT building_id,   0.8, 9.0, 'single_target'::damage_type, 'air'::unit_target_type            FROM building_configs_base WHERE name = 'Air Defense';
 
 
 -- =============================================================================
@@ -383,18 +383,18 @@ SELECT building_id, 6, 300 FROM building_configs_base WHERE name = 'Air Defense'
 -- =============================================================================
 -- 8. RESOURCE BUILDING STATS
 -- =============================================================================
-INSERT INTO resource_building_stats (building_id, building_type, resource_type)
-SELECT building_id, 'gold_mine',           'gold'::resource_type        FROM building_configs_base WHERE name = 'Gold Mine'
+INSERT INTO resource_building_stats (building_id, resource_type)
+SELECT building_id, 'gold'::resource_type        FROM building_configs_base WHERE name = 'Gold Mine'
 UNION ALL
-SELECT building_id, 'gold_storage',        'gold'::resource_type        FROM building_configs_base WHERE name = 'Gold Storage'
+SELECT building_id, 'gold'::resource_type        FROM building_configs_base WHERE name = 'Gold Storage'
 UNION ALL
-SELECT building_id, 'elixir_collector',    'elixir'::resource_type      FROM building_configs_base WHERE name = 'Elixir Collector'
+SELECT building_id, 'elixir'::resource_type      FROM building_configs_base WHERE name = 'Elixir Collector'
 UNION ALL
-SELECT building_id, 'elixir_storage',      'elixir'::resource_type      FROM building_configs_base WHERE name = 'Elixir Storage'
+SELECT building_id,    'elixir'::resource_type      FROM building_configs_base WHERE name = 'Elixir Storage'
 UNION ALL
-SELECT building_id, 'dark_elixir_drill',   'dark_elixir'::resource_type FROM building_configs_base WHERE name = 'Dark Elixir Drill'
+SELECT building_id,    'dark_elixir'::resource_type FROM building_configs_base WHERE name = 'Dark Elixir Drill'
 UNION ALL
-SELECT building_id, 'dark_elixir_storage', 'dark_elixir'::resource_type FROM building_configs_base WHERE name = 'Dark Elixir Storage';
+SELECT building_id,  'dark_elixir'::resource_type FROM building_configs_base WHERE name = 'Dark Elixir Storage';
 
 
 -- =============================================================================
@@ -491,8 +491,8 @@ SELECT building_id, 6,     0,  45000 FROM building_configs_base WHERE name = 'Da
 -- =============================================================================
 -- 10. ARMY BUILDING STATS
 -- =============================================================================
-INSERT INTO army_building_stats (building_id, building_type)
-SELECT building_id, 'barracks' FROM building_configs_base WHERE name = 'Barracks';
+INSERT INTO army_building_stats (building_id)
+SELECT building_id FROM building_configs_base WHERE name = 'Barracks';
 
 
 -- =============================================================================

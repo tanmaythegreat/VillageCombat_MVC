@@ -69,7 +69,6 @@ CREATE TABLE upgrade_costs
 CREATE TABLE defense_building_stats
 (
     building_id          UUID PRIMARY KEY,
-    building_type        VARCHAR(255)         NOT NULL,
     attack_speed_seconds NUMERIC              NOT NULL CHECK (attack_speed_seconds > 0),
     attack_range         non_negative_numeric NOT NULL,
     damage_type          damage_type          NOT NULL,
@@ -88,7 +87,6 @@ CREATE TABLE defense_building_level_stats
 CREATE TABLE resource_building_stats
 (
     building_id   UUID PRIMARY KEY,
-    building_type VARCHAR(255)  NOT NULL,
     resource_type resource_type NOT NULL,
     FOREIGN KEY (building_id) REFERENCES building_configs_base (building_id) ON DELETE CASCADE
 );
@@ -105,7 +103,6 @@ CREATE TABLE resource_building_level_stats
 CREATE TABLE army_building_stats
 (
     building_id   UUID PRIMARY KEY,
-    building_type VARCHAR(255) NOT NULL,
     FOREIGN KEY (building_id) REFERENCES building_configs_base (building_id) ON DELETE CASCADE
 );
 

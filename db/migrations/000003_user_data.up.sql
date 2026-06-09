@@ -7,8 +7,7 @@ CREATE TABLE placed_buildings
     building_id     UUID             NOT NULL REFERENCES building_configs_base (building_id),
     grid_x          non_negative_int NOT NULL,
     grid_y          non_negative_int NOT NULL,
-    current_level   non_negative_int NOT NULL DEFAULT 1,
-    dynamic_state   JSONB            NOT NULL DEFAULT '{}'::jsonb,
+    level           non_negative_int NOT NULL DEFAULT 1,
     constructed_at  TIMESTAMPTZ      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated_at TIMESTAMPTZ      NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -18,8 +17,7 @@ CREATE TABLE trained_troops
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id         UUID             NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
     troop_id        UUID             NOT NULL REFERENCES troop_configs (id),
-    current_level   non_negative_int NOT NULL DEFAULT 1,
-    dynamic_state   JSONB            NOT NULL DEFAULT '{}'::jsonb,
+    level   non_negative_int NOT NULL DEFAULT 1,
     last_updated_at TIMESTAMPTZ      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     count           non_negative_int NOT NULL DEFAULT 0
 );

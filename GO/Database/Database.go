@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"math"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -28,6 +29,7 @@ var (
 	DarkElixirStorage_ID string
 	Barracks_ID          string
 )
+var BuildingID_Category map[string]Models.BuildingCategory
 
 func InitDB(dsn string) {
 	var err error
@@ -35,25 +37,27 @@ func InitDB(dsn string) {
 	if err != nil {
 		panic("Failed to connect to database: " + err.Error())
 	}
-	err = LoadStaticBuildingIDs()
+	err = LoadStaticBuildingIDsAndCategory()
 	if err != nil {
 		panic("Unable to load Buildings")
 		return
 	}
 }
 
-func LoadStaticBuildingIDs() error {
+func LoadStaticBuildingIDsAndCategory() error {
 	var buildings []struct {
-		BuildingID string `gorm:"column:building_id"`
-		Name       string `gorm:"column:name"`
+		BuildingID string                  `gorm:"column:building_id"`
+		Category   Models.BuildingCategory `gorm:"column:category"`
+		Name       string                  `gorm:"column:name"`
 	}
 
-	err := DB.Table(Models.BuildingConfigBase{}.TableName()).Select("building_id, name").Find(&buildings).Error
+	err := DB.Table(Models.BuildingConfigBase{}.TableName()).Select("building_id,category, name").Find(&buildings).Error
 	if err != nil {
 		return err
 	}
-
+	BuildingID_Category = make(map[string]Models.BuildingCategory)
 	for _, b := range buildings {
+		BuildingID_Category[b.BuildingID] = b.Category
 		switch b.Name {
 		case "Town Hall":
 			TownHall_ID = b.BuildingID
@@ -109,14 +113,14 @@ func RegisterUser(username string, passwordHash string, email string) (*Models.U
 	}
 
 	townhall := Models.PlacedBuilding{
-		UserID:       user.UserID,
-		BuildingID:   TownHall_ID,
-		GridX:        0,
-		GridY:        0,
-		CurrentLevel: 1,
+		UserID:     user.UserID,
+		BuildingID: TownHall_ID,
+		GridX:      0,
+		GridY:      0,
+		Level:      1,
 	}
 
-	if err := tx.Select("user_id", "building_id", "grid_x", "grid_y", "current_level").Create(&townhall).Error; err != nil {
+	if err := tx.Select("user_id", "building_id", "grid_x", "grid_y", "level").Create(&townhall).Error; err != nil {
 		tx.Rollback()
 		return nil, nil, err
 	}
@@ -190,9 +194,9 @@ func GetRefreshTokenByUserID(userID string) (*Models.RefreshToken, error) {
 }
 
 func UpdatePlacedBuilding(building *Models.PlacedBuilding) error {
-	return DB.Select("current_level", "dynamic_state", "last_updated_at").Save(building).Error
+	return DB.Select("level", "dynamic_state", "last_updated_at").Save(building).Error
 }
-func GetAllBuildingConfigsJSON() ([]byte, error) {
+func GetAllBuildingConfigsJSON() (json.RawMessage, error) {
 	var configs []Models.BuildingConfigBase
 	err := DB.Find(&configs).Error
 	if err != nil {
@@ -205,7 +209,43 @@ func GetAllBuildingConfigsJSON() ([]byte, error) {
 
 	return jsonBytes, nil
 }
-func GetAllTroopConfigsJSON() ([]byte, error) {
+func GetAllDefenceBuildingConfigsJSON() (json.RawMessage, error) {
+	var configs []Models.DefenseBuildingStats
+	err := DB.Find(&configs).Error
+	if err != nil {
+		return nil, err
+	}
+	jsonBytes, err := json.Marshal(configs)
+	if err != nil {
+		return nil, err
+	}
+	return jsonBytes, nil
+}
+func GetAllArmyBuildingConfigsJSON() (json.RawMessage, error) {
+	var configs []Models.ArmyBuildingStats
+	err := DB.Find(&configs).Error
+	if err != nil {
+		return nil, err
+	}
+	jsonBytes, err := json.Marshal(configs)
+	if err != nil {
+		return nil, err
+	}
+	return jsonBytes, nil
+}
+func GetAllResourceBuildingConfigsJSON() (json.RawMessage, error) {
+	var configs []Models.ResourceBuildingStats
+	err := DB.Find(&configs).Error
+	if err != nil {
+		return nil, err
+	}
+	jsonBytes, err := json.Marshal(configs)
+	if err != nil {
+		return nil, err
+	}
+	return jsonBytes, nil
+}
+func GetAllTroopConfigsJSON() (json.RawMessage, error) {
 	var configs []Models.TroopConfig
 	err := DB.Find(&configs).Error
 	if err != nil {
@@ -216,6 +256,125 @@ func GetAllTroopConfigsJSON() ([]byte, error) {
 		return nil, err
 	}
 	return jsonBytes, nil
+}
+func GetPlacedBuildingJSON(userID string) (json.RawMessage, error) {
+	var configs []Models.PlacedBuilding
+	err := DB.Where("user_id = ?", userID).Find(&configs).Error
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(configs)
+}
+func GetTrainedTroopsJSON(userID string) (json.RawMessage, error) {
+	var configs []Models.TrainedTroop
+	err := DB.Where("user_id = ?", userID).Find(&configs).Error
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(configs)
+}
+func GetPlacedBuilding_ID_Level(userID string) ([]Models.PlacedBuilding, error) {
+	var placedBuildings []Models.PlacedBuilding
+	err := DB.Table("placed_building").
+		Select("building_id, level").
+		Where("user_id = ?", userID).
+		Find(&placedBuildings).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return placedBuildings, nil
+}
+func GetBuildingDataOfLevel(buildingID string, level int) ([]byte, error) { // Added return types
+	response := struct {
+		BuildingID  string                    `json:"building_id"`
+		Level       int                       `json:"level"`
+		BaseStats   Models.BuildingLevelStats `json:"base_stats"`
+		UpgradeCost Models.UpgradeCost        `json:"upgrade_cost,omitempty"`
+		Details     interface{}               `json:"details,omitempty"`
+	}{
+		BuildingID: buildingID,
+		Level:      level,
+	}
+
+	if err := DB.Where("building_id = ? AND level = ?", buildingID, level).First(&response.BaseStats).Error; err != nil {
+		return nil, err
+	}
+
+	err := DB.Where("building_id = ? AND upgrade_to_level = ?", buildingID, level+1).First(&response.UpgradeCost).Error
+	if err != nil {
+		response.UpgradeCost = Models.UpgradeCost{
+			ID:                    "",
+			TroopID:               nil,
+			BuildingID:            &buildingID,
+			UpgradeToLevel:        level + 1,
+			GoldRequired:          math.MaxInt32,
+			ElixirRequired:        math.MaxInt32,
+			DarkElixirRequired:    math.MaxInt32,
+			OrGemRequired:         math.MaxInt32,
+			TimeRequiredSeconds:   math.MaxInt32,
+			TownHallLevelRequired: level + 1,
+		}
+	}
+
+	category := BuildingID_Category[buildingID]
+
+	switch category {
+	case Models.Resource:
+		var stats Models.ResourceBuildingLevelStats
+		if err := DB.Where("building_id = ? AND level = ?", buildingID, level).First(&stats).Error; err == nil {
+			response.Details = stats
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+
+	case Models.Army:
+		var stats Models.ArmyBuildingLevelStats
+		if err := DB.Where("building_id = ? AND level = ?", buildingID, level).First(&stats).Error; err == nil {
+			response.Details = stats
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+
+	case Models.Defense:
+		var stats Models.DefenseBuildingLevelStats
+		if err := DB.Where("building_id = ? AND level = ?", buildingID, level).First(&stats).Error; err == nil {
+			response.Details = stats
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+
+	case Models.TownHall:
+		response.Details = ""
+	}
+
+	return json.Marshal(response)
+}
+func GetPlacedBuildingLevel(userID string, placedBuildingID string) (int, error) {
+	var placedBuilding Models.PlacedBuilding
+	err := DB.Table("placed_building").
+		Select("level").
+		Where("user_id = ? AND building_id = ?", userID, placedBuildingID).
+		First(&placedBuilding).Error
+
+	if err != nil {
+		return 0, err
+	}
+	return placedBuilding.Level, nil
+}
+func ConstructBuilding(userID string, buildingID string, x int, y int) (Models.PlacedBuilding, error) {
+	newBuilding := Models.PlacedBuilding{
+		UserID:     userID,
+		BuildingID: buildingID,
+		GridX:      x,
+		GridY:      y,
+		Level:      1,
+	}
+	err := DB.Select("user_id", "building_id", "grid_x", "grid_y", "current_level").Create(&newBuilding).Error
+	if err != nil {
+		return newBuilding, err
+	}
+	return newBuilding, nil
 }
 
 // region Unused Functions

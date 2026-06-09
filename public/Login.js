@@ -59,10 +59,8 @@ loginForm.addEventListener('submit', async (e) => {
         });
 
         if (!response.ok) {
-            // Safely grab backend raw text response string without allowing HTML scripts compilation bugs
             const errorText = await response.text();
 
-            // Clean up 404 raw server templates if user tries hitting non-existent routers paths
             if (errorText.includes("<!doctype html>")) {
                 throw new Error("Target service path not found on deployment server (404).");
             }
@@ -75,8 +73,7 @@ loginForm.addEventListener('submit', async (e) => {
         localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('refresh_token_b64', data.refresh_token_b64);
 
-        // Redirect logic placeholder:
-        // window.location.href = '/dashboard.html';
+        window.location.href = '/Game_village.html';
 
     } catch (err) {
         showMessage(err.message, 'error');
@@ -124,6 +121,7 @@ registerForm.addEventListener('submit', async (e) => {
         localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('refresh_token_b64', data.refresh_token_b64);
 
+        window.location.href = '/Game_village.html';
     } catch (err) {
         showMessage(err.message, 'error');
     }

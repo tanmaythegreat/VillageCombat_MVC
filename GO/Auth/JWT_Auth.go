@@ -9,11 +9,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -72,7 +75,7 @@ func RegisterHandler(writer http.ResponseWriter, request *http.Request) {
 	ipAddress := request.RemoteAddr
 	userAgent := request.UserAgent()
 
-	jwt, err := GenerateJWT_Token(registerUser.UserID, ipAddress, userAgent)
+	jwt, err := generateJWT_Token(registerUser.UserID, ipAddress, userAgent)
 	if err != nil {
 		http.Error(writer, "Failed to generate token session", http.StatusInternalServerError)
 		return
@@ -126,7 +129,7 @@ func LoginHandler(writer http.ResponseWriter, request *http.Request) {
 	ipAddress := request.RemoteAddr
 	userAgent := request.UserAgent()
 
-	jwt, err := GenerateJWT_Token(registerUser.UserID, ipAddress, userAgent)
+	jwt, err := generateJWT_Token(registerUser.UserID, ipAddress, userAgent)
 	if err != nil {
 		http.Error(writer, "Failed to generate token session", http.StatusInternalServerError)
 		return
@@ -168,7 +171,7 @@ func createAccessToken(userID string, duration time.Duration) (string, time.Time
 	jwt := unsignedToken + "." + signatureB64
 	return jwt, expireTime, nil
 }
-func GenerateJWT_Token(userId string, ipAddress string, userAgent string) (JWT_Token, error) {
+func generateJWT_Token(userId string, ipAddress string, userAgent string) (JWT_Token, error) {
 
 	accessToken, expireTime, err := createAccessToken(userId, 15*time.Minute)
 	if err != nil {
@@ -196,7 +199,7 @@ func GenerateJWT_Token(userId string, ipAddress string, userAgent string) (JWT_T
 		ExpiresAt:       expireTime,
 	}, nil
 }
-func RefreshAccessToken(userID string, refreshTokenB64 string, ipAddress string, userAgent string) (JWT_Token, error) {
+func refreshAccessToken(userID string, refreshTokenB64 string, ipAddress string, userAgent string) (JWT_Token, error) {
 
 	storedTokenInfo, err := Database.GetRefreshTokenByUserID(userID)
 	if err != nil {
@@ -216,7 +219,7 @@ func RefreshAccessToken(userID string, refreshTokenB64 string, ipAddress string,
 		return JWT_Token{}, errors.New("invalid refresh token")
 	}
 
-	return GenerateJWT_Token(userID, ipAddress, userAgent)
+	return generateJWT_Token(userID, ipAddress, userAgent)
 }
 func VerifyJWT_Token(token string) (string, bool) {
 	splited := strings.Split(token, ".")
@@ -260,4 +263,267 @@ func VerifyJWT_Token(token string) (string, bool) {
 		return "", false
 	}
 	return userID, true
+}
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	var token = r.URL.Query().Get("token")
+	userId, verified := VerifyJWT_Token(token)
+	if !verified {
+		http.Error(w, "Invalid Token.", http.StatusUnauthorized)
+		return
+	}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, "Failed to establish WebSocket connection", http.StatusBadRequest)
+		return
+	}
+	defer conn.Close()
+	fmt.Printf("Client successfully connected to WebSocket server!, client : %s\n", userId)
+	for {
+		messageType, p, err := conn.ReadMessage()
+		if err != nil {
+			log.Println("Connection lost with client:", err)
+			break
+		}
+		if len(p) == 0 {
+			errPayload := []byte(`{"status": "error", "message": "Action payload cannot be empty"}`)
+			err = conn.WriteMessage(messageType, errPayload)
+			if err != nil {
+				log.Println("Failed to send message to client:", err)
+				break
+			}
+			continue
+		}
+		fmt.Printf("Received from player: %s\n", string(p))
+		var payload struct {
+			Action      string `json:"action"`
+			Message     string `json:"message"`
+			AccessToken string `json:"access_token"`
+		}
+		err = json.Unmarshal(p, &payload)
+		if err != nil {
+			errPayload := []byte(`{"status": "error", "message": "Invalid JSON."}`)
+			err = conn.WriteMessage(messageType, errPayload)
+			if err != nil {
+				log.Println("Failed to send message to client:", err)
+				break
+			}
+			continue
+		}
+		userid, verified := VerifyJWT_Token(payload.AccessToken)
+		if !verified || userId != userid {
+			errPayload := []byte(`{"status": "error", "message": "UnAuthorised."}`)
+			err = conn.WriteMessage(messageType, errPayload)
+			if err != nil {
+				log.Println("Failed to send message to client:", err)
+				break
+			}
+			continue
+		}
+	Switch:
+		switch payload.Action {
+		case "INITIAL_LOAD":
+			troops, err := Database.GetTrainedTroopsJSON(userId)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break
+				}
+			}
+			building, err := Database.GetPlacedBuildingJSON(userId)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break
+				}
+			}
+			data := struct {
+				MsgType  string          `json:"msg_type"`
+				Building json.RawMessage `json:"building"`
+				Troops   json.RawMessage `json:"troops"`
+			}{
+				MsgType:  "building_troop_of_user",
+				Building: building,
+				Troops:   troops,
+			}
+			err = conn.WriteJSON(data)
+			if err != nil {
+				log.Println("Failed to send message to client:", err)
+				break
+			}
+		case "ALL_BUILDING_TROOP_DATA":
+			buildings, err := Database.GetAllBuildingConfigsJSON()
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break
+				}
+			}
+			troops, err := Database.GetAllTroopConfigsJSON()
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break
+				}
+			}
+			defence, err := Database.GetAllDefenceBuildingConfigsJSON()
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break
+				}
+			}
+			army, err := Database.GetAllArmyBuildingConfigsJSON()
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break
+				}
+			}
+			resource, err := Database.GetAllResourceBuildingConfigsJSON()
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break
+				}
+			}
+			id_level, err := Database.GetPlacedBuilding_ID_Level(userId)
+			configMap := make(map[string][]byte)
+
+			for _, il := range id_level {
+				key := fmt.Sprintf("%s:%d", il.BuildingID, il.Level)
+				if _, exists := configMap[key]; exists {
+					continue
+				}
+				jsonData, err := Database.GetBuildingDataOfLevel(il.BuildingID, il.Level)
+				if err != nil {
+					errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+					err = conn.WriteMessage(messageType, errPayload)
+					if err != nil {
+						log.Println("Failed to send message to client:", err)
+						break Switch
+					}
+				}
+				configMap[key] = jsonData
+			}
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break
+				}
+			}
+			data := struct {
+				MsgType             string            `json:"msg_type"`
+				Building            json.RawMessage   `json:"building"`
+				Troops              json.RawMessage   `json:"troops"`
+				Defence             json.RawMessage   `json:"defence"`
+				Army                json.RawMessage   `json:"army"`
+				Resource            json.RawMessage   `json:"resource"`
+				ParticularLevelData map[string][]byte `json:"particular_level_data"`
+			}{
+				MsgType:             "building_troop",
+				Building:            buildings,
+				Troops:              troops,
+				Defence:             defence,
+				Army:                army,
+				Resource:            resource,
+				ParticularLevelData: configMap,
+			}
+			err = conn.WriteJSON(data)
+			if err != nil {
+				log.Println("Failed to send message to client:", err)
+				break
+			}
+		case "BUILDING_LEVEL_DETAIL":
+			var placedBuildingId = payload.Message
+			level, err := Database.GetPlacedBuildingLevel(userId, placedBuildingId)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break
+				}
+			}
+			dataOfLevel, err := Database.GetBuildingDataOfLevel(placedBuildingId, level)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break
+				}
+			}
+			err = conn.WriteJSON(struct {
+				MsgType     string `json:"msg_type"`
+				DataOfLevel []byte `json:"data_of_level"`
+			}{
+				MsgType:     "building_level_detail",
+				DataOfLevel: dataOfLevel,
+			})
+			if err != nil {
+				log.Println("Failed to send message to client:", err)
+				break
+			}
+		case "CREATE_BUILDING":
+			var data struct {
+				BuildingID string `json:"building_id"`
+				X          int    `json:"x"`
+				Y          int    `json:"y"`
+			}
+			err := json.Unmarshal([]byte(payload.Message), &data)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Invalid JSON."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+				}
+				break
+			}
+			placedBuilding, err := Database.ConstructBuilding(userId, data.BuildingID, data.X, data.Y)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break
+				}
+			}
+			err = conn.WriteJSON(struct {
+				MsgType        string                `json:"msg_type"`
+				PlacedBuilding Models.PlacedBuilding `json:"placed_building"`
+			}{
+				MsgType:        "construction_complete",
+				PlacedBuilding: placedBuilding,
+			})
+			if err != nil {
+				log.Println("Failed to send message to client:", err)
+				break
+			}
+		}
+	}
 }

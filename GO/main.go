@@ -14,7 +14,7 @@ func main() {
 
 	http.HandleFunc("/register", Auth.RegisterHandler)
 	http.HandleFunc("/login", Auth.LoginHandler)
-
+	http.HandleFunc("/ws", Auth.HandleWebSocket)
 	fs := http.FileServer(http.Dir("./public"))
 	http.Handle("/", fs)
 

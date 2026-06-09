@@ -1,7 +1,6 @@
 package Models
 
 import (
-	"encoding/json"
 	"time"
 )
 
@@ -139,7 +138,6 @@ func (BuildingLevelStats) TableName() string { return "building_level_stats" }
 
 type DefenseBuildingStats struct {
 	BuildingID         string                      `gorm:"column:building_id;primaryKey" json:"building_id"`
-	BuildingType       string                      `gorm:"column:building_type" json:"building_type"`
 	AttackSpeedSeconds float64                     `gorm:"column:attack_speed_seconds" json:"attack_speed_seconds"`
 	AttackRange        float64                     `gorm:"column:attack_range" json:"attack_range"`
 	DamageType         DamageType                  `gorm:"column:damage_type" json:"damage_type"`
@@ -159,7 +157,6 @@ func (DefenseBuildingLevelStats) TableName() string { return "defense_building_l
 
 type ResourceBuildingStats struct {
 	BuildingID   string                       `gorm:"column:building_id;primaryKey" json:"building_id"`
-	BuildingType string                       `gorm:"column:building_type" json:"building_type"`
 	ResourceType ResourceType                 `gorm:"column:resource_type" json:"resource_type"`
 	LevelStats   []ResourceBuildingLevelStats `gorm:"foreignKey:BuildingID" json:"level_stats,omitempty"`
 }
@@ -176,9 +173,8 @@ type ResourceBuildingLevelStats struct {
 func (ResourceBuildingLevelStats) TableName() string { return "resource_building_level_stats" }
 
 type ArmyBuildingStats struct {
-	BuildingID   string                   `gorm:"column:building_id;primaryKey" json:"building_id"`
-	BuildingType string                   `gorm:"column:building_type" json:"building_type"`
-	LevelStats   []ArmyBuildingLevelStats `gorm:"foreignKey:BuildingID" json:"level_stats,omitempty"`
+	BuildingID string                   `gorm:"column:building_id;primaryKey" json:"building_id"`
+	LevelStats []ArmyBuildingLevelStats `gorm:"foreignKey:BuildingID" json:"level_stats,omitempty"`
 }
 
 func (ArmyBuildingStats) TableName() string { return "army_building_stats" }
@@ -192,26 +188,25 @@ type ArmyBuildingLevelStats struct {
 func (ArmyBuildingLevelStats) TableName() string { return "army_building_level_stats" }
 
 type PlacedBuilding struct {
-	ID            string          `gorm:"column:id;primaryKey" json:"id"`
-	UserID        string          `gorm:"column:user_id" json:"user_id"`
-	BuildingID    string          `gorm:"column:building_id" json:"building_id"`
-	GridX         int             `gorm:"column:grid_x" json:"grid_x"`
-	GridY         int             `gorm:"column:grid_y" json:"grid_y"`
-	CurrentLevel  int             `gorm:"column:current_level" json:"current_level"`
-	DynamicState  json.RawMessage `gorm:"column:dynamic_state;type:jsonb" json:"dynamic_state"`
-	ConstructedAt time.Time       `gorm:"column:constructed_at" json:"constructed_at"`
-	LastUpdatedAt time.Time       `gorm:"column:last_updated_at" json:"last_updated_at"`
+	ID            string    `gorm:"column:id;primaryKey" json:"id"`
+	UserID        string    `gorm:"column:user_id" json:"user_id"`
+	BuildingID    string    `gorm:"column:building_id" json:"building_id"`
+	GridX         int       `gorm:"column:grid_x" json:"grid_x"`
+	GridY         int       `gorm:"column:grid_y" json:"grid_y"`
+	Level         int       `gorm:"column:level" json:"level"`
+	ConstructedAt time.Time `gorm:"column:constructed_at" json:"constructed_at"`
+	LastUpdatedAt time.Time `gorm:"column:last_updated_at" json:"last_updated_at"`
 }
 
 func (PlacedBuilding) TableName() string { return "placed_buildings" }
 
 type TrainedTroop struct {
-	ID            string          `gorm:"column:id;primaryKey" json:"id"`
-	UserID        string          `gorm:"column:user_id" json:"user_id"`
-	TroopID       string          `gorm:"column:troop_id" json:"troop_id"`
-	CurrentLevel  int             `gorm:"column:current_level" json:"current_level"`
-	DynamicState  json.RawMessage `gorm:"column:dynamic_state;type:jsonb" json:"dynamic_state"`
-	LastUpdatedAt time.Time       `gorm:"column:last_updated_at" json:"last_updated_at"`
+	ID            string    `gorm:"column:id;primaryKey" json:"id"`
+	UserID        string    `gorm:"column:user_id" json:"user_id"`
+	TroopID       string    `gorm:"column:troop_id" json:"troop_id"`
+	Level         int       `gorm:"column:level" json:"level"`
+	Count         int       `gorm:"column:count" json:"count"`
+	LastUpdatedAt time.Time `gorm:"column:last_updated_at" json:"last_updated_at"`
 }
 
 func (TrainedTroop) TableName() string { return "trained_troops" }

@@ -3,6 +3,7 @@ module Village_combat
 go 1.26.3
 
 require (
+	github.com/gorilla/websocket v1.5.3
 	golang.org/x/crypto v0.52.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1
