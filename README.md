@@ -41,3 +41,12 @@ you can only create `Cannon` and `Town Hall` for now.
 For now construction is instantaneous (construction task is not involved).
 There is no interactive way(for now).
 in the console write `CreateBuilding('Cannon',30,20)`
+
+the Above for now is not now.
+
+spawn building by clicking at blank surface
+open building menu to upgrade and all 
+
+Issues : move is not working , you can create another townhall (may be i will keep it as a feature).
+TODO : add a mechanism to collect resources from gold mines , elixir drill , elixir collect.Troops training.Battle.
+

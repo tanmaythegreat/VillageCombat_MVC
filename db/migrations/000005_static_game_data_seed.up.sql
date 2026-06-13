@@ -28,6 +28,8 @@ VALUES
 
 -- Barbarian
 INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot, training_time_seconds)
+SELECT id, 0,    0,   0,   0 FROM troop_configs WHERE name = 'Barbarian'
+UNION ALL
 SELECT id, 1,  300,  75,  20 FROM troop_configs WHERE name = 'Barbarian'
 UNION ALL
 SELECT id, 2,  360,  95,  20 FROM troop_configs WHERE name = 'Barbarian'
@@ -42,6 +44,8 @@ SELECT id, 6,  740, 225,  20 FROM troop_configs WHERE name = 'Barbarian';
 
 -- Archer
 INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot, training_time_seconds)
+SELECT id, 0,    0,   0,   0 FROM troop_configs WHERE name = 'Archer'
+UNION ALL
 SELECT id, 1,  200,  60,  25 FROM troop_configs WHERE name = 'Archer'
 UNION ALL
 SELECT id, 2,  240,  75,  25 FROM troop_configs WHERE name = 'Archer'
@@ -56,6 +60,8 @@ SELECT id, 6,  480, 170,  25 FROM troop_configs WHERE name = 'Archer';
 
 -- Goblin
 INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot, training_time_seconds)
+SELECT id, 0,    0,   0,   0 FROM troop_configs WHERE name = 'Goblin'
+UNION ALL
 SELECT id, 1,  200,  80,  30 FROM troop_configs WHERE name = 'Goblin'
 UNION ALL
 SELECT id, 2,  240, 100,  30 FROM troop_configs WHERE name = 'Goblin'
@@ -70,6 +76,8 @@ SELECT id, 6,  480, 230,  30 FROM troop_configs WHERE name = 'Goblin';
 
 -- Giant
 INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot, training_time_seconds)
+SELECT id, 0,    0,   0,   0 FROM troop_configs WHERE name = 'Giant'
+UNION ALL
 SELECT id, 1, 1500, 110, 120 FROM troop_configs WHERE name = 'Giant'
 UNION ALL
 SELECT id, 2, 1900, 140, 120 FROM troop_configs WHERE name = 'Giant'
@@ -83,64 +91,61 @@ UNION ALL
 SELECT id, 6, 4100, 310, 120 FROM troop_configs WHERE name = 'Giant';
 
 
--- =============================================================================
--- 3. TROOP UPGRADE COSTS
---    (elixir-based; dark elixir kicks in at level 5-6 for Giant)
---    upgrade_to_level N = cost to go FROM level N-1 TO level N
--- =============================================================================
+-- ---------------------------------------------------------------------------
+-- 3. TROOP UPGRADE COSTS (super-exponential resources + proportional gems)
+-- ---------------------------------------------------------------------------
 
--- Barbarian (pure elixir)
-INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, time_required_seconds, town_hall_level_required)
-SELECT id, 2,    10000,   3600, 1 FROM troop_configs WHERE name = 'Barbarian'
+-- Barbarian (pure elixir + gems)
+INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT id, 2,     10000,        10,   3600, 1 FROM troop_configs WHERE name = 'Barbarian'
 UNION ALL
-SELECT id, 3,    50000,  14400, 2 FROM troop_configs WHERE name = 'Barbarian'
+SELECT id, 3,    100000,       100,  14400, 2 FROM troop_configs WHERE name = 'Barbarian'
 UNION ALL
-SELECT id, 4,   150000,  43200, 3 FROM troop_configs WHERE name = 'Barbarian'
+SELECT id, 4,   1500000,      1500,  43200, 3 FROM troop_configs WHERE name = 'Barbarian'
 UNION ALL
-SELECT id, 5,   500000,  86400, 4 FROM troop_configs WHERE name = 'Barbarian'
+SELECT id, 5,  30000000,     30000,  86400, 4 FROM troop_configs WHERE name = 'Barbarian'
 UNION ALL
-SELECT id, 6,  1500000, 172800, 5 FROM troop_configs WHERE name = 'Barbarian';
+SELECT id, 6, 750000000,    750000, 172800, 5 FROM troop_configs WHERE name = 'Barbarian';
 
--- Archer (pure elixir)
-INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, time_required_seconds, town_hall_level_required)
-SELECT id, 2,    15000,   3600, 1 FROM troop_configs WHERE name = 'Archer'
+-- Archer (pure elixir + gems)
+INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT id, 2,     15000,        15,   3600, 1 FROM troop_configs WHERE name = 'Archer'
 UNION ALL
-SELECT id, 3,    75000,  18000, 2 FROM troop_configs WHERE name = 'Archer'
+SELECT id, 3,    150000,       150,  18000, 2 FROM troop_configs WHERE name = 'Archer'
 UNION ALL
-SELECT id, 4,   200000,  50400, 3 FROM troop_configs WHERE name = 'Archer'
+SELECT id, 4,   2250000,      2250,  50400, 3 FROM troop_configs WHERE name = 'Archer'
 UNION ALL
-SELECT id, 5,   600000,  93600, 4 FROM troop_configs WHERE name = 'Archer'
+SELECT id, 5,  45000000,     45000,  93600, 4 FROM troop_configs WHERE name = 'Archer'
 UNION ALL
-SELECT id, 6,  1800000, 180000, 5 FROM troop_configs WHERE name = 'Archer';
+SELECT id, 6, 1125000000,  1125000, 180000, 5 FROM troop_configs WHERE name = 'Archer';
 
--- Goblin (elixir, slightly cheaper)
-INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, time_required_seconds, town_hall_level_required)
-SELECT id, 2,     8000,   3600, 1 FROM troop_configs WHERE name = 'Goblin'
+-- Goblin (elixir + gems)
+INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT id, 2,      8000,         8,   3600, 1 FROM troop_configs WHERE name = 'Goblin'
 UNION ALL
-SELECT id, 3,    40000,  14400, 2 FROM troop_configs WHERE name = 'Goblin'
+SELECT id, 3,     80000,        80,  14400, 2 FROM troop_configs WHERE name = 'Goblin'
 UNION ALL
-SELECT id, 4,   120000,  43200, 3 FROM troop_configs WHERE name = 'Goblin'
+SELECT id, 4,   1200000,      1200,  43200, 3 FROM troop_configs WHERE name = 'Goblin'
 UNION ALL
-SELECT id, 5,   400000,  86400, 4 FROM troop_configs WHERE name = 'Goblin'
+SELECT id, 5,  24000000,     24000,  86400, 4 FROM troop_configs WHERE name = 'Goblin'
 UNION ALL
-SELECT id, 6,  1200000, 172800, 5 FROM troop_configs WHERE name = 'Goblin';
+SELECT id, 6, 600000000,    600000, 172800, 5 FROM troop_configs WHERE name = 'Goblin';
 
--- Giant (elixir up to 4, dark elixir for 5-6)
-INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, dark_elixir_required, time_required_seconds, town_hall_level_required)
-SELECT id, 2,   50000,      0,  14400, 1 FROM troop_configs WHERE name = 'Giant'
+-- Giant (elixir/dark elixir + gems)
+INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, dark_elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT id, 2,     50000,      0,        50,  14400, 1 FROM troop_configs WHERE name = 'Giant'
 UNION ALL
-SELECT id, 3,  200000,      0,  43200, 2 FROM troop_configs WHERE name = 'Giant'
+SELECT id, 3,    500000,      0,       500,  43200, 2 FROM troop_configs WHERE name = 'Giant'
 UNION ALL
-SELECT id, 4,  700000,      0,  86400, 3 FROM troop_configs WHERE name = 'Giant'
+SELECT id, 4,   7500000,      0,      7500,  86400, 3 FROM troop_configs WHERE name = 'Giant'
 UNION ALL
-SELECT id, 5,       0,   3000, 172800, 5 FROM troop_configs WHERE name = 'Giant'
+SELECT id, 5,         0,   3000,       300, 172800, 5 FROM troop_configs WHERE name = 'Giant'
 UNION ALL
-SELECT id, 6,       0,   8000, 259200, 6 FROM troop_configs WHERE name = 'Giant';
+SELECT id, 6,         0,  30000,      3000, 259200, 6 FROM troop_configs WHERE name = 'Giant';
 
-
--- =============================================================================
+-- ---------------------------------------------------------------------------
 -- 4. BUILDING CONFIGS BASE
--- =============================================================================
+-- ---------------------------------------------------------------------------
 INSERT INTO building_configs_base (name, category, grid_size_x, grid_size_y)
 VALUES
     -- Town Hall
@@ -169,6 +174,8 @@ VALUES
 
 -- Town Hall
 INSERT INTO building_level_stats (building_id, level, health)
+SELECT building_id, 0,     0 FROM building_configs_base WHERE name = 'Town Hall'
+UNION ALL
 SELECT building_id, 1,  1500 FROM building_configs_base WHERE name = 'Town Hall'
 UNION ALL
 SELECT building_id, 2,  2000 FROM building_configs_base WHERE name = 'Town Hall'
@@ -183,6 +190,8 @@ SELECT building_id, 6,  5000 FROM building_configs_base WHERE name = 'Town Hall'
 
 -- Cannon
 INSERT INTO building_level_stats (building_id, level, health)
+SELECT building_id, 0,     0 FROM building_configs_base WHERE name = 'Cannon'
+UNION ALL
 SELECT building_id, 1,   420 FROM building_configs_base WHERE name = 'Cannon'
 UNION ALL
 SELECT building_id, 2,   500 FROM building_configs_base WHERE name = 'Cannon'
@@ -197,6 +206,8 @@ SELECT building_id, 6,  1000 FROM building_configs_base WHERE name = 'Cannon';
 
 -- Archer Tower
 INSERT INTO building_level_stats (building_id, level, health)
+SELECT building_id, 0,     0 FROM building_configs_base WHERE name = 'Archer Tower'
+UNION ALL
 SELECT building_id, 1,   400 FROM building_configs_base WHERE name = 'Archer Tower'
 UNION ALL
 SELECT building_id, 2,   480 FROM building_configs_base WHERE name = 'Archer Tower'
@@ -211,6 +222,8 @@ SELECT building_id, 6,  1050 FROM building_configs_base WHERE name = 'Archer Tow
 
 -- Air Defense
 INSERT INTO building_level_stats (building_id, level, health)
+SELECT building_id, 0,     0 FROM building_configs_base WHERE name = 'Air Defense'
+UNION ALL
 SELECT building_id, 1,   800 FROM building_configs_base WHERE name = 'Air Defense'
 UNION ALL
 SELECT building_id, 2,   950 FROM building_configs_base WHERE name = 'Air Defense'
@@ -225,6 +238,8 @@ SELECT building_id, 6,  1850 FROM building_configs_base WHERE name = 'Air Defens
 
 -- Gold Mine
 INSERT INTO building_level_stats (building_id, level, health)
+SELECT building_id, 0,     0 FROM building_configs_base WHERE name = 'Gold Mine'
+UNION ALL
 SELECT building_id, 1,   400 FROM building_configs_base WHERE name = 'Gold Mine'
 UNION ALL
 SELECT building_id, 2,   480 FROM building_configs_base WHERE name = 'Gold Mine'
@@ -239,6 +254,8 @@ SELECT building_id, 6,   860 FROM building_configs_base WHERE name = 'Gold Mine'
 
 -- Gold Storage
 INSERT INTO building_level_stats (building_id, level, health)
+SELECT building_id, 0,     0 FROM building_configs_base WHERE name = 'Gold Storage'
+UNION ALL
 SELECT building_id, 1,   400 FROM building_configs_base WHERE name = 'Gold Storage'
 UNION ALL
 SELECT building_id, 2,   500 FROM building_configs_base WHERE name = 'Gold Storage'
@@ -253,6 +270,8 @@ SELECT building_id, 6,  1000 FROM building_configs_base WHERE name = 'Gold Stora
 
 -- Elixir Collector
 INSERT INTO building_level_stats (building_id, level, health)
+SELECT building_id, 0,     0 FROM building_configs_base WHERE name = 'Elixir Collector'
+UNION ALL
 SELECT building_id, 1,   400 FROM building_configs_base WHERE name = 'Elixir Collector'
 UNION ALL
 SELECT building_id, 2,   480 FROM building_configs_base WHERE name = 'Elixir Collector'
@@ -267,6 +286,8 @@ SELECT building_id, 6,   860 FROM building_configs_base WHERE name = 'Elixir Col
 
 -- Elixir Storage
 INSERT INTO building_level_stats (building_id, level, health)
+SELECT building_id, 0,     0 FROM building_configs_base WHERE name = 'Elixir Storage'
+UNION ALL
 SELECT building_id, 1,   400 FROM building_configs_base WHERE name = 'Elixir Storage'
 UNION ALL
 SELECT building_id, 2,   500 FROM building_configs_base WHERE name = 'Elixir Storage'
@@ -281,6 +302,8 @@ SELECT building_id, 6,  1000 FROM building_configs_base WHERE name = 'Elixir Sto
 
 -- Dark Elixir Drill
 INSERT INTO building_level_stats (building_id, level, health)
+SELECT building_id, 0,     0 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
+UNION ALL
 SELECT building_id, 1,   500 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
 UNION ALL
 SELECT building_id, 2,   600 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
@@ -295,6 +318,8 @@ SELECT building_id, 6,  1100 FROM building_configs_base WHERE name = 'Dark Elixi
 
 -- Dark Elixir Storage
 INSERT INTO building_level_stats (building_id, level, health)
+SELECT building_id, 0,     0 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
+UNION ALL
 SELECT building_id, 1,   600 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
 UNION ALL
 SELECT building_id, 2,   700 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
@@ -309,6 +334,8 @@ SELECT building_id, 6,  1400 FROM building_configs_base WHERE name = 'Dark Elixi
 
 -- Barracks
 INSERT INTO building_level_stats (building_id, level, health)
+SELECT building_id, 0,     0 FROM building_configs_base WHERE name = 'Barracks'
+UNION ALL
 SELECT building_id, 1,   250 FROM building_configs_base WHERE name = 'Barracks'
 UNION ALL
 SELECT building_id, 2,   310 FROM building_configs_base WHERE name = 'Barracks'
@@ -339,6 +366,8 @@ SELECT building_id,   0.8, 9.0, 'single_target'::damage_type, 'air'::unit_target
 
 -- Cannon
 INSERT INTO defense_building_level_stats (building_id, level, damage_per_shot)
+SELECT building_id, 0,   0 FROM building_configs_base WHERE name = 'Cannon'
+UNION ALL
 SELECT building_id, 1,  40 FROM building_configs_base WHERE name = 'Cannon'
 UNION ALL
 SELECT building_id, 2,  55 FROM building_configs_base WHERE name = 'Cannon'
@@ -353,6 +382,8 @@ SELECT building_id, 6, 144 FROM building_configs_base WHERE name = 'Cannon';
 
 -- Archer Tower
 INSERT INTO defense_building_level_stats (building_id, level, damage_per_shot)
+SELECT building_id, 0,   0 FROM building_configs_base WHERE name = 'Archer Tower'
+UNION ALL
 SELECT building_id, 1,  20 FROM building_configs_base WHERE name = 'Archer Tower'
 UNION ALL
 SELECT building_id, 2,  28 FROM building_configs_base WHERE name = 'Archer Tower'
@@ -367,6 +398,8 @@ SELECT building_id, 6,  80 FROM building_configs_base WHERE name = 'Archer Tower
 
 -- Air Defense
 INSERT INTO defense_building_level_stats (building_id, level, damage_per_shot)
+SELECT building_id, 0,   0 FROM building_configs_base WHERE name = 'Air Defense'
+UNION ALL
 SELECT building_id, 1, 100 FROM building_configs_base WHERE name = 'Air Defense'
 UNION ALL
 SELECT building_id, 2, 130 FROM building_configs_base WHERE name = 'Air Defense'
@@ -399,12 +432,12 @@ SELECT building_id,  'dark_elixir'::resource_type FROM building_configs_base WHE
 
 -- =============================================================================
 -- 9. RESOURCE BUILDING LEVEL STATS
---    Collectors/mines/drill: low generation, modest storage (~20% of dedicated storage)
---    Storages: zero generation, large storage capacity
 -- =============================================================================
 
--- Gold Mine (generates gold; small storage buffer)
+-- Gold Mine
 INSERT INTO resource_building_level_stats (building_id, level, generation_rate_per_hour, storage_capacity)
+SELECT building_id, 0,     0,      0 FROM building_configs_base WHERE name = 'Gold Mine'
+UNION ALL
 SELECT building_id, 1,   200,   1000 FROM building_configs_base WHERE name = 'Gold Mine'
 UNION ALL
 SELECT building_id, 2,   400,   2500 FROM building_configs_base WHERE name = 'Gold Mine'
@@ -417,8 +450,10 @@ SELECT building_id, 5,  1600,  20000 FROM building_configs_base WHERE name = 'Go
 UNION ALL
 SELECT building_id, 6,  2200,  35000 FROM building_configs_base WHERE name = 'Gold Mine';
 
--- Gold Storage (no generation; large storage)
+-- Gold Storage
 INSERT INTO resource_building_level_stats (building_id, level, generation_rate_per_hour, storage_capacity)
+SELECT building_id, 0,     0,      0 FROM building_configs_base WHERE name = 'Gold Storage'
+UNION ALL
 SELECT building_id, 1,     0,  10000 FROM building_configs_base WHERE name = 'Gold Storage'
 UNION ALL
 SELECT building_id, 2,     0,  25000 FROM building_configs_base WHERE name = 'Gold Storage'
@@ -431,8 +466,10 @@ SELECT building_id, 5,     0, 450000 FROM building_configs_base WHERE name = 'Go
 UNION ALL
 SELECT building_id, 6,     0, 900000 FROM building_configs_base WHERE name = 'Gold Storage';
 
--- Elixir Collector (generates elixir; small storage buffer)
+-- Elixir Collector
 INSERT INTO resource_building_level_stats (building_id, level, generation_rate_per_hour, storage_capacity)
+SELECT building_id, 0,     0,      0 FROM building_configs_base WHERE name = 'Elixir Collector'
+UNION ALL
 SELECT building_id, 1,   200,   1000 FROM building_configs_base WHERE name = 'Elixir Collector'
 UNION ALL
 SELECT building_id, 2,   400,   2500 FROM building_configs_base WHERE name = 'Elixir Collector'
@@ -445,8 +482,10 @@ SELECT building_id, 5,  1600,  20000 FROM building_configs_base WHERE name = 'El
 UNION ALL
 SELECT building_id, 6,  2200,  35000 FROM building_configs_base WHERE name = 'Elixir Collector';
 
--- Elixir Storage (no generation; large storage)
+-- Elixir Storage
 INSERT INTO resource_building_level_stats (building_id, level, generation_rate_per_hour, storage_capacity)
+SELECT building_id, 0,     0,      0 FROM building_configs_base WHERE name = 'Elixir Storage'
+UNION ALL
 SELECT building_id, 1,     0,  10000 FROM building_configs_base WHERE name = 'Elixir Storage'
 UNION ALL
 SELECT building_id, 2,     0,  25000 FROM building_configs_base WHERE name = 'Elixir Storage'
@@ -459,8 +498,10 @@ SELECT building_id, 5,     0, 450000 FROM building_configs_base WHERE name = 'El
 UNION ALL
 SELECT building_id, 6,     0, 900000 FROM building_configs_base WHERE name = 'Elixir Storage';
 
--- Dark Elixir Drill (unlocked at TH5; generates dark elixir; small storage buffer)
+-- Dark Elixir Drill
 INSERT INTO resource_building_level_stats (building_id, level, generation_rate_per_hour, storage_capacity)
+SELECT building_id, 0,     0,      0 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
+UNION ALL
 SELECT building_id, 1,    20,     80 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
 UNION ALL
 SELECT building_id, 2,    40,    160 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
@@ -473,8 +514,10 @@ SELECT building_id, 5,   130,    640 FROM building_configs_base WHERE name = 'Da
 UNION ALL
 SELECT building_id, 6,   180,    900 FROM building_configs_base WHERE name = 'Dark Elixir Drill';
 
--- Dark Elixir Storage (no generation; large storage; unlocked at TH5)
+-- Dark Elixir Storage
 INSERT INTO resource_building_level_stats (building_id, level, generation_rate_per_hour, storage_capacity)
+SELECT building_id, 0,     0,      0 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
+UNION ALL
 SELECT building_id, 1,     0,   1000 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
 UNION ALL
 SELECT building_id, 2,     0,   2500 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
@@ -499,6 +542,8 @@ SELECT building_id FROM building_configs_base WHERE name = 'Barracks';
 -- 11. ARMY BUILDING LEVEL STATS
 -- =============================================================================
 INSERT INTO army_building_level_stats (building_id, level, troop_capacity)
+SELECT building_id, 0,   0 FROM building_configs_base WHERE name = 'Barracks'
+UNION ALL
 SELECT building_id, 1,  20 FROM building_configs_base WHERE name = 'Barracks'
 UNION ALL
 SELECT building_id, 2,  30 FROM building_configs_base WHERE name = 'Barracks'
@@ -513,164 +558,181 @@ SELECT building_id, 6, 100 FROM building_configs_base WHERE name = 'Barracks';
 
 
 -- =============================================================================
--- 12. BUILDING UPGRADE COSTS
---     Defense  -> gold (primary) + small elixir top-up at higher levels
---     Resource -> gold for gold buildings, elixir for elixir buildings,
---                 dark elixir for dark elixir buildings (levels 5-6 heavy)
---     Army     -> elixir
---     Town Hall-> gold (primary) + elixir top-up
+-- 12. BUILDING UPGRADE COSTS (super-exponential resources + proportional gems)
 -- =============================================================================
 
--- ── Town Hall ─────────────────────────────────────────────────────────────────
-INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, elixir_required, time_required_seconds, town_hall_level_required)
-SELECT building_id, 1,        0,        0,       0, 1 FROM building_configs_base WHERE name = 'Town Hall'
+-- ── Town Hall (5x Gem Multiplier) ─────────────────────────────────────────────
+INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT building_id, 0,           0,           0,          5,       0, 1 FROM building_configs_base WHERE name = 'Town Hall'
 UNION ALL
-SELECT building_id, 2,    25000,     5000,   14400, 1 FROM building_configs_base WHERE name = 'Town Hall'
+SELECT building_id, 1,           0,           0,         10,       0, 1 FROM building_configs_base WHERE name = 'Town Hall'
 UNION ALL
-SELECT building_id, 3,   100000,    20000,   86400, 2 FROM building_configs_base WHERE name = 'Town Hall'
+SELECT building_id, 2,       25000,        5000,        150,   14400, 1 FROM building_configs_base WHERE name = 'Town Hall'
 UNION ALL
-SELECT building_id, 4,   400000,    80000,  259200, 3 FROM building_configs_base WHERE name = 'Town Hall'
+SELECT building_id, 3,      250000,       50000,       1500,   86400, 2 FROM building_configs_base WHERE name = 'Town Hall'
 UNION ALL
-SELECT building_id, 5,  1000000,   200000,  432000, 4 FROM building_configs_base WHERE name = 'Town Hall'
+SELECT building_id, 4,     3750000,      750000,      22500,  259200, 3 FROM building_configs_base WHERE name = 'Town Hall'
 UNION ALL
-SELECT building_id, 6,  3000000,   500000,  604800, 5 FROM building_configs_base WHERE name = 'Town Hall';
+SELECT building_id, 5,    75000000,    15000000,     450000,  432000, 4 FROM building_configs_base WHERE name = 'Town Hall'
+UNION ALL
+SELECT building_id, 6,  1875000000,   375000000,   11250000,  604800, 5 FROM building_configs_base WHERE name = 'Town Hall';
 
 -- ── Cannon ────────────────────────────────────────────────────────────────────
-INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, elixir_required, time_required_seconds, town_hall_level_required)
-SELECT building_id, 1,        0,     0,      0, 1 FROM building_configs_base WHERE name = 'Cannon'
+INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT building_id, 0,           0,           0,          1,       0, 1 FROM building_configs_base WHERE name = 'Cannon'
 UNION ALL
-SELECT building_id, 2,     4000,     0,   1800, 1 FROM building_configs_base WHERE name = 'Cannon'
+SELECT building_id, 1,           0,           0,          2,       0, 1 FROM building_configs_base WHERE name = 'Cannon'
 UNION ALL
-SELECT building_id, 3,    12000,     0,   7200, 2 FROM building_configs_base WHERE name = 'Cannon'
+SELECT building_id, 2,        4000,           0,          4,   1800, 1 FROM building_configs_base WHERE name = 'Cannon'
 UNION ALL
-SELECT building_id, 4,    40000,     0,  21600, 3 FROM building_configs_base WHERE name = 'Cannon'
+SELECT building_id, 3,       40000,           0,         40,   7200, 2 FROM building_configs_base WHERE name = 'Cannon'
 UNION ALL
-SELECT building_id, 5,   120000,  5000,  57600, 4 FROM building_configs_base WHERE name = 'Cannon'
+SELECT building_id, 4,      600000,           0,        600,  21600, 3 FROM building_configs_base WHERE name = 'Cannon'
 UNION ALL
-SELECT building_id, 6,   360000, 15000, 129600, 5 FROM building_configs_base WHERE name = 'Cannon';
+SELECT building_id, 5,    12000000,        5000,      12005,  57600, 4 FROM building_configs_base WHERE name = 'Cannon'
+UNION ALL
+SELECT building_id, 6,   300000000,       75000,     300075, 129600, 5 FROM building_configs_base WHERE name = 'Cannon';
 
 -- ── Archer Tower ──────────────────────────────────────────────────────────────
-INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, elixir_required, time_required_seconds, town_hall_level_required)
-SELECT building_id, 1,        0,     0,      0, 1 FROM building_configs_base WHERE name = 'Archer Tower'
+INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT building_id, 0,           0,           0,          1,       0, 1 FROM building_configs_base WHERE name = 'Archer Tower'
 UNION ALL
-SELECT building_id, 2,     6000,     0,   3600, 1 FROM building_configs_base WHERE name = 'Archer Tower'
+SELECT building_id, 1,           0,           0,          2,       0, 1 FROM building_configs_base WHERE name = 'Archer Tower'
 UNION ALL
-SELECT building_id, 3,    18000,     0,  10800, 2 FROM building_configs_base WHERE name = 'Archer Tower'
+SELECT building_id, 2,        6000,           0,          6,   3600, 1 FROM building_configs_base WHERE name = 'Archer Tower'
 UNION ALL
-SELECT building_id, 4,    60000,     0,  28800, 3 FROM building_configs_base WHERE name = 'Archer Tower'
+SELECT building_id, 3,       60000,           0,         60,  10800, 2 FROM building_configs_base WHERE name = 'Archer Tower'
 UNION ALL
-SELECT building_id, 5,   180000,  8000,  72000, 4 FROM building_configs_base WHERE name = 'Archer Tower'
+SELECT building_id, 4,      900000,           0,        900,  28800, 3 FROM building_configs_base WHERE name = 'Archer Tower'
 UNION ALL
-SELECT building_id, 6,   500000, 25000, 151200, 5 FROM building_configs_base WHERE name = 'Archer Tower';
+SELECT building_id, 5,    18000000,        8000,      18008,  72000, 4 FROM building_configs_base WHERE name = 'Archer Tower'
+UNION ALL
+SELECT building_id, 6,   450000000,      120000,     450120, 151200, 5 FROM building_configs_base WHERE name = 'Archer Tower';
 
 -- ── Air Defense ───────────────────────────────────────────────────────────────
-INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, elixir_required, time_required_seconds, town_hall_level_required)
-SELECT building_id, 1,        0,      0,      0, 2 FROM building_configs_base WHERE name = 'Air Defense'
+INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT building_id, 0,           0,           0,          1,       0, 1 FROM building_configs_base WHERE name = 'Air Defense'
 UNION ALL
-SELECT building_id, 2,    15000,      0,   7200, 2 FROM building_configs_base WHERE name = 'Air Defense'
+SELECT building_id, 1,           0,           0,          2,       0, 2 FROM building_configs_base WHERE name = 'Air Defense'
 UNION ALL
-SELECT building_id, 3,    45000,      0,  21600, 3 FROM building_configs_base WHERE name = 'Air Defense'
+SELECT building_id, 2,       15000,           0,         15,   7200, 2 FROM building_configs_base WHERE name = 'Air Defense'
 UNION ALL
-SELECT building_id, 4,   120000,      0,  57600, 4 FROM building_configs_base WHERE name = 'Air Defense'
+SELECT building_id, 3,      150000,           0,        150,  21600, 3 FROM building_configs_base WHERE name = 'Air Defense'
 UNION ALL
-SELECT building_id, 5,   320000,  12000,  86400, 4 FROM building_configs_base WHERE name = 'Air Defense'
+SELECT building_id, 4,     2250000,           0,       2250,  57600, 4 FROM building_configs_base WHERE name = 'Air Defense'
 UNION ALL
-SELECT building_id, 6,   800000,  30000, 172800, 5 FROM building_configs_base WHERE name = 'Air Defense';
+SELECT building_id, 5,    45000000,       12000,      45012,  86400, 4 FROM building_configs_base WHERE name = 'Air Defense'
+UNION ALL
+SELECT building_id, 6,  1125000000,      180000,    1125180, 172800, 5 FROM building_configs_base WHERE name = 'Air Defense';
 
 -- ── Gold Mine ─────────────────────────────────────────────────────────────────
-INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, time_required_seconds, town_hall_level_required)
-SELECT building_id, 1,        0,      0, 1 FROM building_configs_base WHERE name = 'Gold Mine'
+INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT building_id, 0,           0,           1,          0, 1 FROM building_configs_base WHERE name = 'Gold Mine'
 UNION ALL
-SELECT building_id, 2,      500,    900, 1 FROM building_configs_base WHERE name = 'Gold Mine'
+SELECT building_id, 1,           0,           2,          0, 1 FROM building_configs_base WHERE name = 'Gold Mine'
 UNION ALL
-SELECT building_id, 3,     2000,   3600, 1 FROM building_configs_base WHERE name = 'Gold Mine'
+SELECT building_id, 2,         500,           1,        900, 1 FROM building_configs_base WHERE name = 'Gold Mine'
 UNION ALL
-SELECT building_id, 4,     8000,  14400, 2 FROM building_configs_base WHERE name = 'Gold Mine'
+SELECT building_id, 3,        5000,           5,       3600, 1 FROM building_configs_base WHERE name = 'Gold Mine'
 UNION ALL
-SELECT building_id, 5,    30000,  43200, 3 FROM building_configs_base WHERE name = 'Gold Mine'
+SELECT building_id, 4,       75000,          75,      14400, 2 FROM building_configs_base WHERE name = 'Gold Mine'
 UNION ALL
-SELECT building_id, 6,   100000, 108000, 4 FROM building_configs_base WHERE name = 'Gold Mine';
+SELECT building_id, 5,     1500000,        1500,      43200, 3 FROM building_configs_base WHERE name = 'Gold Mine'
+UNION ALL
+SELECT building_id, 6,    37500000,       37500,     108000, 4 FROM building_configs_base WHERE name = 'Gold Mine';
 
 -- ── Gold Storage ──────────────────────────────────────────────────────────────
-INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, time_required_seconds, town_hall_level_required)
-SELECT building_id, 1,        0,      0, 1 FROM building_configs_base WHERE name = 'Gold Storage'
+INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT building_id, 0,           0,           1,          0, 1 FROM building_configs_base WHERE name = 'Gold Storage'
 UNION ALL
-SELECT building_id, 2,     1000,   1800, 1 FROM building_configs_base WHERE name = 'Gold Storage'
+SELECT building_id, 1,           0,           2,          0, 1 FROM building_configs_base WHERE name = 'Gold Storage'
 UNION ALL
-SELECT building_id, 3,     5000,   7200, 2 FROM building_configs_base WHERE name = 'Gold Storage'
+SELECT building_id, 2,        1000,           1,       1800, 1 FROM building_configs_base WHERE name = 'Gold Storage'
 UNION ALL
-SELECT building_id, 4,    20000,  28800, 3 FROM building_configs_base WHERE name = 'Gold Storage'
+SELECT building_id, 3,       10000,          10,       7200, 2 FROM building_configs_base WHERE name = 'Gold Storage'
 UNION ALL
-SELECT building_id, 5,    80000,  86400, 4 FROM building_configs_base WHERE name = 'Gold Storage'
+SELECT building_id, 4,      150000,         150,      28800, 3 FROM building_configs_base WHERE name = 'Gold Storage'
 UNION ALL
-SELECT building_id, 6,   300000, 172800, 5 FROM building_configs_base WHERE name = 'Gold Storage';
+SELECT building_id, 5,     3000000,        3000,      86400, 4 FROM building_configs_base WHERE name = 'Gold Storage'
+UNION ALL
+SELECT building_id, 6,    75000000,       75000,     172800, 5 FROM building_configs_base WHERE name = 'Gold Storage';
 
 -- ── Elixir Collector ──────────────────────────────────────────────────────────
-INSERT INTO upgrade_costs (building_id, upgrade_to_level, elixir_required, time_required_seconds, town_hall_level_required)
-SELECT building_id, 1,        0,      0, 1 FROM building_configs_base WHERE name = 'Elixir Collector'
+INSERT INTO upgrade_costs (building_id, upgrade_to_level, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT building_id, 0,           0,           1,          0, 1 FROM building_configs_base WHERE name = 'Elixir Collector'
 UNION ALL
-SELECT building_id, 2,      500,    900, 1 FROM building_configs_base WHERE name = 'Elixir Collector'
+SELECT building_id, 1,           0,           2,          0, 1 FROM building_configs_base WHERE name = 'Elixir Collector'
 UNION ALL
-SELECT building_id, 3,     2000,   3600, 1 FROM building_configs_base WHERE name = 'Elixir Collector'
+SELECT building_id, 2,         500,           1,        900, 1 FROM building_configs_base WHERE name = 'Elixir Collector'
 UNION ALL
-SELECT building_id, 4,     8000,  14400, 2 FROM building_configs_base WHERE name = 'Elixir Collector'
+SELECT building_id, 3,        5000,           5,       3600, 1 FROM building_configs_base WHERE name = 'Elixir Collector'
 UNION ALL
-SELECT building_id, 5,    30000,  43200, 3 FROM building_configs_base WHERE name = 'Elixir Collector'
+SELECT building_id, 4,       75000,          75,      14400, 2 FROM building_configs_base WHERE name = 'Elixir Collector'
 UNION ALL
-SELECT building_id, 6,   100000, 108000, 4 FROM building_configs_base WHERE name = 'Elixir Collector';
+SELECT building_id, 5,     1500000,        1500,      43200, 3 FROM building_configs_base WHERE name = 'Elixir Collector'
+UNION ALL
+SELECT building_id, 6,    37500000,       37500,     108000, 4 FROM building_configs_base WHERE name = 'Elixir Collector';
 
 -- ── Elixir Storage ────────────────────────────────────────────────────────────
-INSERT INTO upgrade_costs (building_id, upgrade_to_level, elixir_required, time_required_seconds, town_hall_level_required)
-SELECT building_id, 1,        0,      0, 1 FROM building_configs_base WHERE name = 'Elixir Storage'
+INSERT INTO upgrade_costs (building_id, upgrade_to_level, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT building_id, 0,           0,           1,          0, 1 FROM building_configs_base WHERE name = 'Elixir Storage'
 UNION ALL
-SELECT building_id, 2,     1000,   1800, 1 FROM building_configs_base WHERE name = 'Elixir Storage'
+SELECT building_id, 1,           0,           2,          0, 1 FROM building_configs_base WHERE name = 'Elixir Storage'
 UNION ALL
-SELECT building_id, 3,     5000,   7200, 2 FROM building_configs_base WHERE name = 'Elixir Storage'
+SELECT building_id, 2,        1000,           1,       1800, 1 FROM building_configs_base WHERE name = 'Elixir Storage'
 UNION ALL
-SELECT building_id, 4,    20000,  28800, 3 FROM building_configs_base WHERE name = 'Elixir Storage'
+SELECT building_id, 3,       10000,          10,       7200, 2 FROM building_configs_base WHERE name = 'Elixir Storage'
 UNION ALL
-SELECT building_id, 5,    80000,  86400, 4 FROM building_configs_base WHERE name = 'Elixir Storage'
+SELECT building_id, 4,      150000,         150,      28800, 3 FROM building_configs_base WHERE name = 'Elixir Storage'
 UNION ALL
-SELECT building_id, 6,   300000, 172800, 5 FROM building_configs_base WHERE name = 'Elixir Storage';
+SELECT building_id, 5,     3000000,        3000,      86400, 4 FROM building_configs_base WHERE name = 'Elixir Storage'
+UNION ALL
+SELECT building_id, 6,    75000000,       75000,     172800, 5 FROM building_configs_base WHERE name = 'Elixir Storage';
 
--- ── Dark Elixir Drill (unlocked at TH5; levels 5-6 cost heavy dark elixir) ──
-INSERT INTO upgrade_costs (building_id, upgrade_to_level, dark_elixir_required, time_required_seconds, town_hall_level_required)
-SELECT building_id, 1,      0,      0, 5 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
+-- ── Dark Elixir Drill (unlocked at TH5) ───────────────────────────────────────
+INSERT INTO upgrade_costs (building_id, upgrade_to_level, dark_elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT building_id, 0,           0,           1,          0, 1 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
 UNION ALL
-SELECT building_id, 2,     50,   7200, 5 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
+SELECT building_id, 1,           0,           2,          0, 5 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
 UNION ALL
-SELECT building_id, 3,    150,  21600, 5 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
+SELECT building_id, 2,          50,           5,       7200, 5 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
 UNION ALL
-SELECT building_id, 4,    400,  57600, 5 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
+SELECT building_id, 3,         500,          50,      21600, 5 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
 UNION ALL
-SELECT building_id, 5,   1200, 129600, 5 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
+SELECT building_id, 4,        7500,         750,      57600, 5 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
 UNION ALL
-SELECT building_id, 6,   3500, 259200, 6 FROM building_configs_base WHERE name = 'Dark Elixir Drill';
+SELECT building_id, 5,      150000,       15000,     129600, 5 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
+UNION ALL
+SELECT building_id, 6,     3750000,      375000,     259200, 6 FROM building_configs_base WHERE name = 'Dark Elixir Drill';
 
 -- ── Dark Elixir Storage (unlocked at TH5) ─────────────────────────────────────
-INSERT INTO upgrade_costs (building_id, upgrade_to_level, dark_elixir_required, time_required_seconds, town_hall_level_required)
-SELECT building_id, 1,      0,      0, 5 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
+INSERT INTO upgrade_costs (building_id, upgrade_to_level, dark_elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT building_id, 0,           0,           1,          0, 1 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
 UNION ALL
-SELECT building_id, 2,     60,   7200, 5 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
+SELECT building_id, 1,           0,           2,          0, 5 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
 UNION ALL
-SELECT building_id, 3,    200,  21600, 5 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
+SELECT building_id, 2,          60,           6,       7200, 5 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
 UNION ALL
-SELECT building_id, 4,    600,  57600, 5 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
+SELECT building_id, 3,         600,          60,      21600, 5 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
 UNION ALL
-SELECT building_id, 5,   1800, 129600, 5 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
+SELECT building_id, 4,        9000,         900,      57600, 5 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
 UNION ALL
-SELECT building_id, 6,   5000, 259200, 6 FROM building_configs_base WHERE name = 'Dark Elixir Storage';
+SELECT building_id, 5,      180000,       18000,     129600, 5 FROM building_configs_base WHERE name = 'Dark Elixir Storage'
+UNION ALL
+SELECT building_id, 6,     4500000,      450000,     259200, 6 FROM building_configs_base WHERE name = 'Dark Elixir Storage';
 
 -- ── Barracks (elixir) ─────────────────────────────────────────────────────────
-INSERT INTO upgrade_costs (building_id, upgrade_to_level, elixir_required, time_required_seconds, town_hall_level_required)
-SELECT building_id, 1,        0,      0, 1 FROM building_configs_base WHERE name = 'Barracks'
+INSERT INTO upgrade_costs (building_id, upgrade_to_level, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT building_id, 0,           0,           1,          0, 1 FROM building_configs_base WHERE name = 'Barracks'
 UNION ALL
-SELECT building_id, 2,     1500,   1800, 1 FROM building_configs_base WHERE name = 'Barracks'
+SELECT building_id, 1,           0,           2,          0, 1 FROM building_configs_base WHERE name = 'Barracks'
 UNION ALL
-SELECT building_id, 3,     6000,   7200, 2 FROM building_configs_base WHERE name = 'Barracks'
+SELECT building_id, 2,        1500,           2,       1800, 1 FROM building_configs_base WHERE name = 'Barracks'
 UNION ALL
-SELECT building_id, 4,    25000,  21600, 3 FROM building_configs_base WHERE name = 'Barracks'
+SELECT building_id, 3,       15000,          15,       7200, 2 FROM building_configs_base WHERE name = 'Barracks'
 UNION ALL
-SELECT building_id, 5,   100000,  57600, 4 FROM building_configs_base WHERE name = 'Barracks'
+SELECT building_id, 4,      225000,         225,      21600, 3 FROM building_configs_base WHERE name = 'Barracks'
 UNION ALL
-SELECT building_id, 6,   400000, 129600, 5 FROM building_configs_base WHERE name = 'Barracks';
+SELECT building_id, 5,     4500000,        4500,      57600, 4 FROM building_configs_base WHERE name = 'Barracks'
+UNION ALL
+SELECT building_id, 6,   112500000,      112500,     129600, 5 FROM building_configs_base WHERE name = 'Barracks';

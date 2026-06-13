@@ -11,7 +11,7 @@ import (
 func main() {
 	log.SetOutput(os.Stdout)
 	Database.InitDB("postgres://admin_tentellam:i_wont_tell_you@localhost:5432/VillageGameDB?sslmode=disable")
-
+	//Database.InitDB('postgresql://server_for_vilage_combat_user:uvtUFCvmsoD5677DrXYcvp8l2lyfgWkA@dpg-d8k12agjs32c73e6jsig-a.virginia-postgres.render.com/server_for_vilage_combat')
 	http.HandleFunc("/register", Auth.RegisterHandler)
 	http.HandleFunc("/login", Auth.LoginHandler)
 	http.HandleFunc("/ws", Auth.HandleWebSocket)

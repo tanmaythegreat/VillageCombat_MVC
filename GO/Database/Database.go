@@ -30,6 +30,10 @@ var (
 	Barracks_ID          string
 )
 var BuildingID_Category map[string]Models.BuildingCategory
+var BuildingSize map[string]struct {
+	X int
+	Y int
+}
 
 func InitDB(dsn string) {
 	var err error
@@ -48,16 +52,28 @@ func LoadStaticBuildingIDsAndCategory() error {
 	var buildings []struct {
 		BuildingID string                  `gorm:"column:building_id"`
 		Category   Models.BuildingCategory `gorm:"column:category"`
+		GridSizeX  int                     `gorm:"column:grid_size_x"`
+		GridSizeY  int                     `gorm:"column:grid_size_y"`
 		Name       string                  `gorm:"column:name"`
 	}
 
-	err := DB.Table(Models.BuildingConfigBase{}.TableName()).Select("building_id,category, name").Find(&buildings).Error
+	err := DB.Table(Models.BuildingConfigBase{}.TableName()).Select("building_id,category,grid_size_x,grid_size_y, name").Find(&buildings).Error
 	if err != nil {
 		return err
 	}
 	BuildingID_Category = make(map[string]Models.BuildingCategory)
+	BuildingSize = make(map[string]struct {
+		X int
+		Y int
+	})
 	for _, b := range buildings {
 		BuildingID_Category[b.BuildingID] = b.Category
+		BuildingSize[b.BuildingID] = struct {
+			X int
+			Y int
+		}{
+			X: b.GridSizeX, Y: b.GridSizeY,
+		}
 		switch b.Name {
 		case "Town Hall":
 			TownHall_ID = b.BuildingID
@@ -155,7 +171,11 @@ func GetUserByEmail(email string) (*Models.User, error) {
 	}
 	return &user, nil
 }
-
+func GetUserData(userId string) (Models.UserData, error) {
+	var userData Models.UserData
+	err := DB.Where("user_id = ?", userId).First(&userData).Error
+	return userData, err
+}
 func AddRefreshToken(userID string, tokenHash string, ipAddress string, userAgent string, expireTime time.Time) error {
 	var existing Models.RefreshToken
 	err := DB.Where("user_id = ?", userID).First(&existing).Error
@@ -193,9 +213,6 @@ func GetRefreshTokenByUserID(userID string) (*Models.RefreshToken, error) {
 	return &token, nil
 }
 
-func UpdatePlacedBuilding(building *Models.PlacedBuilding) error {
-	return DB.Select("level", "dynamic_state", "last_updated_at").Save(building).Error
-}
 func GetAllBuildingConfigsJSON() (json.RawMessage, error) {
 	var configs []Models.BuildingConfigBase
 	err := DB.Find(&configs).Error
@@ -265,6 +282,11 @@ func GetPlacedBuildingJSON(userID string) (json.RawMessage, error) {
 	}
 	return json.Marshal(configs)
 }
+func GetPlacedBuilding(userID string, placedBuildingId string) (Models.PlacedBuilding, error) {
+	var configs Models.PlacedBuilding
+	err := DB.Where("user_id = ? AND id = ?", userID, placedBuildingId).Clauses(clause.Returning{}).First(&configs).Error
+	return configs, err
+}
 func GetTrainedTroopsJSON(userID string) (json.RawMessage, error) {
 	var configs []Models.TrainedTroop
 	err := DB.Where("user_id = ?", userID).Find(&configs).Error
@@ -275,7 +297,7 @@ func GetTrainedTroopsJSON(userID string) (json.RawMessage, error) {
 }
 func GetPlacedBuilding_ID_Level(userID string) ([]Models.PlacedBuilding, error) {
 	var placedBuildings []Models.PlacedBuilding
-	err := DB.Table("placed_building").
+	err := DB.Table("placed_buildings").
 		Select("building_id, level").
 		Where("user_id = ?", userID).
 		Find(&placedBuildings).Error
@@ -285,7 +307,7 @@ func GetPlacedBuilding_ID_Level(userID string) ([]Models.PlacedBuilding, error) 
 	}
 	return placedBuildings, nil
 }
-func GetBuildingDataOfLevel(buildingID string, level int) ([]byte, error) { // Added return types
+func GetBuildingDataOfLevelJSON(buildingID string, level int) (json.RawMessage, error) {
 	response := struct {
 		BuildingID  string                    `json:"building_id"`
 		Level       int                       `json:"level"`
@@ -362,19 +384,207 @@ func GetPlacedBuildingLevel(userID string, placedBuildingID string) (int, error)
 	}
 	return placedBuilding.Level, nil
 }
-func ConstructBuilding(userID string, buildingID string, x int, y int) (Models.PlacedBuilding, error) {
+func GetConstructionTasks(userID string) (json.RawMessage, error) {
+	var constructionTasks []Models.ConstructionTask
+	err := DB.Where("user_id = ?", userID).Find(&constructionTasks).Error
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(constructionTasks)
+}
+func ConstructBuilding(userID string, buildingID string, x int, y int, tx *gorm.DB, duration int) (Models.PlacedBuilding, Models.ConstructionTask, error) {
 	newBuilding := Models.PlacedBuilding{
 		UserID:     userID,
 		BuildingID: buildingID,
 		GridX:      x,
 		GridY:      y,
-		Level:      1,
+		Level:      0,
 	}
-	err := DB.Select("user_id", "building_id", "grid_x", "grid_y", "current_level").Create(&newBuilding).Error
+	err := tx.Select("user_id", "building_id", "grid_x", "grid_y", "current_level").Clauses(clause.Returning{}).Create(&newBuilding).Error
 	if err != nil {
-		return newBuilding, err
+		return newBuilding, Models.ConstructionTask{}, err
 	}
-	return newBuilding, nil
+	task, err := StartConstruction_Building(userID, Models.BuildingConstruction, newBuilding.ID, duration, tx)
+	return newBuilding, task, err
+}
+func UpgradeBuilding(userID string, placed_buildingID string, tx *gorm.DB, duration int) (Models.ConstructionTask, error) {
+	task, err := StartConstruction_Building(userID, Models.BuildingUpgrade, placed_buildingID, duration, tx)
+	return task, err
+}
+func GetNearByBuildings(userId string, x int, y int) ([]struct {
+	At_x   int
+	At_y   int
+	Size_x int
+	Size_y int
+}, error) {
+	const radius = 10
+
+	var placedBuildings []Models.PlacedBuilding
+
+	result := DB.Where(
+		"user_id = ? AND grid_x BETWEEN ? AND ? AND grid_y BETWEEN ? AND ?",
+		userId,
+		x-radius,
+		x+radius,
+		y-radius,
+		y+radius,
+	).Find(&placedBuildings)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	nearbyBuildings := make([]struct {
+		At_x   int
+		At_y   int
+		Size_x int
+		Size_y int
+	}, 0, len(placedBuildings))
+
+	for _, pb := range placedBuildings {
+		size, exists := BuildingSize[pb.BuildingID]
+		if !exists {
+			log.Printf("Warning: Size not found for BuildingID %s. Defaulting to 1x1.\n", pb.BuildingID)
+			size = struct {
+				X int
+				Y int
+			}{X: 1, Y: 1}
+		}
+
+		nearbyBuildings = append(nearbyBuildings, struct {
+			At_x   int
+			At_y   int
+			Size_x int
+			Size_y int
+		}{
+			At_x:   pb.GridX,
+			At_y:   pb.GridY,
+			Size_x: size.X,
+			Size_y: size.Y,
+		})
+	}
+
+	return nearbyBuildings, nil
+}
+func StartConstruction_Building(userID string, taskType Models.ConstructionType, placedBuildingId string, duration_seconds int, tx *gorm.DB) (Models.ConstructionTask, error) {
+
+	newTask := Models.ConstructionTask{
+		UserID:           userID,
+		TaskType:         taskType,
+		PlacedBuildingID: placedBuildingId,
+		DurationSeconds:  duration_seconds,
+	}
+
+	err := tx.Select(
+		"user_id",
+		"task_type",
+		"placed_building_id",
+		"duration_seconds",
+	).Clauses(clause.Returning{}).Create(&newTask).Error
+	return newTask, err
+}
+func GetConstructionCost(building_id string, upgrade_to int) (Models.UpgradeCost, error) {
+	var cost Models.UpgradeCost
+	err := DB.Where("building_id = ? AND upgrade_to_level = ?", building_id, upgrade_to).
+		First(&cost).Error
+	return cost, err
+}
+
+func UserPurchase(userId string, cost Models.UpgradeCost, useGem bool) (*gorm.DB, error) {
+
+	tx := DB.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	var result *gorm.DB
+
+	if useGem {
+		result = tx.Model(&Models.UserData{}).
+			Where("user_id = ? AND current_gems >= ?", userId, cost.OrGemRequired).
+			Update("current_gems", gorm.Expr("current_gems - ?", cost.OrGemRequired))
+	} else {
+		result = tx.Model(&Models.UserData{}).
+			Where("user_id = ? AND current_gold >= ? AND current_elixir >= ? AND current_dark_elixir >= ?",
+				userId, cost.GoldRequired, cost.ElixirRequired, cost.DarkElixirRequired).
+			Updates(map[string]interface{}{
+				"current_gold":        gorm.Expr("current_gold - ?", cost.GoldRequired),
+				"current_elixir":      gorm.Expr("current_elixir - ?", cost.ElixirRequired),
+				"current_dark_elixir": gorm.Expr("current_dark_elixir - ?", cost.DarkElixirRequired),
+			})
+	}
+
+	if result.Error != nil {
+		tx.Rollback()
+		log.Printf("Database error during purchase for user %s: %v\n", userId, result.Error)
+		return nil, result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		tx.Rollback()
+		return nil, errors.New("insufficient resources")
+	}
+
+	return tx, nil
+}
+func CheckIsConstructionComplete(userId string) ([]Models.ConstructionTask, []Models.PlacedBuilding, error) {
+	var completedTasks []Models.ConstructionTask
+	var updatedBuildings []Models.PlacedBuilding
+
+	tx := DB.Begin()
+	if tx.Error != nil {
+		return nil, nil, tx.Error
+	}
+	defer tx.Rollback()
+
+	err := tx.Clauses(clause.Returning{}).
+		Where("user_id = ?", userId).
+		Where("task_type IN ?", []Models.ConstructionType{Models.BuildingConstruction, Models.BuildingUpgrade}).
+		Where("started_at + (duration_seconds * INTERVAL '1 second') <= NOW()").
+		Delete(&completedTasks).Error
+
+	if err != nil {
+		log.Printf("Error deleting completed tasks for user %s: %v\n", userId, err)
+		return nil, nil, err
+	}
+
+	if len(completedTasks) == 0 {
+		tx.Commit()
+		return completedTasks, updatedBuildings, nil
+	}
+
+	var buildingIDs []string
+	for _, task := range completedTasks {
+		buildingIDs = append(buildingIDs, task.PlacedBuildingID)
+	}
+	err = tx.Clauses(clause.Returning{}).
+		Model(&Models.PlacedBuilding{}).
+		Where("id IN ?", buildingIDs).
+		Update("level", gorm.Expr("level + 1")).
+		Scan(&updatedBuildings).Error
+
+	if err != nil {
+		log.Printf("Error updating building levels for user %s: %v\n", userId, err)
+		return nil, nil, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("Error committing transaction for user %s: %v\n", userId, err)
+		return nil, nil, err
+	}
+	return completedTasks, updatedBuildings, nil
+}
+func IncrementUserTownHallLevel(userId string) error {
+	return DB.Table("users").
+		Where("user_id = ?", userId).
+		Update("town_hall_level", gorm.Expr("town_hall_level + 1")).
+		Error
+}
+func IsConstructionUnderProgress(userId string, placed_building_id string) (bool, error) {
+	n := int64(0)
+	err := DB.Table(Models.ConstructionTask{}.TableName()).Where("user_id = ? AND placed_building_id = ?").Count(&n).Error
+	return n > 0, err
+
 }
 
 // region Unused Functions

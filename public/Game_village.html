@@ -4,15 +4,110 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Village Combat - 3D World</title>
-    <link rel="stylesheet" href="Game_village.css">
+    <link rel="stylesheet" href="./Game_village.css">
+    <link rel="icon" type="image/x-icon" href="grid.jpg">
 </head>
 <body>
-<div id="game-container"></div>
 
-<div class="game-ui">
-    <h2>Village Base</h2>
-    <p>Use WASD to pan the camera</p>
+<!-- Building Shop Overlay -->
+<div id="shop-overlay" class="bm-backdrop">
+    <div class="shop-panel">
+        <div class="bm-header">
+            <div class="bm-header-left">
+                <div class="bm-icon"><i class="ti ti-hammer"></i></div>
+                <div>
+                    <p class="bm-name">Build</p>
+                    <p class="bm-sub" id="shop-grid-sub">Choose a building to place</p>
+                </div>
+            </div>
+            <button class="bm-close" id="shop-close-btn">✕</button>
+        </div>
+
+        <div class="shop-search-bar">
+            <input type="text" id="shop-search" class="shop-search-input" placeholder="Search buildings…" />
+            <div class="shop-filter-tabs" id="shop-filter-tabs">
+                <button class="shop-tab active" data-cat="All">All</button>
+                <button class="shop-tab" data-cat="defense">⚔️ Defense</button>
+                <button class="shop-tab" data-cat="resource">💰 Resource</button>
+                <button class="shop-tab" data-cat="army">🪖 Army</button>
+                <button class="shop-tab" data-cat="townhall">🏰 Town Hall</button>
+            </div>
+        </div>
+
+        <div class="shop-list" id="shop-list"></div>
+
+        <!-- Detail panel (slides in when a card is selected) -->
+        <div class="shop-detail" id="shop-detail" style="display:none;">
+            <button class="shop-detail-back" id="shop-detail-back">← Back</button>
+            <div class="shop-detail-img-wrap">
+                <img id="shop-detail-img" src="" alt="" />
+            </div>
+            <div class="shop-detail-info">
+                <p class="shop-detail-name" id="shop-detail-name"></p>
+                <p class="shop-detail-cat" id="shop-detail-cat"></p>
+            </div>
+            <p class="bm-section-title" style="padding: 0 16px; margin-bottom: 8px;">Level 1 Stats</p>
+            <div class="bm-stats-grid shop-detail-stats" id="shop-detail-stats"></div>
+            <div class="shop-detail-cost-box">
+                <div class="bm-upgrade-header">
+                    <span class="bm-upgrade-title">Build cost</span>
+                    <span class="bm-upgrade-tag" id="shop-th-req" style="display:none;"></span>
+                </div>
+                <div class="bm-costs" id="shop-detail-costs"></div>
+            </div>
+            <div class="shop-detail-actions">
+                <button class="bm-btn primary" id="shop-build-btn">🔨 Build</button>
+                <button class="bm-btn gem-btn" id="shop-gem-btn">💎 Instant</button>
+            </div>
+        </div>
+    </div>
 </div>
+
+<div id="bm-overlay" class="bm-backdrop">
+    <div class="bm-panel">
+        <div class="bm-header">
+            <div class="bm-header-left">
+                <div class="bm-icon"><i id="bm-icon-class" class="ti ti-home"></i></div>
+                <div>
+                    <p class="bm-name" id="bm-name-text">Building Name</p>
+                    <p class="bm-sub" id="bm-sub-text">Category · Level X</p>
+                </div>
+            </div>
+            <button class="bm-close" id="bm-close-btn">✕</button>
+        </div>
+
+        <div class="bm-level-bar">
+            <span class="bm-level-label">Level</span>
+            <div class="bm-level-dots" id="bm-level-dots"></div>
+            <span class="bm-level-num" id="bm-level-text">1 / 8</span>
+        </div>
+
+        <div class="bm-body">
+            <p class="bm-section-title">Current stats</p>
+            <div class="bm-stats-grid" id="bm-stats-grid"></div>
+
+            <div id="bm-upgrade-section">
+                <p class="bm-section-title" id="bm-upgrade-title-text">Upgrade to level X</p>
+                <div class="bm-upgrade-box">
+                    <div class="bm-upgrade-header">
+                        <span class="bm-upgrade-title">Upgrade cost</span>
+                        <span class="bm-upgrade-tag" id="bm-th-req-tag" style="display: none;">TH X required</span>
+                    </div>
+                    <div class="bm-costs" id="bm-costs-container"></div>
+                </div>
+            </div>
+
+            <p id="bm-max-notice" class="bm-max-notice" style="display: none;">Max level reached</p>
+
+            <div class="bm-actions">
+                <button class="bm-btn" id="bm-move-btn">↕ Move</button>
+                <button class="bm-btn primary" id="bm-upgrade-btn">▲ Upgrade</button>
+                <button class="bm-btn gem-btn" id="bm-gem-upgrade-btn">💎 Gems</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="game-container"></div>
 
 <script type="module" src="Game_village.js"></script>
 </body>

@@ -1,0 +1,11 @@
+DELETE FROM upgrade_costs;
+DELETE FROM army_building_level_stats;
+DELETE FROM army_building_stats;
+DELETE FROM resource_building_level_stats;
+DELETE FROM resource_building_stats;
+DELETE FROM defense_building_level_stats;
+DELETE FROM defense_building_stats;
+DELETE FROM building_level_stats;
+DELETE FROM building_configs_base;
+DELETE FROM troop_level_stats;
+DELETE FROM troop_configs;

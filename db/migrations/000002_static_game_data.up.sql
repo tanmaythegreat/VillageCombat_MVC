@@ -1,5 +1,5 @@
 CREATE DOMAIN non_negative_int AS INT CHECK (VALUE >= 0);
-CREATE DOMAIN town_hall_range AS INT CHECK (VALUE BETWEEN 1 AND 6);
+CREATE DOMAIN town_hall_range AS INT CHECK (VALUE BETWEEN 0 AND 6);
 CREATE DOMAIN non_negative_numeric AS NUMERIC CHECK (VALUE >= 0.0);
 
 CREATE TYPE attack_type AS ENUM ('melee', 'ranged');
@@ -26,8 +26,8 @@ CREATE TABLE building_configs_base
     building_id UUID PRIMARY KEY DEFAULT uuid_generate_v4() UNIQUE,
     name        VARCHAR(255)      NOT NULL UNIQUE,
     category    building_category NOT NULL,
-    grid_size_x non_negative_int  NOT NULL DEFAULT 2,
-    grid_size_y non_negative_int  NOT NULL DEFAULT 2
+    grid_size_x INT  NOT NULL DEFAULT 0,
+    grid_size_y INT  NOT NULL DEFAULT 0
 );
 
 CREATE TABLE troop_level_stats
