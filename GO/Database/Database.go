@@ -4,6 +4,7 @@ import (
 	"Village_combat/GO/Models"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"math"
 	"time"
@@ -34,6 +35,11 @@ var BuildingSize map[string]struct {
 	X int
 	Y int
 }
+var TroopConfigs map[string]Models.TroopConfig
+var TroopLevelDetails map[struct {
+	ID    string
+	Level int
+}]Models.TroopLevelStats
 
 func InitDB(dsn string) {
 	var err error
@@ -46,8 +52,39 @@ func InitDB(dsn string) {
 		panic("Unable to load Buildings")
 		return
 	}
+	err = LoadStaticTroopData()
+	if err != nil {
+		panic("Unable to load Troops data.")
+	}
 }
+func LoadStaticTroopData() error {
+	var config []Models.TroopConfig
+	var lvlstat []Models.TroopLevelStats
 
+	err := DB.Table(Models.TroopConfig{}.TableName()).Find(&config).Error
+	if err != nil {
+		return err
+	}
+	err = DB.Table(Models.TroopLevelStats{}.TableName()).Find(&lvlstat).Error
+	if err != nil {
+		return err
+	}
+	TroopConfigs = make(map[string]Models.TroopConfig)
+	TroopLevelDetails = make(map[struct {
+		ID    string
+		Level int
+	}]Models.TroopLevelStats)
+	for _, troopConfig := range config {
+		TroopConfigs[troopConfig.ID] = troopConfig
+	}
+	for _, stats := range lvlstat {
+		TroopLevelDetails[struct {
+			ID    string
+			Level int
+		}{ID: stats.TroopID, Level: stats.Level}] = stats
+	}
+	return nil
+}
 func LoadStaticBuildingIDsAndCategory() error {
 	var buildings []struct {
 		BuildingID string                  `gorm:"column:building_id"`
@@ -103,6 +140,7 @@ func LoadStaticBuildingIDsAndCategory() error {
 	log.Println("Static building IDs successfully loaded into memory.")
 	return nil
 }
+
 func RegisterUser(username string, passwordHash string, email string) (*Models.User, *Models.UserData, error) {
 
 	tx := DB.Begin()
@@ -140,7 +178,17 @@ func RegisterUser(username string, passwordHash string, email string) (*Models.U
 		tx.Rollback()
 		return nil, nil, err
 	}
+	userStatus := &Models.UserStatus{
+		UserID:       user.UserID,
+		LastDefended: time.Now(),
+		InBattle:     false,
+		Power:        100,
+	}
 
+	if err := tx.Create(userStatus).Error; err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
 	if err := tx.Commit().Error; err != nil {
 		return nil, nil, err
 	}
@@ -262,18 +310,6 @@ func GetAllResourceBuildingConfigsJSON() (json.RawMessage, error) {
 	}
 	return jsonBytes, nil
 }
-func GetAllTroopConfigsJSON() (json.RawMessage, error) {
-	var configs []Models.TroopConfig
-	err := DB.Find(&configs).Error
-	if err != nil {
-		return nil, err
-	}
-	jsonBytes, err := json.Marshal(configs)
-	if err != nil {
-		return nil, err
-	}
-	return jsonBytes, nil
-}
 func GetPlacedBuildingJSON(userID string) (json.RawMessage, error) {
 	var configs []Models.PlacedBuilding
 	err := DB.Where("user_id = ?", userID).Find(&configs).Error
@@ -282,18 +318,26 @@ func GetPlacedBuildingJSON(userID string) (json.RawMessage, error) {
 	}
 	return json.Marshal(configs)
 }
+func GetPlacedBuildings(userID string) ([]Models.PlacedBuilding, error) {
+	var configs []Models.PlacedBuilding
+	err := DB.Where("user_id = ?", userID).Find(&configs).Error
+	return configs, err
+}
 func GetPlacedBuilding(userID string, placedBuildingId string) (Models.PlacedBuilding, error) {
 	var configs Models.PlacedBuilding
 	err := DB.Where("user_id = ? AND id = ?", userID, placedBuildingId).Clauses(clause.Returning{}).First(&configs).Error
 	return configs, err
 }
-func GetTrainedTroopsJSON(userID string) (json.RawMessage, error) {
-	var configs []Models.TrainedTroop
-	err := DB.Where("user_id = ?", userID).Find(&configs).Error
+func UpdatePlacedBuilding(userId string, placedBuildingID string) (Models.PlacedBuilding, error) {
+	var oldBuilding Models.PlacedBuilding
+	err := DB.Where("id = ? AND user_id = ?", placedBuildingID, userId).First(&oldBuilding).Error
 	if err != nil {
-		return nil, err
+		return oldBuilding, err
 	}
-	return json.Marshal(configs)
+	err = DB.Model(&Models.PlacedBuilding{}).
+		Where("id = ?", placedBuildingID).
+		Update("last_updated_at", time.Now()).Error
+	return oldBuilding, err
 }
 func GetPlacedBuilding_ID_Level(userID string) ([]Models.PlacedBuilding, error) {
 	var placedBuildings []Models.PlacedBuilding
@@ -372,6 +416,33 @@ func GetBuildingDataOfLevelJSON(buildingID string, level int) (json.RawMessage, 
 
 	return json.Marshal(response)
 }
+func GetDefenceBuildingStatAndLevelStat(buildingId string, level int) (Models.DefenseBuildingLevelStats, Models.DefenseBuildingStats, error) {
+	var buildingStats Models.DefenseBuildingStats
+	var levelStats Models.DefenseBuildingLevelStats
+
+	if err := DB.Where("building_id = ?", buildingId).First(&buildingStats).Error; err != nil {
+		return levelStats, buildingStats, err
+	}
+
+	if err := DB.Where("building_id = ? AND level = ?", buildingId, level).First(&levelStats).Error; err != nil {
+		return levelStats, buildingStats, err
+	}
+
+	return levelStats, buildingStats, nil
+}
+func GetBuildingHealth(buildingID string, level int) (int, error) {
+	var health int
+	err := DB.Model(&Models.BuildingLevelStats{}).
+		Where("building_id = ? AND level = ?", buildingID, level).
+		Pluck("health", &health).
+		Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	return health, nil
+}
 func GetPlacedBuildingLevel(userID string, placedBuildingID string) (int, error) {
 	var placedBuilding Models.PlacedBuilding
 	err := DB.Table("placed_building").
@@ -400,7 +471,7 @@ func ConstructBuilding(userID string, buildingID string, x int, y int, tx *gorm.
 		GridY:      y,
 		Level:      0,
 	}
-	err := tx.Select("user_id", "building_id", "grid_x", "grid_y", "current_level").Clauses(clause.Returning{}).Create(&newBuilding).Error
+	err := tx.Select("user_id", "building_id", "grid_x", "grid_y", "level").Clauses(clause.Returning{}).Create(&newBuilding).Error
 	if err != nil {
 		return newBuilding, Models.ConstructionTask{}, err
 	}
@@ -539,7 +610,6 @@ func CheckIsConstructionComplete(userId string) ([]Models.ConstructionTask, []Mo
 
 	err := tx.Clauses(clause.Returning{}).
 		Where("user_id = ?", userId).
-		Where("task_type IN ?", []Models.ConstructionType{Models.BuildingConstruction, Models.BuildingUpgrade}).
 		Where("started_at + (duration_seconds * INTERVAL '1 second') <= NOW()").
 		Delete(&completedTasks).Error
 
@@ -555,7 +625,15 @@ func CheckIsConstructionComplete(userId string) ([]Models.ConstructionTask, []Mo
 
 	var buildingIDs []string
 	for _, task := range completedTasks {
-		buildingIDs = append(buildingIDs, task.PlacedBuildingID)
+		if task.TaskType == Models.TroopTraining {
+			err := AddTroopsToUser(userId, *task.TroopID, *task.TroopLevelTo, *task.TroopCount, tx)
+			if err != nil {
+				tx.Rollback()
+				return nil, nil, err
+			}
+		} else {
+			buildingIDs = append(buildingIDs, task.PlacedBuildingID)
+		}
 	}
 	err = tx.Clauses(clause.Returning{}).
 		Model(&Models.PlacedBuilding{}).
@@ -575,16 +653,302 @@ func CheckIsConstructionComplete(userId string) ([]Models.ConstructionTask, []Mo
 	return completedTasks, updatedBuildings, nil
 }
 func IncrementUserTownHallLevel(userId string) error {
-	return DB.Table("users").
+	return DB.Table("user_data").
 		Where("user_id = ?", userId).
 		Update("town_hall_level", gorm.Expr("town_hall_level + 1")).
 		Error
 }
 func IsConstructionUnderProgress(userId string, placed_building_id string) (bool, error) {
 	n := int64(0)
-	err := DB.Table(Models.ConstructionTask{}.TableName()).Where("user_id = ? AND placed_building_id = ?").Count(&n).Error
+	err := DB.Table(Models.ConstructionTask{}.TableName()).Where("user_id = ? AND placed_building_id = ?", userId, placed_building_id).Count(&n).Error
 	return n > 0, err
+}
 
+func GetUserTrainedTroops(userId string) (json.RawMessage, error) {
+	var troops []Models.TrainedTroop
+	err := DB.Where("user_id = ?", userId).Find(&troops).Error
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(troops)
+}
+func GetTroopUpgradeCost(Troop_id string, level_upgrade_to int) (Models.UpgradeCost, error) {
+	var cost Models.UpgradeCost
+	err := DB.Where("troop_id = ? AND upgrade_to_level = ?", Troop_id, level_upgrade_to).
+		First(&cost).Error
+	return cost, err
+}
+func AddTroopsToUser(userId string, troopId string, level int, count int, tx *gorm.DB) error {
+	var troop Models.TrainedTroop
+	err := tx.Where("user_id = ? AND troop_id = ? AND level = ?", userId, troopId, level).First(&troop).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			newTroop := Models.TrainedTroop{
+				UserID:        userId,
+				TroopID:       troopId,
+				Level:         level,
+				Count:         count,
+				LastUpdatedAt: time.Now(),
+			}
+			return tx.Select("user_id", "troop_id", "level", "count", "last_updated_at").
+				Clauses(clause.Returning{}).
+				Create(&newTroop).Error
+		}
+		return err
+	}
+	return tx.Model(&troop).Updates(map[string]interface{}{
+		"count":           gorm.Expr("count + ?", count),
+		"last_updated_at": time.Now(),
+	}).Error
+}
+func SubtractTroopsOfUser(userId string, troopId string, level int, count int, tx *gorm.DB) (bool, error) {
+	if count <= 0 {
+		return false, nil
+	}
+	result := tx.Model(&Models.TrainedTroop{}).
+		Where("user_id = ? AND troop_id = ? AND level = ? AND count >= ?", userId, troopId, level, count).
+		Updates(map[string]interface{}{
+			"count":           gorm.Expr("count - ?", count),
+			"last_updated_at": time.Now(),
+		})
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected > 0, nil
+}
+func GetAllTroopsDataJSON() (json.RawMessage, error) {
+	var troops []Models.TroopConfig
+	err := DB.Preload("LevelStats").Preload("UpgradeCosts").Find(&troops).Error
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(troops)
+}
+func StartTrainingTroops(userID string, troopId string, count int, placedBuildingId string, duration_seconds int, level_to int, tx *gorm.DB) (Models.ConstructionTask, error) {
+
+	newTask := Models.ConstructionTask{
+		UserID:           userID,
+		TaskType:         Models.TroopTraining,
+		PlacedBuildingID: placedBuildingId,
+		TroopID:          &troopId,
+		TroopCount:       &count,
+		DurationSeconds:  duration_seconds,
+		TroopLevelTo:     &level_to,
+	}
+
+	err := tx.Select(
+		"user_id",
+		"task_type",
+		"placed_building_id",
+		"duration_seconds",
+		"troop_id",
+		"troop_count",
+		"troop_level_to",
+	).Clauses(clause.Returning{}).Create(&newTask).Error
+	return newTask, err
+}
+func GetCapacityDifference(building_id string, level1 int, level2 int) (int, error) {
+	var stats []Models.ResourceBuildingLevelStats
+
+	result := DB.Select("level, storage_capacity").
+		Where("building_id = ? AND level IN (?, ?)", building_id, level1, level2).
+		Find(&stats)
+
+	if result.Error != nil {
+		return 0, result.Error
+	}
+
+	var cap1, cap2 int
+	found1, found2 := false, false
+	for _, s := range stats {
+		if s.Level == level1 {
+			cap1 = s.StorageCapacity
+			found1 = true
+		} else if s.Level == level2 {
+			cap2 = s.StorageCapacity
+			found2 = true
+		}
+	}
+	if !found1 || !found2 {
+		log.Printf("Warning: Missing records for building %s (level1 found: %v, level2 found: %v)\n", building_id, found1, found2)
+	}
+	return cap2 - cap1, nil
+}
+func AddUserGold(userId string, gold int) (Models.UserData, error) {
+	var updatedUser Models.UserData
+
+	err := DB.Model(&updatedUser).
+		Clauses(clause.Returning{}).
+		Where("user_id = ?", userId).
+		Updates(map[string]interface{}{
+			"current_gold": gorm.Expr("LEAST(current_gold + ?, total_gold_capacity)", gold),
+			"updated_at":   time.Now(),
+		}).Error
+
+	return updatedUser, err
+}
+
+func AddUserElixir(userId string, elixir int) (Models.UserData, error) {
+	var updatedUser Models.UserData
+	err := DB.Model(&updatedUser).
+		Clauses(clause.Returning{}).
+		Where("user_id = ?", userId).
+		Updates(map[string]interface{}{
+			"current_elixir": gorm.Expr("LEAST(current_elixir + ?, total_elixir_capacity)", elixir),
+			"updated_at":     time.Now(),
+		}).Error
+	return updatedUser, err
+}
+func AddUserDarkElixir(userId string, darkElixir int) (Models.UserData, error) {
+	var updatedUser Models.UserData
+	err := DB.Model(&updatedUser).
+		Clauses(clause.Returning{}).
+		Where("user_id = ?", userId).
+		Updates(map[string]interface{}{
+			"current_dark_elixir": gorm.Expr("LEAST(current_dark_elixir + ?, total_dark_elixir_capacity)", darkElixir),
+			"updated_at":          time.Now(),
+		}).Error
+	return updatedUser, err
+}
+func AddUserGems(userId string, gems int) (Models.UserData, error) {
+	var updatedUser Models.UserData
+
+	err := DB.Model(&updatedUser).
+		Clauses(clause.Returning{}).
+		Where("user_id = ?", userId).
+		Updates(map[string]interface{}{
+			"current_gems": gorm.Expr("current_gems + ?", gems),
+			"updated_at":   time.Now(),
+		}).Error
+
+	return updatedUser, err
+}
+func AddUserCapacity(userId string, gold_capacity int, elixir_capacity int, dark_elixir_capacity int) (Models.UserData, error) {
+	var updatedUser Models.UserData
+
+	err := DB.Model(&updatedUser).
+		Clauses(clause.Returning{}).
+		Where("user_id = ?", userId).
+		Updates(map[string]interface{}{
+			"total_gold_capacity":        gorm.Expr("total_gold_capacity + ?", gold_capacity),
+			"total_elixir_capacity":      gorm.Expr("total_elixir_capacity + ?", elixir_capacity),
+			"total_dark_elixir_capacity": gorm.Expr("total_dark_elixir_capacity + ?", dark_elixir_capacity),
+			"updated_at":                 time.Now(),
+		}).Error
+
+	return updatedUser, err
+}
+func GetGenerationRate(resourceBuildingId string, level int) (float64, error) {
+	var stats Models.ResourceBuildingLevelStats
+	err := DB.Select("generation_rate_per_hour").
+		Where("building_id = ? AND level = ?", resourceBuildingId, level).
+		First(&stats).Error
+	return stats.GenerationRatePerHour, err
+}
+
+func SetUserBattleStatus(userID string, inBattle bool) error {
+	return DB.Model(&Models.UserStatus{}).
+		Where("user_id = ?", userID).
+		Update("in_battle", inBattle).Error
+}
+func FindOpponent(attackerID string, powerRange int) (*Models.UserStatus, error) {
+	var attacker Models.UserStatus
+	var opponent Models.UserStatus
+
+	err := DB.Where("user_id = ?", attackerID).First(&attacker).Error
+	if err != nil {
+		return nil, fmt.Errorf("attacker not found: %w", err)
+	}
+
+	tx := DB.Begin()
+	if tx.Error != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", tx.Error)
+	}
+
+	defer tx.Rollback()
+
+	subQuery := tx.Model(&Models.UserStatus{}).
+		Select("user_id").
+		Where("user_id != ?", attackerID).
+		Where("in_battle = ?", false).
+		Where("power BETWEEN ? AND ?", attacker.Power-powerRange, attacker.Power+powerRange).
+		Order("last_defended ASC").
+		Limit(10)
+
+	err = tx.Model(&Models.UserStatus{}).
+		Where("user_id IN (?)", subQuery).
+		Order("RANDOM()").
+		Limit(1).
+		Clauses(clause.Locking{
+			Strength: "UPDATE",
+			Options:  "SKIP LOCKED",
+		}).
+		First(&opponent).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("no opponent found: %w", err)
+	}
+
+	err = tx.Model(&Models.UserStatus{}).
+		Where("user_id = ?", opponent.UserID).
+		Update("in_battle", true).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to mark in_battle: %w", err)
+	}
+
+	if err = tx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("failed to commit: %w", err)
+	}
+
+	return &opponent, nil
+}
+func SetBrokenBuilding(userID string, placedBuildingID string, isBroken bool) error {
+	result := DB.Model(&Models.PlacedBuilding{}).
+		Where("id = ? AND user_id = ?", placedBuildingID, userID).
+		Update("is_broken", isBroken)
+
+	return result.Error
+}
+func SetBrokenBuildings(userID string, placedBuildingIDs []string, isBroken bool) error {
+	if len(placedBuildingIDs) == 0 {
+		return nil
+	}
+	result := DB.Model(&Models.PlacedBuilding{}).
+		Where("id IN ? AND user_id = ?", placedBuildingIDs, userID).
+		Update("is_broken", isBroken)
+
+	return result.Error
+}
+func InsertBattleHistory(history Models.BattleHistory) (string, error) {
+	result := DB.Create(&history)
+	return history.BattleID, result.Error
+}
+
+func InsertBrokenBuildingBattleHistory(battleId, buildingId string, count int) error {
+	record := Models.BuildingsBroken{
+		BattleID:   battleId,
+		BuildingID: buildingId,
+		Count:      count,
+	}
+	return DB.Create(&record).Error
+}
+func InsertTroopLoosesBattleHistory(battleId, troopId string, count int) error {
+	loss := Models.BattleTroopLoss{
+		BattleID:  battleId,
+		TroopID:   troopId,
+		LossCount: count,
+	}
+	return DB.Create(&loss).Error
+}
+func GetUsername(userId string) (string, error) {
+	var username string
+	err := DB.Model(&Models.User{}).
+		Where("user_id = ?", userId).
+		Select("username").
+		Row().
+		Scan(&username)
+	return username, err
 }
 
 // region Unused Functions

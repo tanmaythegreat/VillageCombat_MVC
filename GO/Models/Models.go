@@ -92,11 +92,10 @@ type TroopConfig struct {
 func (TroopConfig) TableName() string { return "troop_configs" }
 
 type TroopLevelStats struct {
-	TroopID             string `gorm:"column:troop_id;primaryKey" json:"troop_id"`
-	Level               int    `gorm:"column:level;primaryKey" json:"level"`
-	Health              int    `gorm:"column:health" json:"health"`
-	DamagePerShot       int    `gorm:"column:damage_per_shot" json:"damage_per_shot"`
-	TrainingTimeSeconds int    `gorm:"column:training_time_seconds" json:"training_time_seconds"`
+	TroopID       string `gorm:"column:troop_id;primaryKey" json:"troop_id"`
+	Level         int    `gorm:"column:level;primaryKey" json:"level"`
+	Health        int    `gorm:"column:health" json:"health"`
+	DamagePerShot int    `gorm:"column:damage_per_shot" json:"damage_per_shot"`
 }
 
 func (TroopLevelStats) TableName() string { return "troop_level_stats" }
@@ -194,6 +193,7 @@ type PlacedBuilding struct {
 	GridX         int       `gorm:"column:grid_x" json:"grid_x"`
 	GridY         int       `gorm:"column:grid_y" json:"grid_y"`
 	Level         int       `gorm:"column:level" json:"level"`
+	IsBroken      bool      `gorm:"column:is_broken" json:"is_broken"`
 	ConstructedAt time.Time `gorm:"column:constructed_at" json:"constructed_at"`
 	LastUpdatedAt time.Time `gorm:"column:last_updated_at" json:"last_updated_at"`
 }
@@ -217,6 +217,8 @@ type ConstructionTask struct {
 	TaskType         ConstructionType `gorm:"column:task_type" json:"task_type"`
 	PlacedBuildingID string           `gorm:"column:placed_building_id" json:"placed_building_id"`
 	TroopID          *string          `gorm:"column:troop_id" json:"troop_id,omitempty"`
+	TroopCount       *int             `gorm:"column:troop_count" json:"troop_count"`
+	TroopLevelTo     *int             `gorm:"column:troop_level_to" json:"troop_level_to"`
 	StartedAt        time.Time        `gorm:"column:started_at" json:"started_at"`
 	DurationSeconds  int              `gorm:"column:duration_seconds" json:"duration_seconds"`
 }
@@ -224,28 +226,31 @@ type ConstructionTask struct {
 func (ConstructionTask) TableName() string { return "construction_tasks" }
 
 type UserData struct {
-	UserID            string    `gorm:"column:user_id;primaryKey" json:"user_id"`
-	TownHallLevel     int       `gorm:"column:town_hall_level" json:"town_hall_level"`
-	CurrentGold       int       `gorm:"column:current_gold" json:"current_gold"`
-	CurrentElixir     int       `gorm:"column:current_elixir" json:"current_elixir"`
-	CurrentDarkElixir int       `gorm:"column:current_dark_elixir" json:"current_dark_elixir"`
-	CurrentGems       int       `gorm:"column:current_gems" json:"current_gems"`
-	UpdatedAt         time.Time `gorm:"column:updated_at" json:"updated_at"`
+	UserID                  string    `gorm:"column:user_id;primaryKey" json:"user_id"`
+	TownHallLevel           int       `gorm:"column:town_hall_level" json:"town_hall_level"`
+	CurrentGold             int       `gorm:"column:current_gold" json:"current_gold"`
+	CurrentElixir           int       `gorm:"column:current_elixir" json:"current_elixir"`
+	CurrentDarkElixir       int       `gorm:"column:current_dark_elixir" json:"current_dark_elixir"`
+	TotalGoldCapacity       int       `gorm:"column:total_gold_capacity" json:"total_gold_capacity"`
+	TotalElixirCapacity     int       `gorm:"column:total_elixir_capacity" json:"total_elixir_capacity"`
+	TotalDarkElixirCapacity int       `gorm:"column:total_dark_elixir_capacity" json:"total_dark_elixir_capacity"`
+	CurrentGems             int       `gorm:"column:current_gems" json:"current_gems"`
+	UpdatedAt               time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
 func (UserData) TableName() string { return "user_data" }
 
 type BattleHistory struct {
-	BattleID         string    `gorm:"type:uuid;primaryKey;default:uuid_generate_v4();column:battle_id" json:"battle_id"`
-	AttackerID       string    `gorm:"type:uuid;not null;column:attacker_id" json:"attacker_id"`
-	DefenderID       string    `gorm:"type:uuid;not null;column:defender_id" json:"defender_id"`
-	ElixirLooted     int       `gorm:"default:0;column:elixir_looted" json:"elixir_looted"`
-	GoldLooted       int       `gorm:"default:0;column:gold_looted" json:"gold_looted"`
-	DarkElixirLooted int       `gorm:"default:0;column:dark_elixir_looted" json:"dark_elixir_looted"`
-	FoughtAt         time.Time `gorm:"default:CURRENT_TIMESTAMP;column:fought_at" json:"fought_at"`
-
-	TroopLosses     []BattleTroopLoss `gorm:"foreignKey:BattleID" json:"troop_losses,omitempty"`
-	BrokenBuildings []BuildingsBroken `gorm:"foreignKey:BattleID;constraint:OnDelete:CASCADE" json:"broken_buildings,omitempty"`
+	BattleID         string            `gorm:"type:uuid;primaryKey;default:uuid_generate_v4();column:battle_id" json:"battle_id"`
+	AttackerID       string            `gorm:"type:uuid;not null;column:attacker_id" json:"attacker_id"`
+	DefenderID       string            `gorm:"type:uuid;not null;column:defender_id" json:"defender_id"`
+	ElixirLooted     int               `gorm:"default:0;column:elixir_looted" json:"elixir_looted"`
+	GoldLooted       int               `gorm:"default:0;column:gold_looted" json:"gold_looted"`
+	DarkElixirLooted int               `gorm:"default:0;column:dark_elixir_looted" json:"dark_elixir_looted"`
+	FoughtAt         time.Time         `gorm:"default:CURRENT_TIMESTAMP;column:fought_at" json:"fought_at"`
+	DoDefenderKnow   bool              `gorm:"column:do_defender_know" json:"do_defender_know"`
+	TroopLosses      []BattleTroopLoss `gorm:"foreignKey:BattleID" json:"troop_losses,omitempty"`
+	BrokenBuildings  []BuildingsBroken `gorm:"foreignKey:BattleID;constraint:OnDelete:CASCADE" json:"broken_buildings,omitempty"`
 }
 
 func (BattleHistory) TableName() string { return "battle_history" }
@@ -259,8 +264,18 @@ type BattleTroopLoss struct {
 func (BattleTroopLoss) TableName() string { return "battle_troop_losses" }
 
 type BuildingsBroken struct {
-	BattleID         string `gorm:"type:uuid;primaryKey;column:battle_id" json:"battle_id"`
-	PlacedBuildingID string `gorm:"type:uuid;primaryKey;column:placed_building_id" json:"placed_building_id"`
+	BattleID   string `gorm:"type:uuid;primaryKey;column:battle_id" json:"battle_id"`
+	BuildingID string `gorm:"type:uuid;column:building_id" json:"building_id"`
+	Count      int    `gorm:"column:count" json:"count"`
 }
 
 func (BuildingsBroken) TableName() string { return "buildings_broken" }
+
+type UserStatus struct {
+	UserID       string    `gorm:"column:user_id;primaryKey" json:"user_id"`
+	LastDefended time.Time `gorm:"column:last_defended" json:"last_defended"`
+	InBattle     bool      `gorm:"column:in_battle;default:false" json:"in_battle"`
+	Power        int       `gorm:"column:power;default:0" json:"power"`
+}
+
+func (UserStatus) TableName() string { return "user_status" }

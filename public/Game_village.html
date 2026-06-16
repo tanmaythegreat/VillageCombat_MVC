@@ -9,7 +9,6 @@
 </head>
 <body>
 
-<!-- Building Shop Overlay -->
 <div id="shop-overlay" class="bm-backdrop">
     <div class="shop-panel">
         <div class="bm-header">
@@ -36,7 +35,6 @@
 
         <div class="shop-list" id="shop-list"></div>
 
-        <!-- Detail panel (slides in when a card is selected) -->
         <div class="shop-detail" id="shop-detail" style="display:none;">
             <button class="shop-detail-back" id="shop-detail-back">← Back</button>
             <div class="shop-detail-img-wrap">
@@ -56,8 +54,8 @@
                 <div class="bm-costs" id="shop-detail-costs"></div>
             </div>
             <div class="shop-detail-actions">
-                <button class="bm-btn primary" id="shop-build-btn">🔨 Build</button>
                 <button class="bm-btn gem-btn" id="shop-gem-btn">💎 Instant</button>
+                <button class="bm-btn primary" id="shop-build-btn">🔨 Build</button>
             </div>
         </div>
     </div>
@@ -100,13 +98,229 @@
             <p id="bm-max-notice" class="bm-max-notice" style="display: none;">Max level reached</p>
 
             <div class="bm-actions">
-                <button class="bm-btn" id="bm-move-btn">↕ Move</button>
-                <button class="bm-btn primary" id="bm-upgrade-btn">▲ Upgrade</button>
+                <button class="bm-btn" id="bm-collect-btn" style="display:none;">✨️ Collect</button>
+                <button class="bm-btn" id="bm-train-btn" style="display:none;">⚔️ Train</button>
                 <button class="bm-btn gem-btn" id="bm-gem-upgrade-btn">💎 Gems</button>
+                <button class="bm-btn primary" id="bm-upgrade-btn">▲ Upgrade</button>
             </div>
         </div>
     </div>
 </div>
+
+<div id="troop-overlay" class="bm-backdrop">
+    <div class="troop-panel" id="troop-panel">
+
+        <div id="troop-grid-view">
+            <div class="bm-header">
+                <div class="bm-header-left">
+                    <div class="bm-icon"><i class="ti ti-sword" aria-hidden="true"></i></div>
+                    <div>
+                        <p class="bm-name">Train Troops</p>
+                        <p class="bm-sub" id="troop-grid-sub">Select a troop to train</p>
+                    </div>
+                </div>
+                <button class="bm-close" id="troop-close-btn">✕</button>
+            </div>
+            <div class="troop-grid" id="troop-grid"></div>
+        </div>
+
+        <div id="troop-detail-view" style="display:none;">
+            <div class="bm-header">
+                <div class="bm-header-left">
+                    <button class="troop-back-btn" id="troop-detail-back">← Back</button>
+                    <p class="bm-name" id="troop-detail-name"></p>
+                </div>
+                <button class="bm-close" id="troop-detail-close-btn">✕</button>
+            </div>
+            <div class="troop-detail-body">
+
+                <div class="troop-sidebar" id="troop-sidebar"></div>
+
+                <div class="troop-detail-pane">
+                    <p class="troop-detail-title" id="troop-pane-name"></p>
+                    <p class="troop-detail-meta"  id="troop-pane-meta"></p>
+
+                    <div>
+                        <p class="bm-section-title" style="margin-bottom:6px;">Select level</p>
+                        <div class="troop-level-tabs" id="troop-level-tabs"></div>
+                    </div>
+
+                    <div class="bm-stats-grid troop-stats-grid" id="troop-stats-grid"></div>
+
+                    <div class="bm-upgrade-box" id="troop-cost-box">
+                        <div class="bm-upgrade-header">
+                            <span class="bm-upgrade-title">Train cost</span>
+                            <span class="bm-upgrade-tag" id="troop-th-req" style="display:none;"></span>
+                        </div>
+                        <div class="bm-costs" id="troop-costs"></div>
+                    </div>
+
+                    <div class="troop-count-row">
+                        <div class="troop-owned-info">
+                            <span class="troop-owned-label">You own</span>
+                            <span class="troop-owned-val" id="troop-owned-val">0</span>
+                        </div>
+                        <div class="troop-train-info">
+                            <span class="troop-count-label">Train</span>
+                            <div class="troop-count-controls">
+                                <button class="troop-count-btn" id="troop-count-dec">−</button>
+                                <span   class="troop-count-val" id="troop-count-val">1</span>
+                                <button class="troop-count-btn" id="troop-count-inc">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="troop-requires-note" id="troop-requires-note" style="display:none;"></p>
+
+                    <div class="troop-detail-actions">
+                        <button class="bm-btn gem-btn"  id="troop-gem-btn">💎 Instant</button>
+                        <button class="bm-btn primary" id="troop-train-btn">Train</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<template id="troop-card-tpl">
+    <div class="troop-card">
+        <div class="troop-card-img-wrap">
+            <img class="troop-card-img" src="" alt="" />
+            <div class="troop-card-icon" style="display:none;">⚔️</div>
+            <span class="troop-card-badge" style="display:none;"></span>
+        </div>
+        <p class="troop-card-name"></p>
+        <p class="troop-card-sub"></p>
+    </div>
+</template>
+
+<template id="troop-sidebar-tpl">
+    <div class="troop-sidebar-item">
+        <img class="troop-sidebar-img" src="" alt=""
+             style="width:28px;height:28px;border-radius:5px;object-fit:contain;background:#ededea;flex-shrink:0;" />
+        <div class="troop-sidebar-icon" style="display:none;">⚔️</div>
+        <p class="troop-sidebar-name"></p>
+    </div>
+</template>
+
+<template id="troop-level-tab-tpl">
+    <button class="troop-level-tab">
+        <span class="troop-tab-lv"></span>
+        <span class="troop-tab-count" style="display:none;"></span>
+    </button>
+</template>
+
+<div id="resource-hud">
+    <div class="res-pill" id="hud-gold">
+        <span class="res-icon">🪙</span>
+        <span class="res-val" id="hud-gold-val">0</span>
+    </div>
+    <div class="res-pill" id="hud-elixir">
+        <span class="res-icon">🧪</span>
+        <span class="res-val" id="hud-elixir-val">0</span>
+    </div>
+    <div class="res-pill" id="hud-dark-elixir">
+        <span class="res-icon">⚗️</span>
+        <span class="res-val" id="hud-dark-elixir-val">0</span>
+    </div>
+    <div class="res-pill" id="hud-gems">
+        <span class="res-icon">💎</span>
+        <span class="res-val" id="hud-gems-val">0</span>
+    </div>
+</div>
+
+<button id="attack-btn">⚔️ Attack</button>
+
+<div id="incoming-warning" aria-live="assertive">
+    <div id="incoming-warning-inner">
+        <span id="incoming-warning-icon">🚨</span>
+        <div id="incoming-warning-text">
+            <p id="incoming-warning-title">Incoming Attack!</p>
+            <p id="incoming-warning-sub">Your village is under attack</p>
+        </div>
+    </div>
+</div>
+
+<div id="matchmaking-overlay">
+    <div id="matchmaking-panel">
+        <button id="matchmaking-cancel-btn">✕ Cancel</button>
+        <div id="matchmaking-spinner-wrap">
+            <div id="matchmaking-spinner"></div>
+            <div id="matchmaking-swords">⚔️</div>
+        </div>
+        <p id="matchmaking-title">Searching for opponent…</p>
+        <p id="matchmaking-sub">Matching you with a nearby village</p>
+        <div id="matchmaking-timer-box">
+            <span id="matchmaking-timer-label">Time elapsed</span>
+            <span id="matchmaking-timer">0:00</span>
+        </div>
+    </div>
+</div>
+
+<div id="deploy-bar">
+    <div id="deploy-bar-header">
+        <span id="deploy-bar-title">⚔️ Deploy Troops</span>
+        <p id="deploy-bar-hint">Select a troop, then tap the battlefield to deploy</p>
+    </div>
+    <div id="deploy-troop-list"></div>
+</div>
+
+<div id="battle-over-overlay">
+    <div class="bo-panel" id="bo-panel">
+
+        <div class="bo-header">
+            <div class="bo-header-text">
+                <p class="bo-eyebrow" id="bo-eyebrow">Battle Report</p>
+                <p class="bo-headline" id="bo-headline">—</p>
+                <p class="bo-subline"  id="bo-subline">Both sides paid a price. Or is it?</p>
+            </div>
+            <button class="bo-close-btn" id="bo-close-btn">✕</button>
+        </div>
+
+        <div class="bo-body">
+
+            <div class="bo-loot-row">
+                <div class="bo-loot-cell">
+                    <span class="bo-loot-icon">🪙</span>
+                    <span class="bo-loot-val"   id="bo-gold">0</span>
+                    <span class="bo-loot-label">Gold looted</span>
+                </div>
+                <div class="bo-loot-cell">
+                    <span class="bo-loot-icon">🧪</span>
+                    <span class="bo-loot-val"   id="bo-elixir">0</span>
+                    <span class="bo-loot-label">Elixir looted</span>
+                </div>
+                <div class="bo-loot-cell">
+                    <span class="bo-loot-icon">⚗️</span>
+                    <span class="bo-loot-val"   id="bo-dark">0</span>
+                    <span class="bo-loot-label">Dark elixir</span>
+                </div>
+            </div>
+
+            <div class="bo-troops-split">
+                <div class="bo-troops-col" id="bo-your-col">
+                    <p class="bo-section-title bo-blue" id="bo-your-title">Your losses</p>
+                    <div id="bo-your-troops"></div>
+                </div>
+                <div class="bo-troops-col" id="bo-their-col">
+                    <p class="bo-section-title bo-red" id="bo-their-title">Their losses</p>
+                    <div id="bo-their-troops"></div>
+                </div>
+            </div>
+
+            <div class="bo-buildings-section" id="bo-buildings-section" style="display:none;">
+                <p class="bo-section-title bo-red">Buildings destroyed (their village)</p>
+                <div class="bo-buildings-grid" id="bo-buildings-grid"></div>
+            </div>
+
+        </div><div class="bo-footer">
+        <button class="bo-btn primary" id="bo-replay-btn">▶ Replay</button>
+        <button class="bo-btn revenge" id="bo-revenge-btn" style="display:none;">⚔️ Revenge</button>
+    </div>
+    </div>
+</div>
+
 <div id="game-container"></div>
 
 <script type="module" src="Game_village.js"></script>

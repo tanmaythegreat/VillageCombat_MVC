@@ -13,7 +13,6 @@ CREATE TABLE troop_configs
     id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name             VARCHAR(255)         NOT NULL UNIQUE,
     preferred_target building_category,
-    unlock_at_level  town_hall_range      NOT NULL DEFAULT 1,
     attack_type      attack_type          NOT NULL,
     movement_speed   non_negative_numeric NOT NULL,
     attack_speed_seconds NUMERIC          NOT NULL CHECK (attack_speed_seconds > 0),
@@ -26,8 +25,8 @@ CREATE TABLE building_configs_base
     building_id UUID PRIMARY KEY DEFAULT uuid_generate_v4() UNIQUE,
     name        VARCHAR(255)      NOT NULL UNIQUE,
     category    building_category NOT NULL,
-    grid_size_x INT  NOT NULL DEFAULT 0,
-    grid_size_y INT  NOT NULL DEFAULT 0
+    grid_size_x non_negative_int  NOT NULL DEFAULT 0,
+    grid_size_y non_negative_int  NOT NULL DEFAULT 0
 );
 
 CREATE TABLE troop_level_stats
@@ -36,7 +35,6 @@ CREATE TABLE troop_level_stats
     level                  town_hall_range  NOT NULL,
     health                 non_negative_int NOT NULL,
     damage_per_shot        non_negative_int NOT NULL,
-    training_time_seconds  non_negative_int NOT NULL,
     PRIMARY KEY (troop_id, level)
 );
 
@@ -114,7 +112,6 @@ CREATE TABLE army_building_level_stats
     PRIMARY KEY (building_id, level)
 );
 
-CREATE INDEX idx_troop_configs_unlock_level ON troop_configs (unlock_at_level);
 CREATE INDEX idx_building_configs_category ON building_configs_base (category);
 CREATE INDEX idx_resource_stats_type ON resource_building_stats (resource_type);
 CREATE INDEX idx_troop_level_stats_troop ON troop_level_stats (troop_id);

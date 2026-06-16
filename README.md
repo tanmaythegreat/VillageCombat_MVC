@@ -50,3 +50,12 @@ open building menu to upgrade and all
 Issues : move is not working , you can create another townhall (may be i will keep it as a feature).
 TODO : add a mechanism to collect resources from gold mines , elixir drill , elixir collect.Troops training.Battle.
 
+i tried to find animated 3d models of troops but couldn't so images moves.
+during the battle access token is to checked (will fix)
+
+there are a bunch of TODO all over the place, which i will do , the bare minimum prototype is ready
+
+issues:
+there are some bugs related to positioning of buildings
+broken buildings are not shown (it appears normal).
+there are some bugs in the battle.

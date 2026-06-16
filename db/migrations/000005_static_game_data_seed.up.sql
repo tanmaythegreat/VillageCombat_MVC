@@ -14,12 +14,12 @@
 -- =============================================================================
 -- 1. TROOP CONFIGS
 -- =============================================================================
-INSERT INTO troop_configs (name, preferred_target, unlock_at_level, attack_type, movement_speed, attack_speed_seconds, attack_range, housing_space)
+INSERT INTO troop_configs (name, preferred_target,  attack_type, movement_speed, attack_speed_seconds, attack_range, housing_space)
 VALUES
-    ('Barbarian', 'defense',  1, 'melee'::attack_type,  1.0, 1.0, 1.0, 1),
-    ('Archer',    'defense',  1, 'ranged'::attack_type, 0.9, 1.0, 3.5, 1),
-    ('Goblin',    'resource', 1, 'melee'::attack_type,  1.4, 1.0, 1.0, 1),
-    ('Giant',     'defense',  1, 'melee'::attack_type,  0.6, 2.0, 1.0, 5);
+    ('Barbarian', 'defense',   'melee'::attack_type,  1.0, 1.0, 1.0, 1),
+    ('Archer',    'defense',   'ranged'::attack_type, 0.9, 1.0, 3.5, 1),
+    ('Goblin',    'resource',  'melee'::attack_type,  1.4, 1.0, 1.0, 1),
+    ('Giant',     'defense',   'melee'::attack_type,  0.6, 2.0, 1.0, 5);
 
 
 -- =============================================================================
@@ -27,68 +27,68 @@ VALUES
 -- =============================================================================
 
 -- Barbarian
-INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot, training_time_seconds)
-SELECT id, 0,    0,   0,   0 FROM troop_configs WHERE name = 'Barbarian'
+INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot)
+SELECT id, 0,    0,   0 FROM troop_configs WHERE name = 'Barbarian'
 UNION ALL
-SELECT id, 1,  300,  75,  20 FROM troop_configs WHERE name = 'Barbarian'
+SELECT id, 1,  300,  75 FROM troop_configs WHERE name = 'Barbarian'
 UNION ALL
-SELECT id, 2,  360,  95,  20 FROM troop_configs WHERE name = 'Barbarian'
+SELECT id, 2,  360,  95 FROM troop_configs WHERE name = 'Barbarian'
 UNION ALL
-SELECT id, 3,  430, 120,  20 FROM troop_configs WHERE name = 'Barbarian'
+SELECT id, 3,  430, 120 FROM troop_configs WHERE name = 'Barbarian'
 UNION ALL
-SELECT id, 4,  520, 150,  20 FROM troop_configs WHERE name = 'Barbarian'
+SELECT id, 4,  520, 150 FROM troop_configs WHERE name = 'Barbarian'
 UNION ALL
-SELECT id, 5,  620, 185,  20 FROM troop_configs WHERE name = 'Barbarian'
+SELECT id, 5,  620, 185 FROM troop_configs WHERE name = 'Barbarian'
 UNION ALL
-SELECT id, 6,  740, 225,  20 FROM troop_configs WHERE name = 'Barbarian';
+SELECT id, 6,  740, 225 FROM troop_configs WHERE name = 'Barbarian';
 
 -- Archer
-INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot, training_time_seconds)
-SELECT id, 0,    0,   0,   0 FROM troop_configs WHERE name = 'Archer'
+INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot)
+SELECT id, 0,    0,   0 FROM troop_configs WHERE name = 'Archer'
 UNION ALL
-SELECT id, 1,  200,  60,  25 FROM troop_configs WHERE name = 'Archer'
+SELECT id, 1,  200,  60 FROM troop_configs WHERE name = 'Archer'
 UNION ALL
-SELECT id, 2,  240,  75,  25 FROM troop_configs WHERE name = 'Archer'
+SELECT id, 2,  240,  75 FROM troop_configs WHERE name = 'Archer'
 UNION ALL
-SELECT id, 3,  285,  95,  25 FROM troop_configs WHERE name = 'Archer'
+SELECT id, 3,  285,  95 FROM troop_configs WHERE name = 'Archer'
 UNION ALL
-SELECT id, 4,  340, 115,  25 FROM troop_configs WHERE name = 'Archer'
+SELECT id, 4,  340, 115 FROM troop_configs WHERE name = 'Archer'
 UNION ALL
-SELECT id, 5,  405, 140,  25 FROM troop_configs WHERE name = 'Archer'
+SELECT id, 5,  405, 140 FROM troop_configs WHERE name = 'Archer'
 UNION ALL
-SELECT id, 6,  480, 170,  25 FROM troop_configs WHERE name = 'Archer';
+SELECT id, 6,  480, 170 FROM troop_configs WHERE name = 'Archer';
 
 -- Goblin
-INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot, training_time_seconds)
-SELECT id, 0,    0,   0,   0 FROM troop_configs WHERE name = 'Goblin'
+INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot)
+SELECT id, 0,    0,   0 FROM troop_configs WHERE name = 'Goblin'
 UNION ALL
-SELECT id, 1,  200,  80,  30 FROM troop_configs WHERE name = 'Goblin'
+SELECT id, 1,  200,  80 FROM troop_configs WHERE name = 'Goblin'
 UNION ALL
-SELECT id, 2,  240, 100,  30 FROM troop_configs WHERE name = 'Goblin'
+SELECT id, 2,  240, 100 FROM troop_configs WHERE name = 'Goblin'
 UNION ALL
-SELECT id, 3,  285, 125,  30 FROM troop_configs WHERE name = 'Goblin'
+SELECT id, 3,  285, 125 FROM troop_configs WHERE name = 'Goblin'
 UNION ALL
-SELECT id, 4,  340, 155,  30 FROM troop_configs WHERE name = 'Goblin'
+SELECT id, 4,  340, 155 FROM troop_configs WHERE name = 'Goblin'
 UNION ALL
-SELECT id, 5,  405, 190,  30 FROM troop_configs WHERE name = 'Goblin'
+SELECT id, 5,  405, 190 FROM troop_configs WHERE name = 'Goblin'
 UNION ALL
-SELECT id, 6,  480, 230,  30 FROM troop_configs WHERE name = 'Goblin';
+SELECT id, 6,  480, 230 FROM troop_configs WHERE name = 'Goblin';
 
 -- Giant
-INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot, training_time_seconds)
-SELECT id, 0,    0,   0,   0 FROM troop_configs WHERE name = 'Giant'
+INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot)
+SELECT id, 0,    0,   0 FROM troop_configs WHERE name = 'Giant'
 UNION ALL
-SELECT id, 1, 1500, 110, 120 FROM troop_configs WHERE name = 'Giant'
+SELECT id, 1, 1500, 110 FROM troop_configs WHERE name = 'Giant'
 UNION ALL
-SELECT id, 2, 1900, 140, 120 FROM troop_configs WHERE name = 'Giant'
+SELECT id, 2, 1900, 140 FROM troop_configs WHERE name = 'Giant'
 UNION ALL
-SELECT id, 3, 2300, 175, 120 FROM troop_configs WHERE name = 'Giant'
+SELECT id, 3, 2300, 175 FROM troop_configs WHERE name = 'Giant'
 UNION ALL
-SELECT id, 4, 2800, 215, 120 FROM troop_configs WHERE name = 'Giant'
+SELECT id, 4, 2800, 215 FROM troop_configs WHERE name = 'Giant'
 UNION ALL
-SELECT id, 5, 3400, 260, 120 FROM troop_configs WHERE name = 'Giant'
+SELECT id, 5, 3400, 260 FROM troop_configs WHERE name = 'Giant'
 UNION ALL
-SELECT id, 6, 4100, 310, 120 FROM troop_configs WHERE name = 'Giant';
+SELECT id, 6, 4100, 310 FROM troop_configs WHERE name = 'Giant';
 
 
 -- ---------------------------------------------------------------------------
@@ -97,6 +97,8 @@ SELECT id, 6, 4100, 310, 120 FROM troop_configs WHERE name = 'Giant';
 
 -- Barbarian (pure elixir + gems)
 INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT id, 1,      2000,         2,    900, 1 FROM troop_configs WHERE name = 'Barbarian'
+UNION ALL
 SELECT id, 2,     10000,        10,   3600, 1 FROM troop_configs WHERE name = 'Barbarian'
 UNION ALL
 SELECT id, 3,    100000,       100,  14400, 2 FROM troop_configs WHERE name = 'Barbarian'
@@ -109,6 +111,8 @@ SELECT id, 6, 750000000,    750000, 172800, 5 FROM troop_configs WHERE name = 'B
 
 -- Archer (pure elixir + gems)
 INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT id, 1,      3000,         3,    900, 1 FROM troop_configs WHERE name = 'Archer'
+UNION ALL
 SELECT id, 2,     15000,        15,   3600, 1 FROM troop_configs WHERE name = 'Archer'
 UNION ALL
 SELECT id, 3,    150000,       150,  18000, 2 FROM troop_configs WHERE name = 'Archer'
@@ -121,6 +125,8 @@ SELECT id, 6, 1125000000,  1125000, 180000, 5 FROM troop_configs WHERE name = 'A
 
 -- Goblin (elixir + gems)
 INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT id, 1,      1600,         2,    900, 1 FROM troop_configs WHERE name = 'Goblin'
+UNION ALL
 SELECT id, 2,      8000,         8,   3600, 1 FROM troop_configs WHERE name = 'Goblin'
 UNION ALL
 SELECT id, 3,     80000,        80,  14400, 2 FROM troop_configs WHERE name = 'Goblin'
@@ -133,6 +139,8 @@ SELECT id, 6, 600000000,    600000, 172800, 5 FROM troop_configs WHERE name = 'G
 
 -- Giant (elixir/dark elixir + gems)
 INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, dark_elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT id, 1,     10000,      0,        10,   3600, 1 FROM troop_configs WHERE name = 'Giant'
+UNION ALL
 SELECT id, 2,     50000,      0,        50,  14400, 1 FROM troop_configs WHERE name = 'Giant'
 UNION ALL
 SELECT id, 3,    500000,      0,       500,  43200, 2 FROM troop_configs WHERE name = 'Giant'
