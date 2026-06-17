@@ -288,30 +288,32 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	Mu := sync.Mutex{}
+	var chanel chan []byte = make(chan []byte)
 	Battle.Manager.Mu.Lock()
-	Battle.Manager.Connections[userId] = struct {
-		Conn *websocket.Conn
-		Mu   *sync.Mutex
-	}{Conn: conn, Mu: &Mu}
+
+	Battle.Manager.Connections[userId] = Battle.Connection{Conn: conn, Mu: &Mu, Ch: chanel}
 	Battle.Manager.Mu.Unlock()
 	defer conn.Close()
 	defer delete(Battle.Manager.Connections, userId)
 	fmt.Printf("Client successfully connected to WebSocket server!, client : %s\n", userId)
+
+	go func() {
+		defer close(chanel)
+		for {
+			_, p, err := conn.ReadMessage()
+			if err != nil {
+				break
+			}
+			chanel <- p
+		}
+	}()
 Loop:
 	for {
+		messageType := websocket.TextMessage
 		Mu.Lock()
-		err := conn.SetReadDeadline(time.Time{})
-		if err != nil {
-			log.Println("Connection lost with client:", err)
-			break
-		}
-		messageType, p, err := conn.ReadMessage()
+		p := <-chanel
 		Mu.Unlock()
-		if err != nil {
-			log.Println("Connection lost with client:", err)
-			break
-		}
-		if len(p) == 0 {
+		if p == nil || len(p) == 0 {
 			errPayload := []byte(`{"status": "error", "message": "Action payload cannot be empty"}`)
 			err = conn.WriteMessage(messageType, errPayload)
 			if err != nil {
@@ -1127,6 +1129,15 @@ Loop:
 				break Switch
 			}
 			Battle.StartMatch(userId, data.OpponentID)
+		default:
+			err = conn.WriteJSON(map[string]interface{}{
+				"status":  "error",
+				"message": payload,
+			})
+			if err != nil {
+				log.Println("Failed to send message to client:", err)
+				break Loop
+			}
 		}
 	}
 }

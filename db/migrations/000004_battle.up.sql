@@ -29,7 +29,7 @@ CREATE TABLE buildings_broken
     building_id UUID             NOT NULL,
     count       non_negative_int NOT NULL DEFAULT 0,
     CONSTRAINT fk_battle_building FOREIGN KEY (battle_id) REFERENCES battle_history (battle_id) ON DELETE CASCADE,
-    CONSTRAINT fk_placed_building FOREIGN KEY (building_id) REFERENCES building_configs_base (building_id)
+    CONSTRAINT fk_building FOREIGN KEY (building_id) REFERENCES building_configs_base (building_id) ON DELETE CASCADE 
 );
 
 CREATE TABLE user_status

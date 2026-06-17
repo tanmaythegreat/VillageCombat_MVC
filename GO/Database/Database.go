@@ -701,20 +701,33 @@ func AddTroopsToUser(userId string, troopId string, level int, count int, tx *go
 		"last_updated_at": time.Now(),
 	}).Error
 }
-func SubtractTroopsOfUser(userId string, troopId string, level int, count int, tx *gorm.DB) (bool, error) {
-	if count <= 0 {
-		return false, nil
+func SubtractTroopsOfUser(
+	userId string,
+	troopId string,
+	level int,
+	count int,
+	tx *gorm.DB,
+) (bool, error) {
+	if count < 0 {
+		return false, errors.New("cannot subtract a negative amount of troops")
+	}
+	if count == 0 {
+		return true, nil
 	}
 	result := tx.Model(&Models.TrainedTroop{}).
-		Where("user_id = ? AND troop_id = ? AND level = ? AND count >= ?", userId, troopId, level, count).
+		Where(
+			"user_id = ? AND troop_id = ? AND level = ? AND count >= ?",
+			userId, troopId, level, count,
+		).
 		Updates(map[string]interface{}{
 			"count":           gorm.Expr("count - ?", count),
-			"last_updated_at": time.Now(),
+			"last_updated_at": gorm.Expr("CURRENT_TIMESTAMP"),
 		})
 	if result.Error != nil {
 		return false, result.Error
 	}
-	return result.RowsAffected > 0, nil
+
+	return result.RowsAffected == 1, nil
 }
 func GetAllTroopsDataJSON() (json.RawMessage, error) {
 	var troops []Models.TroopConfig

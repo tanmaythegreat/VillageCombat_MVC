@@ -154,7 +154,7 @@ async function LoadMap(PlacedBuildings) {
 
     for (const building of PlacedBuildings) {
         const name = building.is_broken?"Broken":AllBuildingData[building.building_id].name
-
+        console.log(name)
         if (name in Pool && Pool[name].length > 0) {
             const Model = Pool[name].pop()
             Model.position.set((building.grid_x+AllBuildingData[building.building_id].grid_size_x/2) * position_scaling, 0, (building.grid_y +AllBuildingData[building.building_id].grid_size_y/2)* position_scaling);
@@ -173,7 +173,7 @@ async function LoadMap(PlacedBuildings) {
         } else {
             const loadPromise = new Promise((resolve, reject) => {
                 textureLoader.load(
-                    `./Models/${AllBuildingData[building.building_id].name}.png`,
+                    `./Models/${name}.png`,
                     (texture) => {
                         const mesh = new THREE.PlaneGeometry(AllBuildingData[building.building_id].grid_size_x*size_scaling, AllBuildingData[building.building_id].grid_size_y*size_scaling);
                         const aspect = texture.image.width / texture.image.height;
@@ -231,8 +231,6 @@ async function LoadMap(PlacedBuildings) {
         SummontaskCountDown(constructionTask)
     }
 }
-window.LM = LoadMap
-window.PB = PlacedBuildings
 
 function AddLevelDetails(ParticularLevelData){
 
@@ -1033,16 +1031,16 @@ function canAffordTroop(upgCost, checkGems = false,placed_building_id) {
         && (UserData.current_dark_elixir ?? 0) >= (upgCost.dark_elixir_required ?? 0) * n;
 }
 
-function canAfford(level, checkGems = false,placed_building_id = null) {
+function canAfford(level, checkGems = false,placed_building_id = null,is_broken = false) {
     const alreading = !(placed_building_id!=null && ConstructionTasks.some(task=>task.placed_building_id===placed_building_id))
-    const townhall_Level = UserData.town_hall_level>=level.update_townhall_level_required
+    const townhall_Level = is_broken?true:(UserData.town_hall_level>=level.update_townhall_level_required)
 
     if (checkGems) {
-        return alreading&&townhall_Level&&(UserData.current_gems ?? 0) >= (level.update_or_gem_required ?? 0);
+        return alreading&&townhall_Level&&(UserData.current_gems ?? 0) >= (is_broken?1+level.update_or_gem_required /10 : level.update_or_gem_required);
     }
-    const goldOk      = (UserData.current_gold       ?? 0) >= (level.update_gold_required        ?? 0);
-    const elixirOk    = (UserData.current_elixir     ?? 0) >= (level.update_elxir_required       ?? 0);
-    const darkElixirOk= (UserData.current_dark_elixir?? 0) >= (level.update_dark_elixir_required ?? 0);
+    const goldOk      = (UserData.current_gold       ?? 0) >= (is_broken?level.update_gold_required/10:level.update_gold_required);
+    const elixirOk    = (UserData.current_elixir     ?? 0) >= (is_broken?level.update_elxir_required/10:level.update_elxir_required);
+    const darkElixirOk= (UserData.current_dark_elixir?? 0) >= (is_broken?level.update_dark_elixir_required /10 : level.update_dark_elixir_required);
     return alreading&&townhall_Level&&goldOk && elixirOk && darkElixirOk;
 }
 
@@ -1100,37 +1098,45 @@ function triggerBuildingMenu(data) {
     const maxNotice = document.getElementById('bm-max-notice');
     const upgradeBtn = document.getElementById('bm-upgrade-btn');
     const gemUpgradeBtn = document.getElementById('bm-gem-upgrade-btn');
+    const gemRepairBtn = document.getElementById('bm-gem-repair-btn')
+    const repairBtn = document.getElementById('bm-repair-btn')
 
-    if (isMaxLevel) {
+    gemRepairBtn.style.display = data.is_broken?'block':'none'
+    repairBtn.style.display = data.is_broken?'block':'none'
+    gemUpgradeBtn.style.display = data.is_broken ? 'none':'block'
+    upgradeBtn.style.display = data.is_broken ? 'none':'block'
+    if (isMaxLevel && !data.is_broken) {
         upgradeSection.style.display = 'none';
         maxNotice.style.display = 'block';
         upgradeBtn.disabled = true;
         if (gemUpgradeBtn) gemUpgradeBtn.disabled = true;
-    } else {
+    }
+    else {
         upgradeSection.style.display = 'block';
         maxNotice.style.display = 'none';
 
-        document.getElementById('bm-upgrade-title-text').textContent = `Upgrade to level ${nextLevel}`;
+        document.getElementById('bm-upgrade-title-text').textContent = data.is_broken?`Repair to level ${nextLevel-1}`:`Upgrade to level ${nextLevel}`;
 
         const thTag = document.getElementById('bm-th-req-tag');
-        if (levelDetails.update_townhall_level_required) {
+        if (levelDetails.update_townhall_level_required && !data.is_broken) {
             thTag.textContent = `TH ${levelDetails.update_townhall_level_required} required`;
             thTag.style.display = 'inline-block';
         } else {
             thTag.style.display = 'none';
         }
 
-        document.getElementById('bm-costs-container').innerHTML = buildCostRows(levelDetails);
+        document.getElementById('bm-costs-container').innerHTML = buildCostRows(levelDetails,data.is_broken);
 
-        const affordable    = canAfford(levelDetails, false,data.id);
-        const gemAffordable = canAfford(levelDetails, true,data.id);
+        const affordable    = canAfford(levelDetails, false,data.id,data.is_broken);
+        const gemAffordable = canAfford(levelDetails, true,data.id,data.is_broken);
 
-        setAffordability(upgradeBtn,    affordable);
-        setAffordability(gemUpgradeBtn, gemAffordable);
+        setAffordability(data.is_broken?repairBtn:upgradeBtn,    affordable);
+        setAffordability(data.is_broken?gemRepairBtn:gemUpgradeBtn, gemAffordable);
 
         if (gemUpgradeBtn) {
-            const gemCost = levelDetails.update_or_gem_required ?? 0;
-            gemUpgradeBtn.textContent = `💎 Instant (${formatNum(gemCost)})`;
+            let gemCost = levelDetails.update_or_gem_required ?? 0;
+            if (data.is_broken) gemCost = 1 + gemCost/10
+            if (data.is_broken ){gemRepairBtn.textContent = `💎 Instant (${formatNum(gemCost)})`}else {gemUpgradeBtn.textContent = `💎 Instant (${formatNum(gemCost)})`;}
         }
     }
 
@@ -1149,6 +1155,29 @@ function triggerBuildingMenu(data) {
             UserData.current_dark_elixir-=levelDetails.update_dark_elixir_required
             UpdateResourceUI()
         }
+    };
+
+    if (gemUpgradeBtn) {
+        gemUpgradeBtn.onclick = (e) => {
+            e.stopPropagation()
+            if (!isMaxLevel) {
+                overlay.classList.remove('is-active');
+
+                UpgradeBuilding(data.id,true)
+                UserData.current_gems-=levelDetails.update_or_gem_required
+                UpdateResourceUI()
+            }
+        };
+    }
+    repairBtn.onclick = (e) => {
+        e.stopPropagation()
+        overlay.classList.remove('is-active');
+        UpgradeBuilding(data.id,false)
+        UserData.current_gold-=levelDetails.update_gold_required
+        UserData.current_elixir-=levelDetails.update_elxir_required
+        UserData.current_dark_elixir-=levelDetails.update_dark_elixir_required
+        UpdateResourceUI()
+
     };
 
     if (gemUpgradeBtn) {
@@ -1195,11 +1224,11 @@ function getBuildingStats(building, level) {
             return base;
     }
 }
-function buildCostRows(level) {
+function buildCostRows(level,is_broken = false) {
     const costs = [
-        { label: 'Gold',        icon: '🪙', val: level.update_gold_required },
-        { label: 'Elixir',      icon: '🧪', val: level.update_elxir_required },
-        { label: 'Dark elixir', icon: '⚗️',  val: level.update_dark_elixir_required },
+        { label: 'Gold',        icon: '🪙', val: is_broken?level.update_gold_required/10:level.update_gold_required },
+        { label: 'Elixir',      icon: '🧪', val: is_broken?level.update_elxir_required/10:level.update_elxir_required },
+        { label: 'Dark elixir', icon: '⚗️',  val: is_broken?level.update_dark_elixir_required/10:level.update_dark_elixir_required },
     ].filter(c => c.val > 0);
 
     const rows = costs.map(c =>
@@ -1211,7 +1240,7 @@ function buildCostRows(level) {
 
     return rows + `
         <div class="bm-divider"></div>
-        <div class="bm-time-row">⏱ ${formatTime(level.update_time_required_required)} build time</div>`;
+        <div class="bm-time-row">⏱ ${formatTime(level.update_time_required_required/10)} build time</div>`;
 }
 function formatNum(n) {
     if (!n) return '0';
@@ -1261,7 +1290,7 @@ function connectToGameServer() {
 
                     localStorage.setItem('Placed_building', JSON.stringify(PlacedBuildings))
                     ConstructionTasks = data.construction_tasks
-
+                    TrainedTroopsData = {}
                     for (const troop of data.troops) {
                         TrainedTroopsData[[troop.troop_id, troop.level]] = troop.count
                     }
@@ -1370,7 +1399,7 @@ function connectToGameServer() {
                     CancelMatchMaking()
                     break
                 case "incoming_attack":
-                    console.log(data)
+                    console.log("defend",data)
                     inBattle = true
                     IsAttacker = false
                     IncomingAttack()
@@ -1405,6 +1434,7 @@ function connectToGameServer() {
         else {
             switch (data.msg_type){
                 case "spawn_troop":
+                    console.log("spawnTroop From server")
                     SpawnTroop(data.troop)
                     break
                 case "battle_update":
@@ -1415,6 +1445,8 @@ function connectToGameServer() {
                     BattleOver(data.battle_outcome,data.attacker_troop_loss,data.buildings_broken,{},data.opponent_username)
                     _hideDeployBar()
                     inBattle = false
+                    CancelMatchMaking()
+                    LoadMap(PlacedBuildings)
                     break
             }
         }
@@ -1562,6 +1594,7 @@ function FoundMatch() {
     _hideMatchmaking();
     _buildDeployBar();
     _showDeployBar();
+    attackBtn.classList.add('hidden');
 }
 
 function IncomingAttack() {
@@ -1689,7 +1722,7 @@ function _spawnTroop(troopId, level, gridX, gridY) {
 }
 
 const PooledArmy = {}
-const LoadedArmy = {}
+let LoadedArmy = {}
 function SpawnTroop(datafromServer){
     const troopId = datafromServer.troop_id
     const level = datafromServer.troop_level
@@ -1771,13 +1804,15 @@ function SpawnTroop(datafromServer){
     }
 }
 function DespawnTroops(){
-    for (const [key,army] of Object.entries(LoadedArmy)) {
+    for (const [key,armyy] of Object.entries(LoadedArmy)) {
+        for (const army of armyy) {
             army.visible = false
-            if (PooledArmy[key]) PooledArmy[key] = army
-            else PooledArmy[key].push(army)
-            console.log("Despawning..",key,army)
+            if (PooledArmy[key]) PooledArmy[key].push(army)
+            else PooledArmy[key] = [army]
+            console.log("Despawning..", key, army)
         }
-
+    }
+    LoadedArmy = {}
 }
 var state = undefined
 
@@ -1951,7 +1986,7 @@ function DealDamage(building_damage, troop_damage, building_died, attacker_troop
 
         const screen = worldToScreen(state.Buildings[building.BuildingIndex].Model.position);
         const died   = i in building_died;
-        const label  = (died ? '💥 ' : '-') + dmg;   // or just `-${dmg}` if no emoji
+        const label  = (died ? '💥 ' : '-') + dmg;
         spawnLabel(screen.x, screen.y, `-${dmg}`, died ? 'died' : '');
     });
 
@@ -1965,7 +2000,8 @@ function DealDamage(building_damage, troop_damage, building_died, attacker_troop
         console.log(dmg)
     });
     for (const buildingDiedElement of building_died.toReversed()) {
-        aliveBuildings[buildingDiedElement].is_broken = true
+        console.log(aliveBuildings)
+        state.Buildings[buildingDiedElement].Model.userData.is_broken = true
         aliveBuildings.splice(buildingDiedElement,1)
     }
     for (const attackerTroopDiedElement of attacker_troop_died.toReversed()) {
@@ -2041,7 +2077,7 @@ function BattleOver(battle_outcome, attacker_troop_loss, buildings_broken, defen
 
     document.getElementById('bo-your-title').textContent  = isAtt ? 'Your losses'  : 'Their losses';
     document.getElementById('bo-their-title').textContent = isAtt ? 'Their losses' : 'Your losses';
-
+    document.getElementById('bo-section-title-building').textContent = isAtt ? 'Buildings destroyed (their village)' : 'Buildings destroyed (your village)'
     renderTroopRows(
         document.getElementById('bo-your-troops'),
         isAtt ? attacker_troop_loss : defender_troop_loss
@@ -2083,17 +2119,20 @@ function BattleOver(battle_outcome, attacker_troop_loss, buildings_broken, defen
     document.getElementById('battle-over-overlay').classList.add('is-active');
 }
 
-function closeBattleOver() {
+function closeBattleOver(e) {
+    if (e) e.stopPropagation()
     document.getElementById('battle-over-overlay').classList.remove('is-active');
 }
 document.getElementById('bo-close-btn').addEventListener('click', closeBattleOver);
 
 
-document.getElementById('bo-replay-btn').addEventListener('click', function () {
+document.getElementById('bo-replay-btn').addEventListener('click', (e)=> {
+    e.stopPropagation()
     console.log('Replay clicked');
 })
 
-document.getElementById('bo-revenge-btn').addEventListener('click', ()=> {
+document.getElementById('bo-revenge-btn').addEventListener('click', (e)=> {
+    e.stopPropagation()
     Revenge()
 })
 function Revenge(){

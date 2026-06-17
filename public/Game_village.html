@@ -88,7 +88,7 @@
                 <p class="bm-section-title" id="bm-upgrade-title-text">Upgrade to level X</p>
                 <div class="bm-upgrade-box">
                     <div class="bm-upgrade-header">
-                        <span class="bm-upgrade-title">Upgrade cost</span>
+                        <span id="bm-upgrade-title" class="bm-upgrade-title">Upgrade cost</span>
                         <span class="bm-upgrade-tag" id="bm-th-req-tag" style="display: none;">TH X required</span>
                     </div>
                     <div class="bm-costs" id="bm-costs-container"></div>
@@ -101,7 +101,9 @@
                 <button class="bm-btn" id="bm-collect-btn" style="display:none;">✨️ Collect</button>
                 <button class="bm-btn" id="bm-train-btn" style="display:none;">⚔️ Train</button>
                 <button class="bm-btn gem-btn" id="bm-gem-upgrade-btn">💎 Gems</button>
+                <button class="bm-btn gem-btn" id="bm-gem-repair-btn">💎 Gems</button>
                 <button class="bm-btn primary" id="bm-upgrade-btn">▲ Upgrade</button>
+                <button class="bm-btn primary" id="bm-repair-btn">▲ Repair</button>
             </div>
         </div>
     </div>
@@ -310,7 +312,7 @@
             </div>
 
             <div class="bo-buildings-section" id="bo-buildings-section" style="display:none;">
-                <p class="bo-section-title bo-red">Buildings destroyed (their village)</p>
+                <p id="bo-section-title-building" class="bo-section-title bo-red">Buildings destroyed (their village)</p>
                 <div class="bo-buildings-grid" id="bo-buildings-grid"></div>
             </div>
 

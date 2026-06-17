@@ -4,6 +4,7 @@ import (
 	"Village_combat/GO/Database"
 	"Village_combat/GO/Models"
 	"context"
+	"encoding/json"
 	"log"
 	"math"
 	"sync"
@@ -12,20 +13,19 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type Connection struct {
+	Conn *websocket.Conn
+	Mu   *sync.Mutex
+	Ch   chan []byte
+}
 type ConnManager struct {
 	Mu          sync.RWMutex
-	Connections map[string]struct {
-		Conn *websocket.Conn
-		Mu   *sync.Mutex
-	}
+	Connections map[string]Connection
 }
 
 var Manager = &ConnManager{
-	Mu: sync.RWMutex{},
-	Connections: make(map[string]struct {
-		Conn *websocket.Conn
-		Mu   *sync.Mutex
-	}),
+	Mu:          sync.RWMutex{},
+	Connections: make(map[string]Connection),
 }
 
 type TroopSpawn struct {
@@ -181,12 +181,7 @@ func StartMatch(attackerID string, defenderID string) {
 
 	Database.SetUserBattleStatus(attackerID, false)
 	Database.SetUserBattleStatus(defenderID, false)
-	if attackerOnline {
-		attackerConn.Conn.SetReadDeadline(time.Now())
-	}
-	if defenderOnline {
-		attackerConn.Conn.SetReadDeadline(time.Now())
-	}
+
 	tx := Database.DB.Begin()
 	for _, troopAtkr := range state.AliveTroopAttacker {
 		err := Database.AddTroopsToUser(attackerID, state.TroopSpawns[troopAtkr.TroopIndex].TroopID, state.TroopSpawns[troopAtkr.TroopIndex].TroopLevel, 1, tx)
@@ -196,6 +191,7 @@ func StartMatch(attackerID string, defenderID string) {
 			break
 		}
 	}
+	tx.Commit()
 	tx = Database.DB.Begin()
 	for _, troopdfndr := range state.AliveTroopDefender {
 		err := Database.AddTroopsToUser(defenderID, state.TroopSpawns[troopdfndr.TroopIndex].TroopID, state.TroopSpawns[troopdfndr.TroopIndex].TroopLevel, 1, tx)
@@ -205,6 +201,7 @@ func StartMatch(attackerID string, defenderID string) {
 			break
 		}
 	}
+	tx.Commit()
 
 	DeathMap := make(map[string]int)
 	DeathIDArray := make([]string, 0)
@@ -300,7 +297,6 @@ func StartMatch(attackerID string, defenderID string) {
 	if err != nil {
 		// TODO : what to do
 	}
-	attackerConn.Mu.Lock()
 	attackerConn.Conn.WriteJSON(map[string]interface{}{
 		"msg_type":            "battle_over",
 		"battle_outcome":      battleHistory,
@@ -310,7 +306,6 @@ func StartMatch(attackerID string, defenderID string) {
 	})
 	attackerConn.Mu.Unlock()
 	if defenderOnline {
-		defenderConn.Mu.Lock()
 		defenderConn.Conn.WriteJSON(map[string]interface{}{
 			"msg_type":            "battle_over",
 			"battle_outcome":      battleHistory,
@@ -330,22 +325,20 @@ type SpawnMessage struct {
 	Y          int    `json:"y"`
 }
 
-func readPlayerMessages(ctx context.Context, conn struct {
-	Conn *websocket.Conn
-	Mu   *sync.Mutex
-}, state *BattleState, isAttacker bool, userID string, defenderId string, otherOnline bool, otherConn *websocket.Conn, WriteMU *sync.Mutex, cancel context.CancelFunc) {
-	conn.Mu.Lock()
-	defer conn.Mu.Unlock()
+func readPlayerMessages(ctx context.Context, conn Connection, state *BattleState, isAttacker bool, userID string, defenderId string, otherOnline bool, otherConn *websocket.Conn, WriteMU *sync.Mutex, cancel context.CancelFunc) {
+	conn.Mu.Lock() // unlocking is done outside this function
+	var msg SpawnMessage
+Loop:
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		default:
-			var msg SpawnMessage
-			err := conn.Conn.ReadJSON(&msg)
+		case p := <-conn.Ch:
+			err := json.Unmarshal(p, &msg)
 			if err != nil {
-				cancel()
-				return
+
+				log.Println("Connection lost with client:", err)
+				break Loop
 			}
 			if msg.Action == "spawn_troop" {
 				elapsed := time.Since(state.StartTime).Seconds()

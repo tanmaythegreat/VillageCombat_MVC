@@ -59,3 +59,6 @@ issues:
 there are some bugs related to positioning of buildings
 broken buildings are not shown (it appears normal).
 there are some bugs in the battle.
+
+repairCost formulas : upgradeCost/10,for gems (1+updrageCost/10) 
+i randomly came up with it, no back story.
