@@ -179,9 +179,14 @@ func StartMatch(attackerID string, defenderID string) {
 	}
 	runSimulation(ctx, state, attackerConn.Conn, defenderConn.Conn, attackerOnline, defenderOnline, &WriteMU)
 
-	Database.SetUserBattleStatus(attackerID, false)
-	Database.SetUserBattleStatus(defenderID, false)
-
+	err = Database.SetUserBattleStatus(attackerID, false)
+	if err != nil {
+		log.Println("could not set battle status.")
+	}
+	err = Database.SetUserBattleStatus(defenderID, false)
+	if err != nil {
+		log.Println("could not set battle status.")
+	}
 	tx := Database.DB.Begin()
 	for _, troopAtkr := range state.AliveTroopAttacker {
 		err := Database.AddTroopsToUser(attackerID, state.TroopSpawns[troopAtkr.TroopIndex].TroopID, state.TroopSpawns[troopAtkr.TroopIndex].TroopLevel, 1, tx)
@@ -435,7 +440,7 @@ Loop:
 					"troop":    troop,
 				})
 				WriteMU.Unlock()
-			} else if msg.Action == "retreat" && isAttacker {
+			} else if (msg.Action == "" || msg.Action == "retreat") && isAttacker {
 				cancel()
 				return
 			}
@@ -475,74 +480,106 @@ func runSimulation(
 	}
 
 }
-
 func simulate(state *BattleState) map[string]interface{} {
 
 	buildingDmgDone := make([]int, len(state.AliveBuildings))
 	AttackertroopDmgDone := make([]int, len(state.AliveTroopAttacker))
+	DefendertroopDmgDone := make([]int, len(state.AliveTroopDefender))
 
 	for i := 0; i < len(state.AliveTroopAttacker); i++ {
 		troop := &state.AliveTroopAttacker[i]
 		if !state.TroopSpawns[troop.TroopIndex].SpawnedByAttacker {
 			continue
 		}
-		var bestBuildingIdx = -1
-		var minDstSq = math.MaxFloat64
-		var BestBuildingi = -1
+
 		var prefCat Models.BuildingCategory
 		hasPreferred := false
 		if troop.Config.PreferredTarget != nil {
 			prefCat = *troop.Config.PreferredTarget
 			for _, ab := range state.AliveBuildings {
-				if Database.BuildingID_Category[state.Buildings[ab.BuildingIndex].Placed_Building.ID] == prefCat {
+				if Database.BuildingID_Category[state.Buildings[ab.BuildingIndex].Placed_Building.BuildingID] == prefCat {
 					hasPreferred = true
 					break
 				}
 			}
 		}
 
+		bestBuildingIdx := -1
+		bestBuildingi := -1
+		bestDefenderTroopi := -1
+		minDstSq := math.MaxFloat64
+		targetIsTroop := false
+
 		for j, ab := range state.AliveBuildings {
 			b := &state.Buildings[ab.BuildingIndex]
 			if hasPreferred && Database.BuildingID_Category[b.Placed_Building.BuildingID] != prefCat {
 				continue
 			}
-			// TODO : account for building size
 			dx := float64(b.Placed_Building.GridX) - troop.Current_X
 			dy := float64(b.Placed_Building.GridY) - troop.Current_Y
 			dstSq := dx*dx + dy*dy
-
 			if dstSq < minDstSq {
 				minDstSq = dstSq
 				bestBuildingIdx = ab.BuildingIndex
-				BestBuildingi = j
+				bestBuildingi = j
+				targetIsTroop = false
 			}
 		}
 
-		if bestBuildingIdx == -1 {
-			// TODO : what to do if nothing to attack
-			continue
+		for tIdx := 0; tIdx < len(state.AliveTroopDefender); tIdx++ {
+			t := &state.AliveTroopDefender[tIdx]
+			dx := t.Current_X - troop.Current_X
+			dy := t.Current_Y - troop.Current_Y
+			dstSq := dx*dx + dy*dy
+			if dstSq < minDstSq {
+				minDstSq = dstSq
+				bestDefenderTroopi = tIdx
+				targetIsTroop = true
+			}
 		}
 
-		targetBuilding := &state.Buildings[bestBuildingIdx]
-		dist := math.Sqrt(minDstSq)
-
-		if dist <= troop.Config.AttackRange {
-			dmg := float64(troop.LevelStat.DamagePerShot) / troop.Config.AttackSpeedSeconds // TODO : think how can i quantise it
-			intDmg := int(dmg)
-			if intDmg <= 0 && troop.LevelStat.DamagePerShot > 0 {
-				intDmg = 1 // guarantee minimum damage
+		if targetIsTroop && bestDefenderTroopi != -1 {
+			target := &state.AliveTroopDefender[bestDefenderTroopi]
+			dist := math.Sqrt(minDstSq)
+			if dist <= troop.Config.AttackRange {
+				dmg := float64(troop.LevelStat.DamagePerShot) / troop.Config.AttackSpeedSeconds
+				intDmg := int(dmg)
+				if intDmg <= 0 && troop.LevelStat.DamagePerShot > 0 {
+					intDmg = 1
+				}
+				DefendertroopDmgDone[bestDefenderTroopi] += intDmg
+			} else {
+				moveDist := troop.Config.MovementSpeed
+				if moveDist > dist {
+					moveDist = dist
+				}
+				ratio := moveDist / dist
+				dx := target.Current_X - troop.Current_X
+				dy := target.Current_Y - troop.Current_Y
+				troop.Current_X += dx * ratio
+				troop.Current_Y += dy * ratio
 			}
-			buildingDmgDone[BestBuildingi] += intDmg
-		} else {
-			moveDist := troop.Config.MovementSpeed
-			if moveDist > dist {
-				moveDist = dist
+		} else if bestBuildingIdx != -1 {
+			targetBuilding := &state.Buildings[bestBuildingIdx]
+			dist := math.Sqrt(minDstSq)
+			if dist <= troop.Config.AttackRange {
+				dmg := float64(troop.LevelStat.DamagePerShot) / troop.Config.AttackSpeedSeconds
+				intDmg := int(dmg)
+				if intDmg <= 0 && troop.LevelStat.DamagePerShot > 0 {
+					intDmg = 1
+				}
+				buildingDmgDone[bestBuildingi] += intDmg
+			} else {
+				moveDist := troop.Config.MovementSpeed
+				if moveDist > dist {
+					moveDist = dist
+				}
+				ratio := moveDist / dist
+				dx := float64(targetBuilding.Placed_Building.GridX) - troop.Current_X
+				dy := float64(targetBuilding.Placed_Building.GridY) - troop.Current_Y
+				troop.Current_X += dx * ratio
+				troop.Current_Y += dy * ratio
 			}
-			ratio := moveDist / dist
-			dx := float64(targetBuilding.Placed_Building.GridX) - troop.Current_X
-			dy := float64(targetBuilding.Placed_Building.GridY) - troop.Current_Y
-			troop.Current_X += dx * ratio
-			troop.Current_Y += dy * ratio
 		}
 	}
 
@@ -558,11 +595,9 @@ func simulate(state *BattleState) map[string]interface{} {
 
 		for tIdx := 0; tIdx < len(state.AliveTroopAttacker); tIdx++ {
 			t := &state.AliveTroopAttacker[tIdx]
-
 			dx := t.Current_X - float64(b.Placed_Building.GridX)
 			dy := t.Current_Y - float64(b.Placed_Building.GridY)
 			dstSq := dx*dx + dy*dy
-
 			if dstSq <= rangeSq && dstSq < minDstSq {
 				minDstSq = dstSq
 				bestTroopi = tIdx
@@ -578,8 +613,7 @@ func simulate(state *BattleState) map[string]interface{} {
 
 			if b.Defender.Stat.DamageType == Models.Splash {
 				targetTroop := &state.AliveTroopAttacker[bestTroopi]
-				const splashRadiusSq = 1.5 * 1.5 // currently there is no splash defence building , i will think about the radius if i add a splash one in future
-
+				const splashRadiusSq = 1.5 * 1.5
 				for tIdx := 0; tIdx < len(state.AliveTroopAttacker); tIdx++ {
 					t := &state.AliveTroopAttacker[tIdx]
 					dx := t.Current_X - targetTroop.Current_X
@@ -646,6 +680,11 @@ func simulate(state *BattleState) map[string]interface{} {
 	for tIdx, dmg := range AttackertroopDmgDone {
 		state.AliveTroopAttacker[tIdx].HealthRemaining -= dmg
 	}
+
+	for tIdx, dmg := range DefendertroopDmgDone {
+		state.AliveTroopDefender[tIdx].HealthRemaining -= dmg
+	}
+
 	aliveBCount := 0
 	BuildingDied := make([]int, 0)
 	for i, ab := range state.AliveBuildings {
@@ -670,11 +709,26 @@ func simulate(state *BattleState) map[string]interface{} {
 		}
 	}
 	state.AliveTroopAttacker = state.AliveTroopAttacker[:aliveTCount]
+
+	aliveDefTCount := 0
+	DefenderTroopDied := make([]int, 0)
+	for i, t := range state.AliveTroopDefender {
+		if t.HealthRemaining > 0 {
+			state.AliveTroopDefender[aliveDefTCount] = t
+			aliveDefTCount++
+		} else {
+			DefenderTroopDied = append(DefenderTroopDied, i)
+		}
+	}
+	state.AliveTroopDefender = state.AliveTroopDefender[:aliveDefTCount]
+
 	return map[string]interface{}{
-		"msg_type":            "battle_update",
-		"building_damage":     buildingDmgDone,
-		"troop_damage":        AttackertroopDmgDone,
-		"building_died":       BuildingDied,
-		"attacker_troop_died": AttackerTroopDied,
+		"msg_type":              "battle_update",
+		"building_damage":       buildingDmgDone,
+		"attacker_troop_damage": AttackertroopDmgDone,
+		"defender_troop_damage": DefendertroopDmgDone,
+		"building_died":         BuildingDied,
+		"attacker_troop_died":   AttackerTroopDied,
+		"defender_troop_died":   DefenderTroopDied,
 	}
 }

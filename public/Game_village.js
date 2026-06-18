@@ -36,7 +36,7 @@ else {
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById('game-container').appendChild(renderer.domElement);
-
+const canvas= renderer.domElement
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambientLight);
 
@@ -157,7 +157,7 @@ async function LoadMap(PlacedBuildings) {
         console.log(name)
         if (name in Pool && Pool[name].length > 0) {
             const Model = Pool[name].pop()
-            Model.position.set((building.grid_x+AllBuildingData[building.building_id].grid_size_x/2) * position_scaling, 0, (building.grid_y +AllBuildingData[building.building_id].grid_size_y/2)* position_scaling);
+            Model.position.set((building.grid_x+AllBuildingData[building.building_id].grid_size_x/2) * position_scaling, 0, (building.grid_y +AllBuildingData[building.building_id].grid_size_y/4)* position_scaling);
             Model.visible = true
             Model.userData = building;
 
@@ -196,7 +196,7 @@ async function LoadMap(PlacedBuildings) {
 
                         const object_building = new THREE.Mesh(mesh, material);
                         object_building.rotation.y = -Math.PI / 4;
-                        object_building.position.set((building.grid_x+AllBuildingData[building.building_id].grid_size_x/2) * position_scaling, 0, (building.grid_y +AllBuildingData[building.building_id].grid_size_y/2)* position_scaling);
+                        object_building.position.set((building.grid_x+AllBuildingData[building.building_id].grid_size_x/2) * position_scaling, 0, (building.grid_y +AllBuildingData[building.building_id].grid_size_y/4)* position_scaling);
 
                         object_building.userData = building;
                         object_building.renderOrder=10
@@ -230,6 +230,7 @@ async function LoadMap(PlacedBuildings) {
     for (const constructionTask of ConstructionTasks) {
         SummontaskCountDown(constructionTask)
     }
+    refreshGridHighlights()
 }
 
 function AddLevelDetails(ParticularLevelData){
@@ -395,34 +396,37 @@ function tickCountdowns(scene, camera) {
 // region Click
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-// const geometry = new THREE.BoxGeometry(1, 1, 1);
-// const material = new THREE.MeshNormalMaterial();
-// const meshCUbe = new THREE.Mesh(geometry, material);
-// scene.add(meshCUbe);
-//
-// window.addEventListener('mousemove',(event)=>{
-//     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-//     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-//     raycaster.setFromCamera(mouse, camera);
-//     const intersects = raycaster.intersectObject(ground);
-//     const hit = intersects[0];
-//     const worldPos = hit.point;
-//     const gridX    = Math.round(worldPos.x / position_scaling);
-//     const gridY    = Math.round(worldPos.z / position_scaling);
-//     meshCUbe.position.set(gridX*position_scaling,0,gridY*position_scaling)
-//     console.log(gridX,gridY)
-// })
+const geometry = new THREE.BoxGeometry(1, 1, 1);
+const material = new THREE.MeshNormalMaterial();
+const meshCUbe = new THREE.Mesh(geometry, material);
+scene.add(meshCUbe);
+
+window.addEventListener('mousemove',(event)=>{
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(ground);
+    const hit = intersects[0];
+    const worldPos = hit.point;
+    const gridX    = Math.round(worldPos.x / position_scaling);
+    const gridY    = Math.round(worldPos.z / position_scaling);
+    meshCUbe.position.set(gridX*position_scaling,0,gridY*position_scaling)
+})
 function onMouseClick(event) {
     if (!inBattle) {
         const bmOverlay = document.getElementById('bm-overlay');
         const shopOverlay = document.getElementById('shop-overlay');
         if (bmOverlay.classList.contains('is-active') || shopOverlay.classList.contains('is-active')) return;
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        const rect = canvas.getBoundingClientRect();
+        mouse.x =  ((event.clientX - rect.left) / rect.width)  *  2 - 1;
+        mouse.y = -((event.clientY - rect.top)  / rect.height) *  2 + 1;
+
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObject(ground);
-        const hit = intersects[0];
-        const worldPos = hit.point;
+        if (!intersects.length) return;
+
+        const worldPos = intersects[0].point;
         const gridX = Math.round(worldPos.x / position_scaling);
         const gridY = Math.round(worldPos.z / position_scaling);
 
@@ -433,7 +437,6 @@ function onMouseClick(event) {
         }
     }
 }
-
 window.addEventListener('click', onMouseClick);
 // region AI generated part
 // region Troop Training
@@ -444,7 +447,7 @@ let _troopCount         = 1;
 
 const trainBtn = document.getElementById('bm-train-btn');
 function updateTrainButton(building) {
-    trainBtn.style.display = building.category === BuildingCategory.Army ? 'block' : 'none';
+    trainBtn.style.display = (building.category === BuildingCategory.Army && !_placed_building.is_broken)? 'block' : 'none';
 }
 const collect = document.getElementById('bm-collect-btn');
 function updateCollectButton() {
@@ -459,7 +462,7 @@ function updateCollectButton() {
     catch (e){
         return
     }
-    if (building.category === BuildingCategory.Resource && building.levels[1].generation_rate > 0) {
+    if (building.category === BuildingCategory.Resource && building.levels[1].generation_rate > 0 && !data.is_broken) {
         collect.style.display = 'block'
         let toCollect = Math.min(levelDetails.storage_capacity, levelDetails.generation_rate * (Date.now() - new Date(_placed_building.last_updated_at).getTime()) / 1000 / 3600);
         if (building.resource_type === ResourceType.Gold) {
@@ -1116,7 +1119,7 @@ function triggerBuildingMenu(data) {
         maxNotice.style.display = 'none';
 
         document.getElementById('bm-upgrade-title-text').textContent = data.is_broken?`Repair to level ${nextLevel-1}`:`Upgrade to level ${nextLevel}`;
-
+        document.getElementById('bm-upgrade-title').textContent = data.is_broken? "Repair cost":"Upgrade cost"
         const thTag = document.getElementById('bm-th-req-tag');
         if (levelDetails.update_townhall_level_required && !data.is_broken) {
             thTag.textContent = `TH ${levelDetails.update_townhall_level_required} required`;
@@ -1172,22 +1175,21 @@ function triggerBuildingMenu(data) {
     repairBtn.onclick = (e) => {
         e.stopPropagation()
         overlay.classList.remove('is-active');
-        UpgradeBuilding(data.id,false)
-        UserData.current_gold-=levelDetails.update_gold_required
-        UserData.current_elixir-=levelDetails.update_elxir_required
-        UserData.current_dark_elixir-=levelDetails.update_dark_elixir_required
+        RepairBuilding(data.id,false)
+        UserData.current_gold-=levelDetails.update_gold_required/10
+        UserData.current_elixir-=levelDetails.update_elxir_required/10
+        UserData.current_dark_elixir-=levelDetails.update_dark_elixir_required/10
         UpdateResourceUI()
 
     };
 
     if (gemUpgradeBtn) {
-        gemUpgradeBtn.onclick = (e) => {
+        gemRepairBtn.onclick = (e) => {
             e.stopPropagation()
             if (!isMaxLevel) {
                 overlay.classList.remove('is-active');
-
-                UpgradeBuilding(data.id,true)
-                UserData.current_gems-=levelDetails.update_or_gem_required
+                RepairBuilding(data.id,true)
+                UserData.current_gems-=1+levelDetails.update_or_gem_required/10
                 UpdateResourceUI()
             }
         };
@@ -1375,7 +1377,9 @@ function connectToGameServer() {
                         if (removedElement.task_type === ConstructionType.TroopTraining) {
                             if (TrainedTroopsData[[removedElement.troop_id, removedElement.troop_level_to]]) TrainedTroopsData[[removedElement.troop_id, removedElement.troop_level_to]] += removedElement.troop_count
                             else TrainedTroopsData[[removedElement.troop_id, removedElement.troop_level_to]]=removedElement.troop_count
-                        } else {
+                        }else if (removedElement.task_type===ConstructionType.BuildingRepair) {
+                            PlacedBuildings.find(building => building.id === removedElement.placed_building_id).is_broken = false
+                        } else{
                             PlacedBuildings.find(building => building.id === removedElement.placed_building_id).level += 1
                         }
                         localStorage.setItem('Trained_troops_data', JSON.stringify(TrainedTroopsData))
@@ -1386,6 +1390,7 @@ function connectToGameServer() {
                     }
                     UserData = data.user_data
                     UpdateResourceUI()
+                    LoadMap(PlacedBuildings)
                     break
                 case "resource_collected":
                     UserData = data.user_data;
@@ -1438,7 +1443,7 @@ function connectToGameServer() {
                     SpawnTroop(data.troop)
                     break
                 case "battle_update":
-                    DealDamage(data.building_damage,data.troop_damage,data.building_died,data.attacker_troop_died)
+                    DealDamage(data.building_damage,data.attacker_troop_damage,data.defender_troop_damage,data.building_died,data.attacker_troop_died,data.defender_troop_died)
                     break
                 case "battle_over":
                     DespawnTroops()
@@ -1446,7 +1451,7 @@ function connectToGameServer() {
                     _hideDeployBar()
                     inBattle = false
                     CancelMatchMaking()
-                    LoadMap(PlacedBuildings)
+                    SendToServer({action:"INITIAL_LOAD",access_token,message:""})
                     break
             }
         }
@@ -1471,6 +1476,11 @@ function CreateBuilding(building_id, x, y, use_gems=false){
 }
 function UpgradeBuilding(placed_building_id,use_gems=false){
     SendToServer({action:"UPGRADE_BUILDING",message:JSON.stringify({
+            placed_building_id,use_gems
+        }),access_token})
+}
+function RepairBuilding(placed_building_id,use_gems=false){
+    SendToServer({action:"REPAIR_BUILDING",message:JSON.stringify({
             placed_building_id,use_gems
         }),access_token})
 }
@@ -1517,19 +1527,11 @@ const ResourceType  = {
 const ConstructionType = {
     BuildingConstruction :"building_construction",
     BuildingUpgrade      :"building_upgrade",
-    TroopTraining        :"troop_training"
+    TroopTraining        :"troop_training",
+    BuildingRepair : "building_repair"
 }
 // endregion
 
-
-const gridWith = position_scaling*100;       // Total size of the grid square
-const gridDivisions = 200;  // Number of squares per side
-const centerLineColor = 0xff0055; // Color of the X/Z axes lines
-const gridLineColor = 0x444444;   // Color of the inner grid lines
-
-const gridHelper = new THREE.GridHelper(gridWith, gridDivisions, centerLineColor, gridLineColor);
-gridHelper.position.set(0,0,-.25)
-scene.add(gridHelper);
 
 //region Battle
 
@@ -1699,19 +1701,17 @@ function _hideDeployBar() {
 }
 
 window.addEventListener('click', (event) => {
-    if (!inBattle)return;
-    mouse.x = (event.clientX / window.innerWidth)  *  2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) *  2 + 1;
+    if (!inBattle) return;
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width)  *  2 - 1;
+    mouse.y = -((event.clientY - rect.top)  / rect.height) *  2 + 1;
     raycaster.setFromCamera(mouse, camera);
-
     const intersects = raycaster.intersectObject(ground);
     if (!intersects.length) return;
-
     const hit      = intersects[0];
     const worldPos = hit.point;
     const gridX    = Math.round(worldPos.x / position_scaling);
     const gridY    = Math.round(worldPos.z / position_scaling);
-
     _spawnTroop(_selectedTroopId, _selectedTroopLvl, gridX, gridY);
 });
 
@@ -1817,92 +1817,103 @@ function DespawnTroops(){
 var state = undefined
 
 function simulate(deltaTime) {
-    const aliveTroopsAttacker = state.AliveTroopAttacker; //array of threejs objects
-    const aliveTroopsDefender= state.AliveTroopDefender; //array of threejs objects
+    const aliveTroopsAttacker = state.AliveTroopAttacker;
+    const aliveTroopsDefender = state.AliveTroopDefender;
     const aliveBuildings = state.AliveBuildings;
     const buildings = state.Buildings;
 
     const troopCountAttacker = aliveTroopsAttacker.length;
+    const troopCountDefender = aliveTroopsDefender.length;
     const buildingCount = aliveBuildings.length;
+
     for (let i = 0; i < troopCountAttacker; i++) {
         const troop = aliveTroopsAttacker[i];
         const config = AllTroopsData[troop.userData.troopId];
 
-        const tX = troop.position.x/position_scaling;
-        const tY = troop.position.z/position_scaling;
-
-        let bestBuildingIdx = -1;
-        let bestAliveBuildingIdx = -1;
-        let minDstSq = Infinity;
+        const tX = troop.position.x / position_scaling;
+        const tY = troop.position.z / position_scaling;
 
         const prefCat = config.preferred_target;
         const hasPreferred = prefCat !== undefined && prefCat !== null;
 
-        for (let abIdx = 0; abIdx < buildingCount; abIdx++) {
+        let bestBuildingIdx = -1;
+        let minBuildingDstSq = Infinity;
 
+        for (let abIdx = 0; abIdx < buildingCount; abIdx++) {
             const ab = aliveBuildings[abIdx];
             const bIdx = ab.BuildingIndex;
             const placedBuilding = buildings[bIdx];
             if (hasPreferred && AllBuildingData[placedBuilding.building_id].category !== prefCat) {
                 continue;
             }
-
             const dx = placedBuilding.grid_x - tX;
             const dy = placedBuilding.grid_y - tY;
             const dstSq = dx * dx + dy * dy;
-
-            if (dstSq < minDstSq) {
-                minDstSq = dstSq;
+            if (dstSq < minBuildingDstSq) {
+                minBuildingDstSq = dstSq;
                 bestBuildingIdx = bIdx;
-                bestAliveBuildingIdx = abIdx;
             }
         }
-        if (hasPreferred && bestBuildingIdx===-1)
+
+        if (hasPreferred && bestBuildingIdx === -1) {
             for (let abIdx = 0; abIdx < buildingCount; abIdx++) {
                 const ab = aliveBuildings[abIdx];
                 const bIdx = ab.BuildingIndex;
                 const placedBuilding = buildings[bIdx];
-
                 const dx = placedBuilding.grid_x - tX;
                 const dy = placedBuilding.grid_y - tY;
                 const dstSq = dx * dx + dy * dy;
-
-                if (dstSq < minDstSq) {
-                    minDstSq = dstSq;
+                if (dstSq < minBuildingDstSq) {
+                    minBuildingDstSq = dstSq;
                     bestBuildingIdx = bIdx;
-                    bestAliveBuildingIdx = abIdx;
                 }
             }
-
-
-        if (bestBuildingIdx === -1) {
-            continue
         }
 
-        const targetBuilding = buildings[bestBuildingIdx];
-        const attackRangeSq = config.attack_range * config.attack_range;
-        if (minDstSq > attackRangeSq) {
+        let bestDefenderTroopIdx = -1;
+        let minDefenderDstSq = Infinity;
 
-
-            const dist = Math.sqrt(minDstSq);
-            let moveDist = config.movement_speed * deltaTime;
-
-
-            if (moveDist > dist) {
-                moveDist = dist;
+        for (let dtIdx = 0; dtIdx < troopCountDefender; dtIdx++) {
+            const target = aliveTroopsDefender[dtIdx];
+            const dx = target.position.x / position_scaling - tX;
+            const dy = target.position.z / position_scaling - tY;
+            const dstSq = dx * dx + dy * dy;
+            if (dstSq < minDefenderDstSq) {
+                minDefenderDstSq = dstSq;
+                bestDefenderTroopIdx = dtIdx;
             }
+        }
 
-            const ratio = moveDist / dist;
-            const dx = targetBuilding.grid_x - tX;
-            const dy = targetBuilding.grid_y - tY;
+        const attackRangeSq = config.attack_range * config.attack_range;
+        const troopIsNearer = bestDefenderTroopIdx !== -1 && minDefenderDstSq < minBuildingDstSq;
 
-            troop.position.x += dx * ratio*position_scaling;
-            troop.position.z+= dy * ratio*position_scaling;
-
+        if (troopIsNearer) {
+            if (minDefenderDstSq > attackRangeSq) {
+                const target = aliveTroopsDefender[bestDefenderTroopIdx];
+                const dist = Math.sqrt(minDefenderDstSq);
+                let moveDist = config.movement_speed * deltaTime;
+                if (moveDist > dist) moveDist = dist;
+                const ratio = moveDist / dist;
+                const dx = target.position.x / position_scaling - tX;
+                const dy = target.position.z / position_scaling - tY;
+                troop.position.x += dx * ratio * position_scaling;
+                troop.position.z += dy * ratio * position_scaling;
+            }
+        } else if (bestBuildingIdx !== -1) {
+            if (minBuildingDstSq > attackRangeSq) {
+                const targetBuilding = buildings[bestBuildingIdx];
+                const dist = Math.sqrt(minBuildingDstSq);
+                let moveDist = config.movement_speed * deltaTime;
+                if (moveDist > dist) moveDist = dist;
+                const ratio = moveDist / dist;
+                const dx = targetBuilding.grid_x - tX;
+                const dy = targetBuilding.grid_y - tY;
+                troop.position.x += dx * ratio * position_scaling;
+                troop.position.z += dy * ratio * position_scaling;
+            }
         }
     }
 
-    const troopCountDefender = aliveTroopsDefender.length;
     for (let i = 0; i < troopCountDefender; i++) {
         const troop = aliveTroopsDefender[i];
         const config = AllTroopsData[troop.userData.troopId];
@@ -1933,9 +1944,7 @@ function simulate(deltaTime) {
         if (minDstSq > attackRangeSq) {
             const dist = Math.sqrt(minDstSq);
             let moveDist = config.movement_speed * deltaTime;
-            if (moveDist > dist) {
-                moveDist = dist;
-            }
+            if (moveDist > dist) moveDist = dist;
             const ratio = moveDist / dist;
             const dx = targetTroop.position.x / position_scaling - tX;
             const dy = targetTroop.position.z / position_scaling - tY;
@@ -1945,13 +1954,11 @@ function simulate(deltaTime) {
     }
 }
 
-
-function DealDamage(building_damage, troop_damage, building_died, attacker_troop_died) {
-    console.log("Damage",building_damage,troop_damage)
+function DealDamage(building_damage, attacker_troop_damage, defender_troop_damage, building_died, attacker_troop_died, defender_troop_died) {
+    console.log("Damage", building_damage, attacker_troop_damage)
     const aliveTroopsAttacker = state.AliveTroopAttacker;
+    const aliveTroopsDefender = state.AliveTroopDefender;
     const aliveBuildings = state.AliveBuildings;
-
-    const canvas = renderer.domElement;
     const container = canvas.parentElement;
     const W = canvas.clientWidth;
     const H = canvas.clientHeight;
@@ -1959,7 +1966,7 @@ function DealDamage(building_damage, troop_damage, building_died, attacker_troop
     function worldToScreen(worldPos) {
         const vec = worldPos.clone().project(camera);
         return {
-            x: (vec.x  * 0.5 + 0.5) * W,
+            x: (vec.x * 0.5 + 0.5) * W,
             y: (-vec.y * 0.5 + 0.5) * H,
         };
     }
@@ -1968,55 +1975,63 @@ function DealDamage(building_damage, troop_damage, building_died, attacker_troop
         const el = document.createElement('div');
         el.className = 'dmg-label' + (extraClass ? ' ' + extraClass : '');
         el.textContent = text;
-
         const jitter = (Math.random() - 0.5) * 30;
-
         el.style.left = (screenX + jitter - 15) + 'px';
-        el.style.top  = (screenY - 20) + 'px';
-
+        el.style.top = (screenY - 20) + 'px';
         container.style.position = container.style.position || 'relative';
         container.appendChild(el);
-
         el.addEventListener('animationend', () => el.remove());
     }
 
     aliveBuildings.forEach((building, i) => {
         const dmg = building_damage[i];
         if (!dmg || dmg <= 0) return;
-
         const screen = worldToScreen(state.Buildings[building.BuildingIndex].Model.position);
-        const died   = i in building_died;
-        const label  = (died ? '💥 ' : '-') + dmg;
+        const died = building_died.includes(i);
         spawnLabel(screen.x, screen.y, `-${dmg}`, died ? 'died' : '');
     });
 
     aliveTroopsAttacker.forEach((troop, i) => {
-        const dmg = troop_damage[i];
+        const dmg = attacker_troop_damage[i];
         if (!dmg || dmg <= 0) return;
-
         const screen = worldToScreen(troop.position);
-        const died   = i in attacker_troop_died;
+        const died = attacker_troop_died.includes(i);
         spawnLabel(screen.x, screen.y, `-${dmg}`, died ? 'troop died' : 'troop');
-        console.log(dmg)
     });
+
+    aliveTroopsDefender.forEach((troop, i) => {
+        const dmg = defender_troop_damage[i];
+        if (!dmg || dmg <= 0) return;
+        const screen = worldToScreen(troop.position);
+        const died = defender_troop_died.includes(i);
+        spawnLabel(screen.x, screen.y, `-${dmg}`, died ? 'troop died' : 'troop');
+    });
+
     for (const buildingDiedElement of building_died.toReversed()) {
-        console.log(aliveBuildings)
-        state.Buildings[buildingDiedElement].Model.userData.is_broken = true
-        aliveBuildings.splice(buildingDiedElement,1)
+        state.Buildings[buildingDiedElement].Model.userData.is_broken = true;
+        aliveBuildings.splice(buildingDiedElement, 1);
     }
+
     for (const attackerTroopDiedElement of attacker_troop_died.toReversed()) {
-        const ded = aliveTroopsAttacker[attackerTroopDiedElement]
-        aliveTroopsAttacker.splice(attackerTroopDiedElement,1)
-        ded.visible = false
-        if ((PooledArmy[ded.userData.troopId]??[]).length>0) PooledArmy[ded.userData.troopId].push(ded)
-        else PooledArmy[ded.userData.troopId] = [ded]
-        console.log(PooledArmy)
+        const ded = aliveTroopsAttacker[attackerTroopDiedElement];
+        aliveTroopsAttacker.splice(attackerTroopDiedElement, 1);
+        ded.visible = false;
+        if ((PooledArmy[ded.userData.troopId] ?? []).length > 0) PooledArmy[ded.userData.troopId].push(ded);
+        else PooledArmy[ded.userData.troopId] = [ded];
     }
-    if (building_died.length>0){
-        LoadMap(state.Buildings)
+
+    for (const defenderTroopDiedElement of defender_troop_died.toReversed()) {
+        const ded = aliveTroopsDefender[defenderTroopDiedElement];
+        aliveTroopsDefender.splice(defenderTroopDiedElement, 1);
+        ded.visible = false;
+        if ((PooledArmy[ded.userData.troopId] ?? []).length > 0) PooledArmy[ded.userData.troopId].push(ded);
+        else PooledArmy[ded.userData.troopId] = [ded];
+    }
+
+    if (building_died.length > 0) {
+        LoadMap(state.Buildings);
     }
 }
-
 function fmt(n) {
     return (n != null && !isNaN(n)) ? Number(n).toLocaleString() : '0';
 }
@@ -2138,4 +2153,55 @@ document.getElementById('bo-revenge-btn').addEventListener('click', (e)=> {
 function Revenge(){
 
 }
+// endregion
+
+
+
+// region Grid
+const gridWidth = position_scaling * 100;
+const gridDivisions = 200;
+const centerLineColor = 0xff0055;
+const gridLineColor = 0x444444;
+const gridHelper = new THREE.GridHelper(gridWidth, gridDivisions, centerLineColor, gridLineColor);
+gridHelper.position.set(0, 0, -0.25);
+scene.add(gridHelper);
+
+const cellSize = position_scaling;
+const highlightGeo = new THREE.PlaneGeometry(cellSize * 0.95, cellSize * 0.95);
+const highlightMat = new THREE.MeshBasicMaterial({
+    color: 0xffff00,
+    transparent: true,
+    opacity: 0.10,
+    depthWrite: false,
+});
+
+let highlightMesh = null;
+
+function refreshGridHighlights() {
+    if (highlightMesh) {
+        scene.remove(highlightMesh);
+        highlightMesh.dispose?.();
+    }
+
+    const filledCells = Object.keys(Grid);
+    if (filledCells.length === 0) return;
+
+    highlightMesh = new THREE.InstancedMesh(highlightGeo, highlightMat, filledCells.length);
+    highlightMesh.position.y = 0.01;
+    highlightMesh.rotation.x = -Math.PI / 2;
+    // highlightMesh.rotation.y = Math.PI/2
+
+    const dummy = new THREE.Object3D();
+    filledCells.forEach((key, i) => {
+        const [x, y] = key.split(',').map(Number);
+        dummy.position.set(x * cellSize, -y * cellSize, 0);
+        dummy.updateMatrix();
+        highlightMesh.setMatrixAt(i, dummy.matrix);
+    });
+
+    highlightMesh.instanceMatrix.needsUpdate = true;
+    scene.add(highlightMesh);
+}
+
+refreshGridHighlights();
 // endregion

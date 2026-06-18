@@ -49,6 +49,7 @@ const (
 	BuildingConstruction ConstructionType = "building_construction"
 	BuildingUpgrade      ConstructionType = "building_upgrade"
 	TroopTraining        ConstructionType = "troop_training"
+	BauildingRepair      ConstructionType = "building_repair"
 )
 
 type User struct {

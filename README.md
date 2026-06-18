@@ -62,3 +62,7 @@ there are some bugs in the battle.
 
 repairCost formulas : upgradeCost/10,for gems (1+updrageCost/10) 
 i randomly came up with it, no back story.
+
+repair is working 
+also now attackers can also attack defenders
+grid highlight adds even more feel

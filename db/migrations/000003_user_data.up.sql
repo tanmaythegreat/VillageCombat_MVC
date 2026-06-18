@@ -1,4 +1,4 @@
-CREATE TYPE construction_type AS ENUM ('building_construction', 'building_upgrade', 'troop_training');
+CREATE TYPE construction_type AS ENUM ('building_construction', 'building_upgrade', 'troop_training','building_repair');
 
 CREATE TABLE placed_buildings
 (
@@ -36,7 +36,7 @@ CREATE TABLE construction_tasks
     duration_seconds   non_negative_int  NOT NULL,
     CONSTRAINT validate_task_context CHECK (
         (task_type = 'troop_training' AND troop_id IS NOT NULL) OR
-        (task_type IN ('building_construction', 'building_upgrade') AND troop_id IS NULL)
+        (task_type IN ('building_construction', 'building_upgrade','building_repair') AND troop_id IS NULL)
         ),
     FOREIGN KEY (troop_id) REFERENCES troop_configs (id) ON DELETE CASCADE
 );

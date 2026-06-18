@@ -806,6 +806,25 @@ Loop:
 				}
 				break Switch
 			}
+			isBroken, err := Database.IsBuildingBroken(userId, data.PlacedBuildingID)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			if isBroken {
+				errPayload := []byte(`{"status": "error", "message": "Cannot upgrade broken building."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
 			building, err := Database.GetPlacedBuilding(userId, data.PlacedBuildingID)
 			if err != nil {
 				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
@@ -942,6 +961,25 @@ Loop:
 				}
 				break Switch
 			}
+			isBroken, err := Database.IsBuildingBroken(userId, building.ID)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			if isBroken {
+				errPayload := []byte(`{"status": "error", "message": "Cannot train in broken barracks."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
 			upgradeCost, err := Database.GetTroopUpgradeCost(data.TroopId, data.LevelFrom+1)
 			if err != nil {
 				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
@@ -1029,6 +1067,25 @@ Loop:
 			err = json.Unmarshal([]byte(payload.Message), &data)
 			if err != nil {
 				errPayload := []byte(`{"status": "error", "message": "Invalid JSON."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			isBroken, err := Database.IsBuildingBroken(userId, data.PlacedBuildingId)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			if isBroken {
+				errPayload := []byte(`{"status": "error", "message": "Cannot collect from broken building."}`)
 				err = conn.WriteMessage(messageType, errPayload)
 				if err != nil {
 					log.Println("Failed to send message to client:", err)
@@ -1129,6 +1186,126 @@ Loop:
 				break Switch
 			}
 			Battle.StartMatch(userId, data.OpponentID)
+		case "REPAIR_BUILDING":
+			var data struct {
+				PlacedBuildingID string `json:"placed_building_id"`
+				UseGems          bool   `json:"use_gems"`
+			}
+			err := json.Unmarshal([]byte(payload.Message), &data)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Invalid JSON."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			constructionUnderProgress, err := Database.IsConstructionUnderProgress(userId, data.PlacedBuildingID)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			if constructionUnderProgress {
+				errPayload := []byte(`{"status": "error", "message": "Building already under construction."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			isBroken, err := Database.IsBuildingBroken(userId, data.PlacedBuildingID)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			if !isBroken {
+				errPayload := []byte(`{"status": "error", "message": "Cannot Repair unbroken building."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			building, err := Database.GetPlacedBuilding(userId, data.PlacedBuildingID)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			cost, err := Database.GetConstructionCost(building.BuildingID, building.Level+1)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			cost.TimeRequiredSeconds /= 10
+			cost.OrGemRequired /= 10
+			cost.OrGemRequired += 1
+			cost.GoldRequired /= 10
+			cost.ElixirRequired /= 10
+			cost.DarkElixirRequired /= 10
+			tx, err := Database.UserPurchase(userId, cost, data.UseGems)
+			if errors.Is(err, errors.New("insufficient resources")) {
+				errPayload := []byte(`{"status": "error", "message": "Insufficient Resources."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			} else if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			var time_req int = cost.TimeRequiredSeconds
+			if data.UseGems {
+				time_req = 1
+			}
+			task, err := Database.StartConstruction_Building(userId, Models.BauildingRepair, data.PlacedBuildingID, time_req, tx)
+			if err != nil {
+				tx.Rollback()
+				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			tx.Commit()
+			err = conn.WriteJSON(map[string]interface{}{
+				"msg_type": "construction_started",
+				"task":     task,
+			})
+			if err != nil {
+				log.Println("Failed to send message to client:", err)
+			}
 		default:
 			err = conn.WriteJSON(map[string]interface{}{
 				"status":  "error",

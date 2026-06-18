@@ -328,6 +328,8 @@ func GetPlacedBuilding(userID string, placedBuildingId string) (Models.PlacedBui
 	err := DB.Where("user_id = ? AND id = ?", userID, placedBuildingId).Clauses(clause.Returning{}).First(&configs).Error
 	return configs, err
 }
+
+// TODO : i forgot to use this function at many placed
 func UpdatePlacedBuilding(userId string, placedBuildingID string) (Models.PlacedBuilding, error) {
 	var oldBuilding Models.PlacedBuilding
 	err := DB.Where("id = ? AND user_id = ?", placedBuildingID, userId).First(&oldBuilding).Error
@@ -631,6 +633,12 @@ func CheckIsConstructionComplete(userId string) ([]Models.ConstructionTask, []Mo
 				tx.Rollback()
 				return nil, nil, err
 			}
+		} else if task.TaskType == Models.BauildingRepair {
+			err = SetBrokenBuilding(userId, task.PlacedBuildingID, false, tx)
+			if err != nil {
+				tx.Rollback()
+				return nil, nil, err
+			}
 		} else {
 			buildingIDs = append(buildingIDs, task.PlacedBuildingID)
 		}
@@ -916,8 +924,8 @@ func FindOpponent(attackerID string, powerRange int) (*Models.UserStatus, error)
 
 	return &opponent, nil
 }
-func SetBrokenBuilding(userID string, placedBuildingID string, isBroken bool) error {
-	result := DB.Model(&Models.PlacedBuilding{}).
+func SetBrokenBuilding(userID string, placedBuildingID string, isBroken bool, tx *gorm.DB) error {
+	result := tx.Model(&Models.PlacedBuilding{}).
 		Where("id = ? AND user_id = ?", placedBuildingID, userID).
 		Update("is_broken", isBroken)
 
@@ -932,6 +940,21 @@ func SetBrokenBuildings(userID string, placedBuildingIDs []string, isBroken bool
 		Update("is_broken", isBroken)
 
 	return result.Error
+}
+func IsBuildingBroken(userID string, placedBuildingID string) (bool, error) { // Note: fixed the "Borken" typo!
+	var isBroken bool
+	result := DB.Model(&Models.PlacedBuilding{}).
+		Select("is_broken").
+		Where("id = ? AND user_id = ?", placedBuildingID, userID).
+		Scan(&isBroken)
+
+	if result.Error != nil {
+		return false, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return false, gorm.ErrRecordNotFound
+	}
+	return isBroken, nil
 }
 func InsertBattleHistory(history Models.BattleHistory) (string, error) {
 	result := DB.Create(&history)
