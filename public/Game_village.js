@@ -1268,9 +1268,34 @@ function formatTime(seconds) {
 
 // region Network
 var access_token = localStorage.getItem('access_token');
-var refresh_token_b64 = localStorage.getItem('refresh_token_b64');
-// console.log(access_token)
-// console.log(refresh_token_b64)
+
+async function refreshAuthToken() {
+    const userId = UserData.user_id;
+    const refreshToken = localStorage.getItem('refresh_token_b64');
+
+    try {
+        const response = await fetch('/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, refresh_token: refreshToken })
+        });
+
+        if (!response.ok) throw new Error('Session expired');
+
+        const data = await response.json();
+
+        localStorage.setItem('access_token', data.access_token);
+        access_token = data.access_token
+        localStorage.setItem('refresh_token_b64',data.refresh_token_b64)
+    } catch (error) {
+        console.error("Refresh failed, redirecting to login:", error);
+        window.location.href = '/Login.html';
+    }
+}
+
+const REFRESH_INTERVAL = 14 * 60 * 1000; // 14 minutes
+setInterval(refreshAuthToken, REFRESH_INTERVAL);
+
 let socket
 function connectToGameServer() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -1282,7 +1307,6 @@ function connectToGameServer() {
     });
 
     socket.addEventListener("message", (event) => {
-        // console.log("Message from server: ", event.data);
         const data = JSON.parse(event.data)
         if (!inBattle) {
             switch (data['msg_type']) {
@@ -1531,7 +1555,6 @@ const ConstructionType = {
     BuildingRepair : "building_repair"
 }
 // endregion
-
 
 //region Battle
 
@@ -2154,8 +2177,6 @@ function Revenge(){
 
 }
 // endregion
-
-
 
 // region Grid
 const gridWidth = position_scaling * 100;
