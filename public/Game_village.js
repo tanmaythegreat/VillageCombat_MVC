@@ -37,12 +37,12 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById('game-container').appendChild(renderer.domElement);
 const canvas= renderer.domElement
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambientLight);
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-dirLight.position.set(20, 40, 20);
-scene.add(dirLight);
+// const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+// dirLight.position.set(20, 40, 20);
+// scene.add(dirLight);
 
 const textureLoader = new THREE.TextureLoader();
 const gridTexture = textureLoader.load('./Models/Map.jpeg');
@@ -94,6 +94,7 @@ function animate() {
             inBattle = false
         }
     }
+    ambientLight.intensity = Math.max(Math.min(0.3 + Math.cos(clock.elapsedTime*0.01) * 0.5,0.5),0.1) //day-night cycle faking
     renderer.render(scene, camera);
 
 }
@@ -280,7 +281,7 @@ function SummontaskCountDown(task){
         SendToServer({action:"CHECK_CONSTRUCTION_WORK",access_token,message:""})
     });
     countdown.position.copy(placed_building.Model.position);
-    countdown.position.y += size_scaling + 0.6;
+    countdown.position.y += AllBuildingData[placed_building.building_id].grid_size_x * size_scaling + 0.6;
 
     scene.add(countdown);
     placed_building.Model.userData.countdownSprite = countdown;
@@ -1457,7 +1458,20 @@ function connectToGameServer() {
                     IsAttacker = true
                     FoundMatch()
                     break
-
+                case "replay":
+                    replay = true
+                    inBattle = true
+                    IsAttacker = true // replay happens as attacker ,when the server send opponent name and my name at the end of battle opponent name will be defender name and my name will be attacker name
+                    state = {
+                        Buildings:data.defender_building,
+                        TroopSpawns:[],
+                        AliveTroopAttacker:[],
+                        AliveTroopDefender: [],
+                        AliveBuildings:data.alive_buildings
+                    }
+                    LoadMap(data.defender_building)
+                    attackBtn.classList.add('hidden');
+                    break
             }
         }
         else {
@@ -1471,7 +1485,8 @@ function connectToGameServer() {
                     break
                 case "battle_over":
                     DespawnTroops()
-                    BattleOver(data.battle_outcome,data.attacker_troop_loss,data.buildings_broken,{},data.opponent_username)
+                    BattleOver(data.battle_outcome,data.attacker_troop_loss,data.buildings_broken,{},data.opponent_usernamedata.my_username)
+                    replay = false
                     _hideDeployBar()
                     inBattle = false
                     CancelMatchMaking()
@@ -1528,11 +1543,12 @@ const AttackType = {
     Melee  : "melee",
     Ranged : "ranged"
 }
-const BuildingCategory={
-    TownHall : "townhall",
-    Defense  :"defense",
-    Resource :"resource",
-    Army     :"army"
+const BuildingCategory= {
+    TownHall: "townhall",
+    Defense: "defense",
+    Resource: "resource",
+    Army: "army",
+    Wall: "wall"
 }
 const DamageType = {
     SingleTarget: "single_target",
@@ -1556,9 +1572,10 @@ const ConstructionType = {
 }
 // endregion
 
-//region Battle
+//region battle
 
 var inBattle = false
+var replay = false
 var IsAttacker = false;
 const attackBtn         = document.getElementById('attack-btn');
 const incomingWarning   = document.getElementById('incoming-warning');
@@ -1725,6 +1742,7 @@ function _hideDeployBar() {
 
 window.addEventListener('click', (event) => {
     if (!inBattle) return;
+    if (replay) return
     const rect = canvas.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width)  *  2 - 1;
     mouse.y = -((event.clientY - rect.top)  / rect.height) *  2 + 1;
@@ -1749,7 +1767,7 @@ let LoadedArmy = {}
 function SpawnTroop(datafromServer){
     const troopId = datafromServer.troop_id
     const level = datafromServer.troop_level
-    if (datafromServer.spawned_by_attacker===IsAttacker) {
+    if (!replay && datafromServer.spawned_by_attacker===IsAttacker) {
         const entry = _troopButtons[[troopId, level]];
         entry.count--;
         TrainedTroopsData[[troopId, level]] = entry.count;
@@ -1866,7 +1884,7 @@ function simulate(deltaTime) {
             const ab = aliveBuildings[abIdx];
             const bIdx = ab.BuildingIndex;
             const placedBuilding = buildings[bIdx];
-            if (hasPreferred && AllBuildingData[placedBuilding.building_id].category !== prefCat) {
+            if (hasPreferred && AllBuildingData[placedBuilding.building_id].category !== prefCat && AllTroopsData[placedBuilding.building_id]!==BuildingCategory.Wall) {
                 continue;
             }
             const dx = placedBuilding.grid_x - tX;
@@ -2095,27 +2113,27 @@ function renderTroopRows(container, troopLoss) {
     });
 }
 
-function BattleOver(battle_outcome, attacker_troop_loss, buildings_broken, defender_troop_loss,opponent_username) {
-    const isAtt = (typeof IsAttacker !== 'undefined') ? IsAttacker : true;
+function BattleOver(battle_outcome, attacker_troop_loss, buildings_broken, defender_troop_loss,opponent_username,my_name) {
+    const isAtt = IsAttacker;
 
     const dateStr = battle_outcome.fought_at
         ? new Date(battle_outcome.fought_at).toLocaleDateString('en-US',
             { month: 'short', day: 'numeric', year: 'numeric' })
         : '';
     document.getElementById('bo-eyebrow').textContent =
-        'Battle Report' + (dateStr ? ' · ' + dateStr : '');
+        'battle Report' + (dateStr ? ' · ' + dateStr : '');
 
-    document.getElementById('bo-headline').textContent = isAtt
+    document.getElementById('bo-headline').textContent = replay?`${my_name} raided ${opponent_username}'s village.`:(isAtt
         ? `You struck ${opponent_username}'s village`
-        : `${opponent_username} raided your village`;
+        : `${opponent_username} raided your village`);
 
     document.getElementById('bo-gold').textContent   = fmt(battle_outcome.gold_looted);
     document.getElementById('bo-elixir').textContent = fmt(battle_outcome.elixir_looted);
     document.getElementById('bo-dark').textContent   = fmt(battle_outcome.dark_elixir_looted);
 
-    document.getElementById('bo-your-title').textContent  = isAtt ? 'Your losses'  : 'Their losses';
-    document.getElementById('bo-their-title').textContent = isAtt ? 'Their losses' : 'Your losses';
-    document.getElementById('bo-section-title-building').textContent = isAtt ? 'Buildings destroyed (their village)' : 'Buildings destroyed (your village)'
+    document.getElementById('bo-your-title').textContent  = replay? 'Attacker losses':(isAtt ? 'Your losses'  : 'Their losses');
+    document.getElementById('bo-their-title').textContent = replay? 'defender losses':(isAtt ? 'Their losses' : 'Your losses');
+    document.getElementById('bo-section-title-building').textContent = replay?'Buildings destroyed':(isAtt ? 'Buildings destroyed (their village)' : 'Buildings destroyed (your village)')
     renderTroopRows(
         document.getElementById('bo-your-troops'),
         isAtt ? attacker_troop_loss : defender_troop_loss
@@ -2184,7 +2202,9 @@ const gridDivisions = 200;
 const centerLineColor = 0xff0055;
 const gridLineColor = 0x444444;
 const gridHelper = new THREE.GridHelper(gridWidth, gridDivisions, centerLineColor, gridLineColor);
-gridHelper.position.set(0, 0, -0.25);
+gridHelper.position.set(0, 0, 0);
+gridHelper.material.transparent = true;
+gridHelper.material.opacity = 0.5;
 scene.add(gridHelper);
 
 const cellSize = position_scaling;

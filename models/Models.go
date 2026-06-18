@@ -1,6 +1,11 @@
-package Models
+package models
 
 import (
+	"database/sql/driver"
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -18,6 +23,7 @@ const (
 	Defense  BuildingCategory = "defense"
 	Resource BuildingCategory = "resource"
 	Army     BuildingCategory = "army"
+	Wall     BuildingCategory = "wall"
 )
 
 type DamageType string
@@ -249,6 +255,7 @@ type BattleHistory struct {
 	GoldLooted       int               `gorm:"default:0;column:gold_looted" json:"gold_looted"`
 	DarkElixirLooted int               `gorm:"default:0;column:dark_elixir_looted" json:"dark_elixir_looted"`
 	FoughtAt         time.Time         `gorm:"default:CURRENT_TIMESTAMP;column:fought_at" json:"fought_at"`
+	BattleDuration   int               `gorm:"column:battle_duration" json:"battle_duration"`
 	DoDefenderKnow   bool              `gorm:"column:do_defender_know" json:"do_defender_know"`
 	TroopLosses      []BattleTroopLoss `gorm:"foreignKey:BattleID" json:"troop_losses,omitempty"`
 	BrokenBuildings  []BuildingsBroken `gorm:"foreignKey:BattleID;constraint:OnDelete:CASCADE" json:"broken_buildings,omitempty"`
@@ -257,9 +264,10 @@ type BattleHistory struct {
 func (BattleHistory) TableName() string { return "battle_history" }
 
 type BattleTroopLoss struct {
-	BattleID  string `gorm:"type:uuid;primaryKey;column:battle_id" json:"battle_id"`
-	TroopID   string `gorm:"type:uuid;primaryKey;column:troop_id" json:"troop_id"`
-	LossCount int    `gorm:"not null;default:0;column:loss_count" json:"loss_count"`
+	BattleID   string `gorm:"type:uuid;primaryKey;column:battle_id" json:"battle_id"`
+	TroopID    string `gorm:"type:uuid;primaryKey;column:troop_id" json:"troop_id"`
+	LossCount  int    `gorm:"not null;default:0;column:loss_count" json:"loss_count"`
+	IsAttacker bool   `gorm:"column:is_attacker" json:"is_attacker"`
 }
 
 func (BattleTroopLoss) TableName() string { return "battle_troop_losses" }
@@ -280,3 +288,158 @@ type UserStatus struct {
 }
 
 func (UserStatus) TableName() string { return "user_status" }
+
+type TroopSpawn struct {
+	TroopID           string  `gorm:"column:troop_id"`
+	TroopLevel        int     `gorm:"column:troop_level"`
+	SpawnedByAttacker bool    `gorm:"column:spawned_by_attacker"`
+	SpawnedAt_X       int     `gorm:"column:spawned_at_x"`
+	SpawnedAt_Y       int     `gorm:"column:spawned_at_y"`
+	SpawnTime         float64 `gorm:"column:spawn_time"`
+}
+
+type InitialBattleBuilding struct {
+	BuildingID string `gorm:"column:building_id"` // Maps to UUID in building_configs_base
+	Grid_X     int    `gorm:"column:grid_x"`
+	Grid_Y     int    `gorm:"column:grid_y"`
+	Level      int    `gorm:"column:level"`
+	IsBroken   bool   `gorm:"column:is_broken"`
+}
+
+type TroopSpawnArray []TroopSpawn
+type InitialBuildingArray []InitialBattleBuilding
+
+type BattleRecord struct {
+	BattleID         string               `gorm:"column:battle_id;primaryKey;type:uuid"`
+	TroopSpawns      TroopSpawnArray      `gorm:"column:troop_spawns;type:troop_spawn[]"`
+	InitialBuildings InitialBuildingArray `gorm:"column:initial_buildings;type:initial_battle_building[]"`
+}
+
+func (BattleRecord) TableName() string {
+	return "battle_record"
+}
+func (a TroopSpawnArray) Value() (driver.Value, error) {
+	if len(a) == 0 {
+		return "{}", nil
+	}
+	var elements []string
+	for _, ts := range a {
+		row := fmt.Sprintf(`("%s",%d,%t,%d,%d,%f)`, ts.TroopID, ts.TroopLevel, ts.SpawnedByAttacker, ts.SpawnedAt_X, ts.SpawnedAt_Y, ts.SpawnTime)
+		elements = append(elements, row)
+	}
+	return "{" + strings.Join(elements, ",") + "}", nil
+}
+
+func (a InitialBuildingArray) Value() (driver.Value, error) {
+	if len(a) == 0 {
+		return "{}", nil
+	}
+	var elements []string
+	for _, b := range a {
+		row := fmt.Sprintf(`("%s",%d,%d,%d,%t)`, b.BuildingID, b.Grid_X, b.Grid_Y, b.Level, b.IsBroken)
+		elements = append(elements, row)
+	}
+	return "{" + strings.Join(elements, ",") + "}", nil
+}
+
+func parsePostgresArray(src string) []string {
+	src = strings.Trim(src, "{}")
+	if src == "" {
+		return nil
+	}
+	var results []string
+	var inTuple bool
+	var current strings.Builder
+	for i := 0; i < len(src); i++ {
+		ch := src[i]
+		if ch == '(' {
+			inTuple = true
+			continue
+		}
+		if ch == ')' {
+			inTuple = false
+			results = append(results, current.String())
+			current.Reset()
+			continue
+		}
+		if inTuple {
+			current.WriteByte(ch)
+		}
+	}
+	return results
+}
+func (a *TroopSpawnArray) Scan(value interface{}) error {
+	if value == nil {
+		*a = nil
+		return nil
+	}
+	str, ok := value.(string)
+	if !ok {
+		bytes, ok := value.([]byte)
+		if !ok {
+			return errors.New("invalid data type for TroopSpawnArray")
+		}
+		str = string(bytes)
+	}
+	tuples := parsePostgresArray(str)
+	var res []TroopSpawn
+	for _, t := range tuples {
+		parts := strings.Split(t, ",")
+		if len(parts) < 6 {
+			continue
+		}
+		id := strings.Trim(parts[0], "\"")
+		level, _ := strconv.Atoi(parts[1])
+		attacker := parts[2] == "t" || parts[2] == "true"
+		x, _ := strconv.Atoi(parts[3])
+		y, _ := strconv.Atoi(parts[4])
+		time, _ := strconv.ParseFloat(parts[5], 64)
+		res = append(res, TroopSpawn{
+			TroopID:           id,
+			TroopLevel:        level,
+			SpawnedByAttacker: attacker,
+			SpawnedAt_X:       x,
+			SpawnedAt_Y:       y,
+			SpawnTime:         time,
+		})
+	}
+	*a = res
+	return nil
+}
+
+func (a *InitialBuildingArray) Scan(value interface{}) error {
+	if value == nil {
+		*a = nil
+		return nil
+	}
+	str, ok := value.(string)
+	if !ok {
+		bytes, ok := value.([]byte)
+		if !ok {
+			return errors.New("invalid data type for InitialBuildingArray")
+		}
+		str = string(bytes)
+	}
+	tuples := parsePostgresArray(str)
+	var res []InitialBattleBuilding
+	for _, t := range tuples {
+		parts := strings.Split(t, ",")
+		if len(parts) < 5 {
+			continue
+		}
+		id := strings.Trim(parts[0], "\"")
+		x, _ := strconv.Atoi(parts[1])
+		y, _ := strconv.Atoi(parts[2])
+		level, _ := strconv.Atoi(parts[3])
+		broken := parts[4] == "t" || parts[4] == "true"
+		res = append(res, InitialBattleBuilding{
+			BuildingID: id,
+			Grid_X:     x,
+			Grid_Y:     y,
+			Level:      level,
+			IsBroken:   broken,
+		})
+	}
+	*a = res
+	return nil
+}

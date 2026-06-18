@@ -1,3 +1,4 @@
+DELETE FROM placed_buildings;
 DELETE FROM army_building_level_stats;
 DELETE FROM army_building_stats;
 
@@ -8,8 +9,11 @@ DELETE FROM defense_building_level_stats;
 DELETE FROM defense_building_stats;
 
 DELETE FROM building_level_stats;
+
 DELETE FROM upgrade_costs;
+
 DELETE FROM troop_level_stats;
+
 DELETE FROM building_configs_base
 WHERE name IN (
                'Town Hall',
@@ -22,7 +26,8 @@ WHERE name IN (
                'Elixir Storage',
                'Dark Elixir Drill',
                'Dark Elixir Storage',
-               'Barracks'
+               'Barracks',
+               'Wall'
     );
 
 DELETE FROM troop_configs

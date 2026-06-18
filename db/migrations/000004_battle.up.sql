@@ -7,6 +7,7 @@ CREATE TABLE battle_history
     gold_looted        non_negative_int         DEFAULT 0,
     dark_elixir_looted non_negative_int         DEFAULT 0,
     fought_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    battle_duration non_negative_int NOT NULL DEFAULT 0,
     do_defender_know   BOOLEAN NOT NULL         DEFAULT FALSE,
 
     CONSTRAINT fk_attacker FOREIGN KEY (attacker_id) REFERENCES users (user_id),
@@ -17,8 +18,9 @@ CREATE TABLE battle_troop_losses (
      battle_id UUID NOT NULL,
      troop_id UUID NOT NULL,
      loss_count non_negative_int NOT NULL DEFAULT 0,
+    is_attacker BOOLEAN NOT NULL DEFAULT True,
 
-     PRIMARY KEY (battle_id, troop_id),
+     PRIMARY KEY (battle_id, troop_id,is_attacker),
      CONSTRAINT fk_battle_troop FOREIGN KEY (battle_id) REFERENCES battle_history(battle_id),
      CONSTRAINT fk_troop_id FOREIGN KEY (troop_id) REFERENCES troop_configs(id)
 );
@@ -29,7 +31,7 @@ CREATE TABLE buildings_broken
     building_id UUID             NOT NULL,
     count       non_negative_int NOT NULL DEFAULT 0,
     CONSTRAINT fk_battle_building FOREIGN KEY (battle_id) REFERENCES battle_history (battle_id) ON DELETE CASCADE,
-    CONSTRAINT fk_building FOREIGN KEY (building_id) REFERENCES building_configs_base (building_id) ON DELETE CASCADE 
+    CONSTRAINT fk_building FOREIGN KEY (building_id) REFERENCES building_configs_base (building_id) ON DELETE CASCADE
 );
 
 CREATE TABLE user_status

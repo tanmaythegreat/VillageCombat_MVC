@@ -3,7 +3,7 @@ CREATE DOMAIN town_hall_range AS INT CHECK (VALUE BETWEEN 0 AND 6);
 CREATE DOMAIN non_negative_numeric AS NUMERIC CHECK (VALUE >= 0.0);
 
 CREATE TYPE attack_type AS ENUM ('melee', 'ranged');
-CREATE TYPE building_category AS ENUM ('townhall', 'defense', 'resource', 'army');
+CREATE TYPE building_category AS ENUM ('townhall', 'defense', 'resource', 'army','wall');
 CREATE TYPE damage_type AS ENUM ('single_target', 'splash');
 CREATE TYPE unit_target_type AS ENUM ('ground', 'ground_and_air', 'air');
 CREATE TYPE resource_type AS ENUM ('gold', 'elixir', 'dark_elixir');

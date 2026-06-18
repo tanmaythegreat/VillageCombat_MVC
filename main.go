@@ -1,8 +1,8 @@
 package main
 
 import (
-	"Village_combat/GO/Auth"
-	"Village_combat/GO/Database"
+	controllers2 "Village_combat/controllers"
+	"Village_combat/models"
 	"log"
 	"net/http"
 	"os"
@@ -28,14 +28,14 @@ func main() {
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		log.Fatalf("Failed to apply database migrations: %v", err)
 	}
-	log.Println("Database migrations applied successfully!")
+	log.Println("controllers migrations applied successfully!")
 
-	Database.InitDB(dbURL)
+	models.InitDB(dbURL)
 
-	http.HandleFunc("/register", Auth.RegisterHandler)
-	http.HandleFunc("/login", Auth.LoginHandler)
-	http.HandleFunc("/ws", Auth.HandleWebSocket)
-	http.HandleFunc("/refresh", Auth.RefreshHandler)
+	http.HandleFunc("/register", controllers2.RegisterHandler)
+	http.HandleFunc("/login", controllers2.LoginHandler)
+	http.HandleFunc("/ws", controllers2.HandleWebSocket)
+	http.HandleFunc("/refresh", controllers2.RefreshHandler)
 
 	fs := http.FileServer(http.Dir("./public"))
 	http.Handle("/", fs)

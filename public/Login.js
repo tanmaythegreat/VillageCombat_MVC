@@ -1,5 +1,3 @@
-const API_BASE_URL = 'http://localhost:8080';
-
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 const statusMessage = document.getElementById('status-message');
@@ -52,7 +50,7 @@ loginForm.addEventListener('submit', async (e) => {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/login`, {
+        const response = await fetch(`/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -101,7 +99,7 @@ registerForm.addEventListener('submit', async (e) => {
     };
 
     try {
-        const response = await fetch(`${API_BASE_URL}/register`, {
+        const response = await fetch(`/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

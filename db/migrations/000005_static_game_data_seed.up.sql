@@ -173,7 +173,10 @@ VALUES
     ('Dark Elixir Storage',    'resource'::building_category, 3, 3),
 
     -- Army
-    ('Barracks',               'army'::building_category,     3, 3);
+    ('Barracks',               'army'::building_category,     3, 3),
+
+    -- Walls
+    ('Wall',                   'wall'::building_category,     1, 1);
 
 
 -- =============================================================================
@@ -355,6 +358,22 @@ UNION ALL
 SELECT building_id, 5,   550 FROM building_configs_base WHERE name = 'Barracks'
 UNION ALL
 SELECT building_id, 6,   650 FROM building_configs_base WHERE name = 'Barracks';
+
+-- Wall
+INSERT INTO building_level_stats (building_id, level, health)
+SELECT building_id, 0,     0 FROM building_configs_base WHERE name = 'Wall'
+UNION ALL
+SELECT building_id, 1,   300 FROM building_configs_base WHERE name = 'Wall'
+UNION ALL
+SELECT building_id, 2,   500 FROM building_configs_base WHERE name = 'Wall'
+UNION ALL
+SELECT building_id, 3,   700 FROM building_configs_base WHERE name = 'Wall'
+UNION ALL
+SELECT building_id, 4,   900 FROM building_configs_base WHERE name = 'Wall'
+UNION ALL
+SELECT building_id, 5,  1400 FROM building_configs_base WHERE name = 'Wall'
+UNION ALL
+SELECT building_id, 6,  2000 FROM building_configs_base WHERE name = 'Wall';
 
 
 -- =============================================================================
@@ -744,3 +763,19 @@ UNION ALL
 SELECT building_id, 5,     4500000,        4500,      57600, 4 FROM building_configs_base WHERE name = 'Barracks'
 UNION ALL
 SELECT building_id, 6,   112500000,      112500,     129600, 5 FROM building_configs_base WHERE name = 'Barracks';
+
+-- ── Wall (Instant build) ──────────────────────────────────────────────────────
+INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT building_id, 0,       0,   1, 0, 1 FROM building_configs_base WHERE name = 'Wall'
+UNION ALL
+SELECT building_id, 1,      50,   1, 0, 1 FROM building_configs_base WHERE name = 'Wall'
+UNION ALL
+SELECT building_id, 2,    1000,   2, 0, 2 FROM building_configs_base WHERE name = 'Wall'
+UNION ALL
+SELECT building_id, 3,   10000,  10, 0, 3 FROM building_configs_base WHERE name = 'Wall'
+UNION ALL
+SELECT building_id, 4,  100000, 100, 0, 4 FROM building_configs_base WHERE name = 'Wall'
+UNION ALL
+SELECT building_id, 5,  300000, 300, 0, 5 FROM building_configs_base WHERE name = 'Wall'
+UNION ALL
+SELECT building_id, 6,  750000, 750, 0, 6 FROM building_configs_base WHERE name = 'Wall';

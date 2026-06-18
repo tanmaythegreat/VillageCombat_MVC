@@ -26,6 +26,8 @@ I have implemented jwt with rotating refresh tokens.
 register and login handler are straightforward. at the end it generates JWT token.
 I tried my best to avoid time based vulnerabilities.
 
+In the game at the interval of 14 minutes user requests for refreshing the 
+
 ## Frontend
 I am using Three.js to render the 3d environment
 After signing in the tokens are stored in localstorage,then it Redirects to game page, when the game loads it reads the token from local storage again
@@ -36,13 +38,9 @@ when both building data are ready I load the map.
   * while spawning i check if there is a pooled object that can be moved there I move it and make it visible.(spawning objects is heavier than moving)
   * if there is no pooled object then I spawn.
 
-First of all you will see a building (ignore the model for now) that's town hall.
-you can only create `Cannon` and `Town Hall` for now.
-For now construction is instantaneous (construction task is not involved).
-There is no interactive way(for now).
-in the console write `CreateBuilding('Cannon',30,20)`
+## How To Play
+Most of the mechanics are intuitive enough.You can see the portion of the grid that is occupied on clicking there or the building itself you can the Building Menu.
 
-the Above for now is not now.
 
 spawn building by clicking at blank surface
 open building menu to upgrade and all 
