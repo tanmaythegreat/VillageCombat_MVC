@@ -218,10 +218,8 @@ Loop:
 		case "DEFEND":
 			time.Sleep(time.Second)
 		case "REVENGE":
-			var data struct {
-				OpponentID string
-			}
-			err := json.Unmarshal([]byte(payload.Message), &data)
+			var OpponentID string = payload.Message
+
 			if err != nil {
 				errPayload := []byte(`{"status": "error", "message": "Invalid JSON."}`)
 				err = conn.WriteMessage(messageType, errPayload)
@@ -231,7 +229,7 @@ Loop:
 				}
 				break Switch
 			}
-			if data.OpponentID == userId {
+			if OpponentID == userId {
 				// TODO : allow revenge this way :)
 				errPayload := []byte(`{"status": "error", "message": "You want to take revenge with yourself WOW!!."}`)
 				err = conn.WriteMessage(messageType, errPayload)
@@ -241,7 +239,7 @@ Loop:
 				}
 				break Switch
 			}
-			_, err = models.GetUserData(data.OpponentID) // just assuring that the user exist
+			_, err = models.GetUserData(OpponentID) // just assuring that the user exist
 			if err != nil {
 				errPayload := []byte(`{"status": "error", "message": "It was a Ghost,that wasn't a user!!\nCOC ki aatma"}`)
 				err = conn.WriteMessage(messageType, errPayload)
@@ -251,7 +249,7 @@ Loop:
 				}
 				break Switch
 			}
-			battle.StartMatch(userId, data.OpponentID)
+			battle.StartMatch(userId, OpponentID)
 		case "REPAIR_BUILDING":
 			var data struct {
 				PlacedBuildingID string `json:"placed_building_id"`
@@ -271,7 +269,9 @@ Loop:
 				break Loop
 			}
 		case "REPLAY":
-			battle.Replay(payload.Message, conn)
+			if battle.Replay(payload.Message, conn) != nil {
+				break Loop
+			}
 		default:
 			err = conn.WriteJSON(map[string]interface{}{
 				"status":  "error",

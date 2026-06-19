@@ -314,6 +314,12 @@ func StartMatch(attackerID string, defenderID string) {
 	if err != nil {
 		// TODO : what to do
 	}
+	_, err = models.AddUserGold(attackerID, goldLooted)
+	_, err = models.AddUserElixir(attackerID, elixirLooted)
+	_, err = models.AddUserDarkElixir(attackerID, darkElixirLooted)
+	if err != nil {
+		return
+	}
 	attackerConn.Conn.WriteJSON(map[string]interface{}{
 		"msg_type":            "battle_over",
 		"battle_id":           battleId,
@@ -344,11 +350,14 @@ func StartMatch(attackerID string, defenderID string) {
 		initialBuildingPos[i].Grid_X = building.Placed_Building.GridX
 		initialBuildingPos[i].Grid_Y = building.Placed_Building.GridY
 	}
-	models.SaveBattleRecord(&models.BattleRecord{
+	err = models.SaveBattleRecord(&models.BattleRecord{
 		BattleID:         battleId,
 		TroopSpawns:      state.TroopSpawns,
 		InitialBuildings: initialBuildingPos,
 	})
+	if err != nil {
+		log.Println(err.Error())
+	}
 }
 
 type SpawnMessage struct {

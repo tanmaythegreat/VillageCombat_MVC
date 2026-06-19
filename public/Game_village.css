@@ -32,7 +32,7 @@ body {
     z-index: 10;
     color: white;
     font-family: 'Arial Black', sans-serif;
-    text-shadow: 2px 2px 0px #000;
+    text-shadow: 2px 2px 0 #000;
     pointer-events: none;
 }
 
@@ -539,6 +539,52 @@ body {
     filter: grayscale(40%);
 }
 
+/* ── Toasts ──────────────────────────────────────────── */
+#toast-container {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 300;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+    align-items: center;
+    pointer-events: none;
+}
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(30, 29, 27, 0.95);
+    border: 1px solid rgba(192, 57, 43, 0.4);
+    border-left: 4px solid #C0392B;
+    border-radius: 10px;
+    padding: 12px 18px;
+    color: #fff;
+    font-family: 'Arial', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    max-width: 320px;
+    pointer-events: all;
+}
+.toast.is-active {
+    opacity: 1;
+    transform: translateY(0);
+}
+.toast.toast-success {
+    border-color: rgba(46, 204, 113, 0.4);
+    border-left-color: #2ecc71;
+}
+.toast-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
 #resource-hud {
     position: fixed;
     top: 14px;
@@ -1014,6 +1060,45 @@ body {
     display: none;
 }
 
+/* ── Battle Timer HUD ───────────────────────────────── */
+#battle-timer-hud {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(30, 29, 27, 0.88);
+    border: 1px solid rgba(250, 199, 117, 0.3);
+    border-radius: 20px;
+    padding: 7px 16px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(-12px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+#battle-timer-hud.is-active {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(-50%) translateY(0);
+}
+#battle-timer-icon {
+    font-size: 15px;
+    line-height: 1;
+}
+#battle-timer-val {
+    font-family: 'Arial Black', monospace;
+    font-size: 15px;
+    font-weight: 900;
+    color: #FAC775;
+    letter-spacing: 0.04em;
+    min-width: 34px;
+    text-align: left;
+}
+
 /* ── Incoming Attack Warning ───────────────────────── */
 #incoming-warning {
     position: fixed;
@@ -1216,8 +1301,16 @@ body {
 
 #deploy-bar-header {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+#deploy-bar-header-text {
+    display: flex;
     align-items: baseline;
     gap: 12px;
+    min-width: 0;
+    flex-wrap: wrap;
 }
 #deploy-bar-title {
     font-family: 'Arial Black', sans-serif;
@@ -1231,6 +1324,42 @@ body {
     font-size: 12px;
     color: #B4B2A9;
     margin: 0;
+}
+
+#deploy-retreat-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    background: #C0392B;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-family: 'Arial Black', sans-serif;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    box-shadow: 0 2px 0 #922b21 inset;
+    transition: background 0.15s, transform 0.1s;
+}
+#deploy-retreat-btn:hover {
+    background: #E74C3C;
+    transform: translateY(-1px);
+}
+#deploy-retreat-btn:active {
+    transform: translateY(1px);
+}
+
+#deploy-no-troops {
+    width: 100%;
+    text-align: center;
+    font-size: 13px;
+    font-style: italic;
+    color: #B4B2A9;
+    margin: 0;
+    padding: 12px 4px;
 }
 
 #deploy-troop-list {

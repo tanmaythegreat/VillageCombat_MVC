@@ -65,9 +65,14 @@ func CreateBuilding(userId string, data struct {
 		return SendError(conn)
 	}
 	tx.Commit()
+	userData, err = models.GetUserData(userId)
+	if err != nil {
+		return SendError(conn)
+	}
 	return conn.WriteJSON(map[string]interface{}{
 		"msg_type":        "construction_started",
 		"placed_building": placedBuilding,
 		"task":            task,
+		"user_data":       userData,
 	})
 }

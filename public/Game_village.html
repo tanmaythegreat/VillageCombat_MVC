@@ -213,6 +213,8 @@
     </button>
 </template>
 
+<div id="toast-container"></div>
+
 <div id="resource-hud">
     <div class="res-pill" id="hud-gold">
         <span class="res-icon">🪙</span>
@@ -233,6 +235,11 @@
 </div>
 
 <button id="attack-btn">⚔️ Attack</button>
+
+<div id="battle-timer-hud" aria-live="off">
+    <span id="battle-timer-icon">⏱️</span>
+    <span id="battle-timer-val">0:00</span>
+</div>
 
 <div id="incoming-warning" aria-live="assertive">
     <div id="incoming-warning-inner">
@@ -262,8 +269,11 @@
 
 <div id="deploy-bar">
     <div id="deploy-bar-header">
-        <span id="deploy-bar-title">⚔️ Deploy Troops</span>
-        <p id="deploy-bar-hint">Select a troop, then tap the battlefield to deploy</p>
+        <div id="deploy-bar-header-text">
+            <span id="deploy-bar-title">⚔️ Deploy Troops</span>
+            <p id="deploy-bar-hint">Select a troop, then tap the battlefield to deploy</p>
+        </div>
+        <button id="deploy-retreat-btn">🏳️ Retreat</button>
     </div>
     <div id="deploy-troop-list"></div>
 </div>
@@ -325,6 +335,6 @@
 
 <div id="game-container"></div>
 
-<script type="module" src="Game_village.js"></script>
+<script type="module" src="./src/main.js"></script>
 </body>
 </html>

@@ -91,7 +91,7 @@ func Replay(battleId string, conn *websocket.Conn) error {
 	}
 
 	conn.WriteJSON(map[string]interface{}{
-		"msg_type":          "battle_start",
+		"msg_type":          "replay",
 		"defender_building": ToSend,
 		"alive_buildings":   state.AliveBuildings,
 	})
@@ -104,7 +104,7 @@ func Replay(battleId string, conn *websocket.Conn) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(battleHistory.BattleDuration)*time.Second)
 	defer cancel()
 	WriteMU := sync.Mutex{} // this is write lock for connections only for these 3 functions
-
+	go SpawnTroopsOverTime(record.TroopSpawns, state, &WriteMU, conn)
 	runSimulation(ctx, state, conn, nil, true, false, &WriteMU, 1)
 
 	DeathMap := make(map[string]int)
@@ -140,4 +140,49 @@ func Replay(battleId string, conn *websocket.Conn) error {
 		"my_username":         attackerName,
 	})
 	return nil
+}
+
+func SpawnTroopsOverTime(troops []models.TroopSpawn, state *BattleState, WriteMU *sync.Mutex, conn *websocket.Conn) {
+	startTime := time.Now()
+
+	for _, troop := range troops {
+
+		delay := time.Duration(troop.SpawnTime * float64(time.Second))
+		targetTime := startTime.Add(delay)
+		time.Sleep(time.Until(targetTime))
+		lvlStat := models.TroopLevelDetails[struct {
+			ID    string
+			Level int
+		}{ID: troop.TroopID, Level: troop.TroopLevel}]
+
+		var aliveTrop = struct {
+			TroopIndex      int
+			Current_X       float64
+			Current_Y       float64
+			Config          models.TroopConfig
+			LevelStat       models.TroopLevelStats
+			HealthRemaining int
+		}{
+			TroopIndex:      len(state.TroopSpawns),
+			Current_X:       float64(troop.SpawnedAt_X),
+			Current_Y:       float64(troop.SpawnedAt_Y),
+			Config:          models.TroopConfigs[troop.TroopID],
+			LevelStat:       lvlStat,
+			HealthRemaining: lvlStat.Health,
+		}
+		state.mu.Lock()
+		state.TroopSpawns = append(state.TroopSpawns, troop)
+		if troop.SpawnedByAttacker {
+			state.AliveTroopAttacker = append(state.AliveTroopAttacker, aliveTrop)
+		} else {
+			state.AliveTroopDefender = append(state.AliveTroopDefender, aliveTrop)
+		}
+		state.mu.Unlock()
+		WriteMU.Lock()
+		conn.WriteJSON(map[string]interface{}{
+			"msg_type": "spawn_troop",
+			"troop":    troop,
+		})
+		WriteMU.Unlock()
+	}
 }

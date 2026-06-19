@@ -1,7 +1,5 @@
 import * as THREE from './THREE/three.module.js';
-import {GLTFLoader} from './THREE/GLTFLoader.js';
 
-// const gltfLoader = new GLTFLoader();
 const scene = new THREE.Scene();
 const clock = new THREE.Clock()
 
@@ -172,7 +170,7 @@ async function LoadMap(PlacedBuildings) {
             }
             building.Model = Model
         } else {
-            const loadPromise = new Promise((resolve, reject) => {
+            const loadPromise = new Promise((resolve, _) => {
                 textureLoader.load(
                     `./Models/${name}.png`,
                     (texture) => {
@@ -236,7 +234,7 @@ async function LoadMap(PlacedBuildings) {
 
 function AddLevelDetails(ParticularLevelData){
 
-    for (const [key,val] of Object.entries(ParticularLevelData)){
+    for (const [_,val] of Object.entries(ParticularLevelData)){
         AllBuildingData[val.building_id].levels[val.level] = {}
         AllBuildingData[val.building_id].levels[val.level].health=val.base_stats.health
         AllBuildingData[val.building_id].levels[val.level].update_gold_required=val.upgrade_cost.gold_required
@@ -873,7 +871,7 @@ function renderShopCards() {
     const list = document.getElementById('shop-list');
     const query = _shopSearchQuery.toLowerCase();
 
-    const entries = Object.entries(AllBuildingData).filter(([id, b]) => {
+    const entries = Object.entries(AllBuildingData).filter(([_, b]) => {
         const matchCat = _shopActiveFilter === 'All' || b.category === _shopActiveFilter;
         const matchQ   = !query || b.name.toLowerCase().includes(query);
         return matchCat && matchQ;
@@ -1303,7 +1301,7 @@ function connectToGameServer() {
     const host = window.location.host;
     const socketUrl = `${protocol}//${host}/ws?token=${access_token}`;
     socket = new WebSocket(socketUrl);
-    socket.addEventListener("open", (event) => {
+    socket.addEventListener("open", (_) => {
         SendToServer({ action: "INITIAL_LOAD", message: "",access_token });
     });
 
@@ -1385,6 +1383,7 @@ function connectToGameServer() {
                 case "construction_completed":
                     console.log(data.particular_level_detail)
                     AddLevelDetails(data.particular_level_detail)
+                    localStorage.setItem('All_building_data', JSON.stringify(AllBuildingData))
                     const doneIds = new Set(data.construction_done.map(task => task.id));
                     const {kept, removed} = ConstructionTasks.reduce(
                         (acc, task) => {
@@ -1501,9 +1500,8 @@ function connectToGameServer() {
         console.error("WebSocket Error detected:", error);
     });
 
-    socket.addEventListener("close", (event) => {
+    socket.addEventListener("close", (_) => {
         console.warn("Disconnected from server.Reconecting..");
-        // window.location.href = './Login.html'
         connectToGameServer();
     });
 
@@ -2171,7 +2169,10 @@ function BattleOver(battle_outcome, attacker_troop_loss, buildings_broken, defen
 
     const revengeBtn = document.getElementById('bo-revenge-btn');
     revengeBtn.style.display = !isAtt ? '' : 'none';
-
+    revengeBtn.addEventListener('click', (e)=> {
+        e.stopPropagation()
+        Revenge(battle_outcome.battle_id)
+    })
     document.getElementById('battle-over-overlay').classList.add('is-active');
 }
 
@@ -2187,12 +2188,8 @@ document.getElementById('bo-replay-btn').addEventListener('click', (e)=> {
     console.log('Replay clicked');
 })
 
-document.getElementById('bo-revenge-btn').addEventListener('click', (e)=> {
-    e.stopPropagation()
-    Revenge()
-})
-function Revenge(){
-
+function Revenge(battleId){
+    SendToServer({action:"REVENGE",message:battleId,access_token})
 }
 // endregion
 

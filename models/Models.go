@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql/driver"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -290,12 +289,12 @@ type UserStatus struct {
 func (UserStatus) TableName() string { return "user_status" }
 
 type TroopSpawn struct {
-	TroopID           string  `gorm:"column:troop_id"`
-	TroopLevel        int     `gorm:"column:troop_level"`
-	SpawnedByAttacker bool    `gorm:"column:spawned_by_attacker"`
-	SpawnedAt_X       int     `gorm:"column:spawned_at_x"`
-	SpawnedAt_Y       int     `gorm:"column:spawned_at_y"`
-	SpawnTime         float64 `gorm:"column:spawn_time"`
+	TroopID           string  `gorm:"column:troop_id" json:"troop_id"`
+	TroopLevel        int     `gorm:"column:troop_level" json:"troop_level"`
+	SpawnedByAttacker bool    `gorm:"column:spawned_by_attacker" json:"spawned_by_attacker"`
+	SpawnedAt_X       int     `gorm:"column:spawned_at_x" json:"spawnedAt_X"`
+	SpawnedAt_Y       int     `gorm:"column:spawned_at_y" json:"spawnedAt_Y"`
+	SpawnTime         float64 `gorm:"column:spawn_time" json:"spawn_time"`
 }
 
 type InitialBattleBuilding struct {
@@ -318,93 +317,264 @@ type BattleRecord struct {
 func (BattleRecord) TableName() string {
 	return "battle_record"
 }
+
+// ---------------------------------------------------------------------------
+// Shared helpers for Postgres composite-type / array-of-composite encoding
+// ---------------------------------------------------------------------------
+
+// pgQuote wraps s in double quotes and backslash-escapes any embedded
+// double quotes or backslashes, per Postgres text-format rules. It is used
+// both for quoting individual composite fields and for quoting a whole
+// composite literal as an element of an array.
+func pgQuote(s string) string {
+	var b strings.Builder
+	b.WriteByte('"')
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c == '"' || c == '\\' {
+			b.WriteByte('\\')
+		}
+		b.WriteByte(c)
+	}
+	b.WriteByte('"')
+	return b.String()
+}
+
+func pgBool(v bool) string {
+	if v {
+		return "t"
+	}
+	return "f"
+}
+
+func toScanString(value interface{}) (string, error) {
+	switch v := value.(type) {
+	case string:
+		return v, nil
+	case []byte:
+		return string(v), nil
+	default:
+		return "", fmt.Errorf("unsupported scan type %T", value)
+	}
+}
+
+// parsePgArrayElements splits a Postgres array literal like
+// {"(...)","(...)"}  or  {NULL,"(...)"}
+// into its top-level elements, honoring quoting/escaping so that commas
+// and parentheses *inside* quoted elements are not treated as separators.
+// A nil entry in the returned slice represents a SQL NULL array element.
+func parsePgArrayElements(src string) ([]*string, error) {
+	src = strings.TrimSpace(src)
+	if len(src) < 2 || src[0] != '{' || src[len(src)-1] != '}' {
+		return nil, fmt.Errorf("invalid array literal: %q", src)
+	}
+	inner := src[1 : len(src)-1]
+	n := len(inner)
+	if n == 0 {
+		return nil, nil
+	}
+
+	var elements []*string
+	i := 0
+	for i < n {
+		for i < n && inner[i] == ' ' {
+			i++
+		}
+		if i >= n {
+			break
+		}
+
+		if inner[i] == '"' {
+			var sb strings.Builder
+			i++ // skip opening quote
+			for i < n {
+				c := inner[i]
+				if c == '\\' && i+1 < n {
+					sb.WriteByte(inner[i+1])
+					i += 2
+					continue
+				}
+				if c == '"' {
+					i++
+					break
+				}
+				sb.WriteByte(c)
+				i++
+			}
+			s := sb.String()
+			elements = append(elements, &s)
+		} else {
+			start := i
+			for i < n && inner[i] != ',' {
+				i++
+			}
+			val := inner[start:i]
+			if val == "NULL" {
+				elements = append(elements, nil)
+			} else {
+				v := val
+				elements = append(elements, &v)
+			}
+		}
+
+		// advance to next element
+		for i < n && inner[i] != ',' {
+			i++
+		}
+		if i < n && inner[i] == ',' {
+			i++
+		}
+	}
+	return elements, nil
+}
+
+// parseCompositeFields parses a single composite-type literal, e.g.
+// ("some,id",1,t,2,3,4.5)
+// into its raw field strings, honoring quoting/escaping of individual
+// fields. An empty (unquoted, zero-length) field represents SQL NULL for
+// that column.
+func parseCompositeFields(tuple string) ([]string, error) {
+	tuple = strings.TrimSpace(tuple)
+	if len(tuple) < 2 || tuple[0] != '(' || tuple[len(tuple)-1] != ')' {
+		return nil, fmt.Errorf("invalid composite literal: %q", tuple)
+	}
+	inner := tuple[1 : len(tuple)-1]
+	n := len(inner)
+
+	var fields []string
+	i := 0
+	for {
+		if i >= n {
+			fields = append(fields, "")
+			break
+		}
+		if inner[i] == '"' {
+			var sb strings.Builder
+			i++
+			for i < n {
+				c := inner[i]
+				if c == '\\' && i+1 < n {
+					sb.WriteByte(inner[i+1])
+					i += 2
+					continue
+				}
+				if c == '"' {
+					i++
+					break
+				}
+				sb.WriteByte(c)
+				i++
+			}
+			fields = append(fields, sb.String())
+		} else {
+			start := i
+			for i < n && inner[i] != ',' {
+				i++
+			}
+			fields = append(fields, inner[start:i])
+		}
+
+		if i < n && inner[i] == ',' {
+			i++
+			continue
+		}
+		break
+	}
+	return fields, nil
+}
 func (a TroopSpawnArray) Value() (driver.Value, error) {
 	if len(a) == 0 {
 		return "{}", nil
 	}
-	var elements []string
+	elements := make([]string, 0, len(a))
 	for _, ts := range a {
-		row := fmt.Sprintf(`("%s",%d,%t,%d,%d,%f)`, ts.TroopID, ts.TroopLevel, ts.SpawnedByAttacker, ts.SpawnedAt_X, ts.SpawnedAt_Y, ts.SpawnTime)
-		elements = append(elements, row)
+		tuple := fmt.Sprintf("(%s,%d,%s,%d,%d,%s)",
+			pgQuote(ts.TroopID),
+			ts.TroopLevel,
+			pgBool(ts.SpawnedByAttacker),
+			ts.SpawnedAt_X,
+			ts.SpawnedAt_Y,
+			strconv.FormatFloat(ts.SpawnTime, 'f', -1, 64),
+		)
+		elements = append(elements, pgQuote(tuple))
 	}
 	return "{" + strings.Join(elements, ",") + "}", nil
+}
+
+func (a *TroopSpawnArray) Scan(value interface{}) error {
+	if value == nil {
+		*a = nil
+		return nil
+	}
+	str, err := toScanString(value)
+	if err != nil {
+		return fmt.Errorf("TroopSpawnArray.Scan: %w", err)
+	}
+
+	elements, err := parsePgArrayElements(str)
+	if err != nil {
+		return fmt.Errorf("TroopSpawnArray.Scan: %w", err)
+	}
+
+	res := make([]TroopSpawn, 0, len(elements))
+	for idx, el := range elements {
+		if el == nil {
+			continue // NULL element in the array ,nothing to populate
+		}
+		fields, err := parseCompositeFields(*el)
+		if err != nil {
+			return fmt.Errorf("TroopSpawnArray.Scan: element %d: %w", idx, err)
+		}
+		if len(fields) != 6 {
+			return fmt.Errorf("TroopSpawnArray.Scan: element %d: expected 6 fields, got %d (%q)", idx, len(fields), *el)
+		}
+
+		level, err := strconv.Atoi(fields[1])
+		if err != nil {
+			return fmt.Errorf("TroopSpawnArray.Scan: element %d: invalid troop_level %q: %w", idx, fields[1], err)
+		}
+		x, err := strconv.Atoi(fields[3])
+		if err != nil {
+			return fmt.Errorf("TroopSpawnArray.Scan: element %d: invalid spawned_at_x %q: %w", idx, fields[3], err)
+		}
+		y, err := strconv.Atoi(fields[4])
+		if err != nil {
+			return fmt.Errorf("TroopSpawnArray.Scan: element %d: invalid spawned_at_y %q: %w", idx, fields[4], err)
+		}
+		spawnTime, err := strconv.ParseFloat(fields[5], 64)
+		if err != nil {
+			return fmt.Errorf("TroopSpawnArray.Scan: element %d: invalid spawn_time %q: %w", idx, fields[5], err)
+		}
+
+		res = append(res, TroopSpawn{
+			TroopID:           fields[0],
+			TroopLevel:        level,
+			SpawnedByAttacker: fields[2] == "t" || fields[2] == "true",
+			SpawnedAt_X:       x,
+			SpawnedAt_Y:       y,
+			SpawnTime:         spawnTime,
+		})
+	}
+	*a = res
+	return nil
 }
 
 func (a InitialBuildingArray) Value() (driver.Value, error) {
 	if len(a) == 0 {
 		return "{}", nil
 	}
-	var elements []string
+	elements := make([]string, 0, len(a))
 	for _, b := range a {
-		row := fmt.Sprintf(`("%s",%d,%d,%d,%t)`, b.BuildingID, b.Grid_X, b.Grid_Y, b.Level, b.IsBroken)
-		elements = append(elements, row)
+		tuple := fmt.Sprintf("(%s,%d,%d,%d,%s)",
+			pgQuote(b.BuildingID),
+			b.Grid_X,
+			b.Grid_Y,
+			b.Level,
+			pgBool(b.IsBroken),
+		)
+		elements = append(elements, pgQuote(tuple))
 	}
 	return "{" + strings.Join(elements, ",") + "}", nil
-}
-
-func parsePostgresArray(src string) []string {
-	src = strings.Trim(src, "{}")
-	if src == "" {
-		return nil
-	}
-	var results []string
-	var inTuple bool
-	var current strings.Builder
-	for i := 0; i < len(src); i++ {
-		ch := src[i]
-		if ch == '(' {
-			inTuple = true
-			continue
-		}
-		if ch == ')' {
-			inTuple = false
-			results = append(results, current.String())
-			current.Reset()
-			continue
-		}
-		if inTuple {
-			current.WriteByte(ch)
-		}
-	}
-	return results
-}
-func (a *TroopSpawnArray) Scan(value interface{}) error {
-	if value == nil {
-		*a = nil
-		return nil
-	}
-	str, ok := value.(string)
-	if !ok {
-		bytes, ok := value.([]byte)
-		if !ok {
-			return errors.New("invalid data type for TroopSpawnArray")
-		}
-		str = string(bytes)
-	}
-	tuples := parsePostgresArray(str)
-	var res []TroopSpawn
-	for _, t := range tuples {
-		parts := strings.Split(t, ",")
-		if len(parts) < 6 {
-			continue
-		}
-		id := strings.Trim(parts[0], "\"")
-		level, _ := strconv.Atoi(parts[1])
-		attacker := parts[2] == "t" || parts[2] == "true"
-		x, _ := strconv.Atoi(parts[3])
-		y, _ := strconv.Atoi(parts[4])
-		time, _ := strconv.ParseFloat(parts[5], 64)
-		res = append(res, TroopSpawn{
-			TroopID:           id,
-			TroopLevel:        level,
-			SpawnedByAttacker: attacker,
-			SpawnedAt_X:       x,
-			SpawnedAt_Y:       y,
-			SpawnTime:         time,
-		})
-	}
-	*a = res
-	return nil
 }
 
 func (a *InitialBuildingArray) Scan(value interface{}) error {
@@ -412,32 +582,48 @@ func (a *InitialBuildingArray) Scan(value interface{}) error {
 		*a = nil
 		return nil
 	}
-	str, ok := value.(string)
-	if !ok {
-		bytes, ok := value.([]byte)
-		if !ok {
-			return errors.New("invalid data type for InitialBuildingArray")
-		}
-		str = string(bytes)
+	str, err := toScanString(value)
+	if err != nil {
+		return fmt.Errorf("InitialBuildingArray.Scan: %w", err)
 	}
-	tuples := parsePostgresArray(str)
-	var res []InitialBattleBuilding
-	for _, t := range tuples {
-		parts := strings.Split(t, ",")
-		if len(parts) < 5 {
+
+	elements, err := parsePgArrayElements(str)
+	if err != nil {
+		return fmt.Errorf("InitialBuildingArray.Scan: %w", err)
+	}
+
+	res := make([]InitialBattleBuilding, 0, len(elements))
+	for idx, el := range elements {
+		if el == nil {
 			continue
 		}
-		id := strings.Trim(parts[0], "\"")
-		x, _ := strconv.Atoi(parts[1])
-		y, _ := strconv.Atoi(parts[2])
-		level, _ := strconv.Atoi(parts[3])
-		broken := parts[4] == "t" || parts[4] == "true"
+		fields, err := parseCompositeFields(*el)
+		if err != nil {
+			return fmt.Errorf("InitialBuildingArray.Scan: element %d: %w", idx, err)
+		}
+		if len(fields) != 5 {
+			return fmt.Errorf("InitialBuildingArray.Scan: element %d: expected 5 fields, got %d (%q)", idx, len(fields), *el)
+		}
+
+		x, err := strconv.Atoi(fields[1])
+		if err != nil {
+			return fmt.Errorf("InitialBuildingArray.Scan: element %d: invalid grid_x %q: %w", idx, fields[1], err)
+		}
+		y, err := strconv.Atoi(fields[2])
+		if err != nil {
+			return fmt.Errorf("InitialBuildingArray.Scan: element %d: invalid grid_y %q: %w", idx, fields[2], err)
+		}
+		level, err := strconv.Atoi(fields[3])
+		if err != nil {
+			return fmt.Errorf("InitialBuildingArray.Scan: element %d: invalid level %q: %w", idx, fields[3], err)
+		}
+
 		res = append(res, InitialBattleBuilding{
-			BuildingID: id,
+			BuildingID: fields[0],
 			Grid_X:     x,
 			Grid_Y:     y,
 			Level:      level,
-			IsBroken:   broken,
+			IsBroken:   fields[4] == "t" || fields[4] == "true",
 		})
 	}
 	*a = res
