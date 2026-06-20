@@ -1,24 +1,21 @@
 CREATE TABLE battle_history
 (
-    battle_id          UUID PRIMARY KEY         DEFAULT uuid_generate_v4(),
-    attacker_id        UUID    NOT NULL,
-    defender_id        UUID    NOT NULL,
-    elixir_looted      non_negative_int         DEFAULT 0,
-    gold_looted        non_negative_int         DEFAULT 0,
-    dark_elixir_looted non_negative_int         DEFAULT 0,
-    fought_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    battle_duration non_negative_int NOT NULL DEFAULT 0,
-    do_defender_know   BOOLEAN NOT NULL         DEFAULT FALSE,
-
-    CONSTRAINT fk_attacker FOREIGN KEY (attacker_id) REFERENCES users (user_id),
-    CONSTRAINT fk_defender FOREIGN KEY (defender_id) REFERENCES users (user_id)
+    battle_id          UUID PRIMARY KEY          DEFAULT uuid_generate_v4(),
+    attacker_name      VARCHAR(50)      NOT NULL,
+    defender_name      VARCHAR(50)      NOT NULL,
+    elixir_looted      non_negative_int          DEFAULT 0,
+    gold_looted        non_negative_int          DEFAULT 0,
+    dark_elixir_looted non_negative_int          DEFAULT 0,
+    fought_at          TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP,
+    battle_duration    non_negative_int NOT NULL DEFAULT 0,
+    do_defender_know   BOOLEAN          NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE battle_troop_losses (
      battle_id UUID NOT NULL,
      troop_id UUID NOT NULL,
      loss_count non_negative_int NOT NULL DEFAULT 0,
-    is_attacker BOOLEAN NOT NULL DEFAULT True,
+     is_attacker BOOLEAN NOT NULL DEFAULT True,
 
      PRIMARY KEY (battle_id, troop_id,is_attacker),
      CONSTRAINT fk_battle_troop FOREIGN KEY (battle_id) REFERENCES battle_history(battle_id),
@@ -42,8 +39,8 @@ CREATE TABLE user_status
     power         INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE INDEX idx_battle_history_attacker_log ON battle_history (attacker_id, fought_at DESC);
-CREATE INDEX idx_battle_history_defender_log ON battle_history (defender_id, fought_at DESC);
+CREATE INDEX idx_battle_history_attacker_log ON battle_history (attacker_name, fought_at DESC);
+CREATE INDEX idx_battle_history_defender_log ON battle_history (defender_name, fought_at DESC);
 CREATE INDEX idx_buildings_broken_battle_id ON buildings_broken (battle_id);
 CREATE INDEX idx_user_status_last_defended ON user_status (last_defended ASC);
 CREATE INDEX idx_user_status_power ON user_status (power DESC);

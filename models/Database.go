@@ -986,6 +986,13 @@ func GetUsername(userId string) (string, error) {
 		Scan(&username)
 	return username, err
 }
+func GetUser(userId string) (User, error) {
+	var user User
+	err := DB.Model(&User{}).
+		Where("user_id = ?", userId).
+		First(&user).Error
+	return user, err
+}
 func SaveBattleRecord(record *BattleRecord) error {
 	return DB.Save(record).Error
 }
@@ -1014,4 +1021,26 @@ func GetBattleHistory(battleID string) (*BattleHistory, error) {
 		return nil, err
 	}
 	return &battle, nil
+}
+func GetBattleHistories(userId string, lastFoughtAt time.Time, toLoad int) []BattleHistory {
+	var histories []BattleHistory
+	if lastFoughtAt.IsZero() {
+		lastFoughtAt = time.Now().Add(100 * time.Hour)
+	}
+	username, err := GetUsername(userId)
+	if err != nil {
+		log.Printf("Error occurred while finding battle history of user %s\n", userId)
+		return histories
+	}
+	err = DB.Where("(attacker_name = ? OR defender_name = ?) AND (fought_at < ?)",
+		username, username, lastFoughtAt).
+		Order("fought_at DESC").
+		Limit(toLoad).
+		Find(&histories).Error
+	if err != nil {
+		log.Printf("Error occurred while finding battle history of user %s\n", userId)
+		return histories
+	}
+
+	return histories
 }

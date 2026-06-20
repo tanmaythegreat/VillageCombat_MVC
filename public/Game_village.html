@@ -9,6 +9,70 @@
 </head>
 <body>
 
+<button id="profile-btn" class="profile-btn" title="Open Profile">
+    <img src="Models/profile_icon.webp" alt="" class="profile-avatar">
+    <i class="ti ti-user"></i>
+</button>
+
+<div id="profile-overlay" class="profile-overlay">
+    <div class="profile-panel">
+        <div class="profile-header">
+            <div class="profile-header-left">
+                <i class="ti ti-user"></i>
+                <h2>Profile</h2>
+            </div>
+            <div class="profile-header-right">
+                <button id="profile-theme-btn" class="profile-theme-btn" title="Toggle theme">
+                    <i class="ti ti-moon"></i>
+                </button>
+                <button id="profile-close-btn" class="profile-close-btn">✕</button>
+            </div>
+        </div>
+
+        <div class="profile-content">
+
+            <div class="profile-user-section">
+                <div class="profile-avatar">
+                    <span id="profile-avatar-initials">--</span>
+                </div>
+                <div class="profile-user-info">
+                    <p class="profile-username" id="profile-username">--</p>
+                </div>
+            </div>
+
+            <div class="profile-details-box">
+                <div class="profile-detail-row">
+                    <span class="profile-detail-label">Email</span>
+                    <span class="profile-detail-value" id="profile-email">--</span>
+                </div>
+                <div class="profile-detail-row">
+                    <div>
+                        <span class="profile-detail-label">User ID</span>
+                        <span class="profile-detail-value profile-userid" id="profile-userid">--</span>
+                    </div>
+                    <button class="profile-copy-btn" id="profile-copy-btn" title="Copy User ID">
+                        📋
+                    </button>
+                </div>
+            </div>
+
+            <div class="profile-attack-section">
+                <h3 class="profile-section-title">Custom attack</h3>
+                <div class="profile-attack-row">
+                    <input type="text" id="profile-attack-input" class="profile-attack-input" placeholder="Enter username" />
+                    <button class="profile-attack-btn" id="profile-attack-btn">⚔️ Attack</button>
+                </div>
+            </div>
+
+            <div class="profile-battle-section">
+                <h3 class="profile-section-title">Battle history</h3>
+                <div class="profile-battle-list" id="profile-battle-list"></div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 <div id="shop-overlay" class="bm-backdrop">
     <div class="shop-panel">
         <div class="bm-header">

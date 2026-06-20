@@ -2,7 +2,7 @@ import { ConstructionType } from '../core/enums.js';
 import {
     AllBuildingData, AllTroopsData, PlacedBuildings, TrainedTroopsData, ConstructionTasks,
     setUserData, setPlacedBuildings, setTrainedTroopsData, setConstructionTasks,
-    LoadMap, AddLevelDetails, SummontaskCountDown,
+    LoadMap, AddLevelDetails, SummontaskCountDown, UserData,
 } from '../models/map.js';
 import { UpdateResourceUI } from '../views/ui_hud.js';
 import {
@@ -10,6 +10,7 @@ import {
     _hideDeployBar, setInBattle, setIsAttacker, setReplay, setState, inBattle, DealDamage,
 } from './battle.js';
 import {scene} from "../core/scene.js";
+import {LoadedMoreBattles} from "../views/profile.js";
 
 export let access_token = localStorage.getItem('access_token');
 
@@ -74,8 +75,10 @@ export function connectToGameServer() {
 function _handlePeacetimeMessage(data) {
     switch (data.msg_type) {
         case 'building_troop_of_user': {
-            console.log("uaer data",data.user_data)
+            console.log("uaer data",data)
             setUserData(data.user_data);
+            UserData.username = data.user.username
+            UserData.email = data.user.email
             setPlacedBuildings(data.building);
             localStorage.setItem('Placed_building', JSON.stringify(data.building));
             setConstructionTasks(data.construction_tasks);
@@ -229,6 +232,9 @@ function _handlePeacetimeMessage(data) {
             LoadMap(data.defender_building);
             document.getElementById('attack-btn').classList.add('hidden');
             break;
+        case "battle_history":
+            LoadedMoreBattles(data.history)
+            break
     }
 }
 
@@ -276,10 +282,12 @@ export function RepairBuilding(placed_building_id, use_gems = false) {
 export function TrainTroop(troop_id, count, barrack_placed_building_id, level_to, use_gems) {
     SendToServer({ action: 'TRAIN_TROOP', message: JSON.stringify({ barrack_placed_building_id, troop_id, count, use_gems, level_from: level_to - 1 }) });
 }
-export function Revenge(opponentId) {
-    SendToServer({ action: 'REVENGE', message: opponentId });
+export function Revenge(opponentName) {
+    SendToServer({ action: 'REVENGE', message: opponentName });
 }
-
+export function getBattleHistory(fought_at,to_load){
+    SendToServer({action:"BATTLE_HISTORY",message:JSON.stringify({fought_at,to_load})})
+}
 // endregion
 
 function showToast(message, type = 'error') {

@@ -6,6 +6,7 @@ import { inBattle, simulate } from './controllers/battle.js';
 import { openBuildingShop, triggerBuildingMenu as triggerMenu } from './views/ui_hud.js';
 import { connectToGameServer } from './controllers/network.js';
 import * as THREE from '../THREE/three.module.js';
+import {initProfile} from "./views/profile.js";
 
 const position_scaling = 20;
 
@@ -69,3 +70,4 @@ function animate() {
 
 animate();
 connectToGameServer();
+initProfile()

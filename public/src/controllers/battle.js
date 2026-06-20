@@ -127,7 +127,7 @@ function _buildDeployBar() {
         img.className = 'deploy-troop-img'; img.src = `./Models/${troopDef.name}.png`; img.alt = troopDef.name;
         img.onerror = () => { img.style.display = 'none'; };
 
-        const nameEl  = document.createElement('p');   nameEl.className  = 'deploy-troop-name';  nameEl.textContent  = troopDef.name;
+        const nameEl  = document.createElement('p');   nameEl.className  = 'deploy-troop-name';  nameEl.textContent  = `${troopDef.name} (Lv.${level})`;
         const countEl = document.createElement('span'); countEl.className = 'deploy-troop-count'; countEl.textContent = count;
 
         btn.appendChild(img); btn.appendChild(nameEl); btn.appendChild(countEl);
@@ -461,7 +461,7 @@ export function BattleOver(battle_outcome, attacker_troop_loss, buildings_broken
 
     const revengeBtn = document.getElementById('bo-revenge-btn');
     revengeBtn.style.display = !isAtt ? '' : 'none';
-    revengeBtn.addEventListener('click', (e) => { closeBattleOver(e); Revenge(battle_outcome.attacker_id); });
+    revengeBtn.addEventListener('click', (e) => { closeBattleOver(e); Revenge(battle_outcome.attacker_name); });
 
     setInBattle(false);
     _hideDeployBar();

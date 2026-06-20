@@ -248,9 +248,17 @@ func StartMatch(attackerID string, defenderID string) {
 	if totalDarkelixirB != 0 {
 		darkElixirLooted = (dark_elixir * defender.CurrentDarkElixir) / totalDarkelixirB
 	}
+	defenderName, err := models.GetUsername(defenderID)
+	if err != nil {
+		// TODO : what to do
+	}
+	attackerName, err := models.GetUsername(attackerID)
+	if err != nil {
+		// TODO : what to do
+	}
 	battleHistory := models.BattleHistory{
-		AttackerID:       attackerID,
-		DefenderID:       defenderID,
+		AttackerName:     attackerName,
+		DefenderName:     defenderName,
 		ElixirLooted:     elixirLooted,
 		GoldLooted:       goldLooted,
 		DarkElixirLooted: darkElixirLooted,
@@ -305,14 +313,6 @@ func StartMatch(attackerID string, defenderID string) {
 		if err != nil {
 			// TODO : handle it
 		}
-	}
-	defenderName, err := models.GetUsername(defenderID)
-	if err != nil {
-		// TODO : what to do
-	}
-	attackerName, err := models.GetUsername(attackerID)
-	if err != nil {
-		// TODO : what to do
 	}
 	_, err = models.AddUserGold(attackerID, goldLooted)
 	_, err = models.AddUserElixir(attackerID, elixirLooted)

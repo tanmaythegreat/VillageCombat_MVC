@@ -122,14 +122,9 @@ func Replay(battleId string, conn *websocket.Conn) error {
 		}
 	}
 
-	defenderName, err := models.GetUsername(battleHistory.DefenderID)
-	if err != nil {
-		// TODO : what to do
-	}
-	attackerName, err := models.GetUsername(battleHistory.AttackerID)
-	if err != nil {
-		// TODO : what to do
-	}
+	defenderName := battleHistory.DefenderName
+	attackerName := battleHistory.AttackerName
+
 	conn.WriteJSON(map[string]interface{}{
 		"msg_type":            "battle_over",
 		"battle_id":           battleId,

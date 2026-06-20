@@ -248,8 +248,8 @@ func (UserData) TableName() string { return "user_data" }
 
 type BattleHistory struct {
 	BattleID         string            `gorm:"type:uuid;primaryKey;default:uuid_generate_v4();column:battle_id" json:"battle_id"`
-	AttackerID       string            `gorm:"type:uuid;not null;column:attacker_id" json:"attacker_id"`
-	DefenderID       string            `gorm:"type:uuid;not null;column:defender_id" json:"defender_id"`
+	AttackerName     string            `gorm:"type:uuid;not null;column:attacker_name" json:"attacker_name"`
+	DefenderName     string            `gorm:"type:uuid;not null;column:defender_name" json:"defender_name"`
 	ElixirLooted     int               `gorm:"default:0;column:elixir_looted" json:"elixir_looted"`
 	GoldLooted       int               `gorm:"default:0;column:gold_looted" json:"gold_looted"`
 	DarkElixirLooted int               `gorm:"default:0;column:dark_elixir_looted" json:"dark_elixir_looted"`

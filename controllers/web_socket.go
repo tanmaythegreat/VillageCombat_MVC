@@ -218,7 +218,7 @@ Loop:
 		case "DEFEND":
 			time.Sleep(time.Second)
 		case "REVENGE":
-			var OpponentID string = payload.Message
+			var OpponentName string = payload.Message
 
 			if err != nil {
 				errPayload := []byte(`{"status": "error", "message": "Invalid JSON."}`)
@@ -229,17 +229,8 @@ Loop:
 				}
 				break Switch
 			}
-			if OpponentID == userId {
-				// TODO : allow revenge this way :)
-				errPayload := []byte(`{"status": "error", "message": "You want to take revenge with yourself WOW!!."}`)
-				err = conn.WriteMessage(messageType, errPayload)
-				if err != nil {
-					log.Println("Failed to send message to client:", err)
-					break Loop
-				}
-				break Switch
-			}
-			_, err = models.GetUserData(OpponentID) // just assuring that the user exist
+
+			opponent, err := models.GetUserByName(OpponentName) // just assuring that the user exist
 			if err != nil {
 				errPayload := []byte(`{"status": "error", "message": "It was a Ghost,that wasn't a user!!\nCOC ki aatma"}`)
 				err = conn.WriteMessage(messageType, errPayload)
@@ -249,7 +240,16 @@ Loop:
 				}
 				break Switch
 			}
-			battle.StartMatch(userId, OpponentID)
+			//if opponent.Username==username{
+			//	errPayload := []byte(`{"status": "error", "message": "I absolutely sympathise with you but pls dont destroy your own village.Every thing will be okay."}`)
+			//	err = conn.WriteMessage(messageType, errPayload)
+			//	if err != nil {
+			//		log.Println("Failed to send message to client:", err)
+			//		break Loop
+			//	}
+			//	break Switch
+			//}
+			battle.StartMatch(userId, opponent.UserID)
 		case "REPAIR_BUILDING":
 			var data struct {
 				PlacedBuildingID string `json:"placed_building_id"`
@@ -270,6 +270,28 @@ Loop:
 			}
 		case "REPLAY":
 			if battle.Replay(payload.Message, conn) != nil {
+				break Loop
+			}
+		case "BATTLE_HISTORY":
+			var data struct {
+				LastFoughtAt time.Time `json:"fought_at"`
+				ToLoad       int       `json:"to_load"`
+			}
+			err := json.Unmarshal([]byte(payload.Message), &data)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Invalid JSON."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			err = conn.WriteJSON(map[string]interface{}{
+				"msg_type": "battle_history",
+				"history":  models.GetBattleHistories(userId, data.LastFoughtAt, data.ToLoad),
+			})
+			if err != nil {
 				break Loop
 			}
 		default:

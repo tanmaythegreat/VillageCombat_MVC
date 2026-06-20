@@ -29,18 +29,21 @@ func InitialLoad(userId string, conn *websocket.Conn) error {
 		return SendError(conn)
 	}
 
+	user, err := models.GetUser(userId)
 	data := struct {
 		MsgType           string          `json:"msg_type"`
 		Building          json.RawMessage `json:"building"`
 		Troops            json.RawMessage `json:"troops"`
 		ConstructionTasks json.RawMessage `json:"construction_tasks"`
 		UserData          models.UserData `json:"user_data"`
+		User              models.User     `json:"user"`
 	}{
 		MsgType:           "building_troop_of_user",
 		Building:          building,
 		Troops:            troops,
 		ConstructionTasks: constructionTasks,
 		UserData:          userData,
+		User:              user,
 	}
 
 	return conn.WriteJSON(data)

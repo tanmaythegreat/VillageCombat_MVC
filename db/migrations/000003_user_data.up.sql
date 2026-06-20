@@ -1,4 +1,4 @@
-CREATE TYPE construction_type AS ENUM ('building_construction', 'building_upgrade', 'troop_training','building_repair');
+    CREATE TYPE construction_type AS ENUM ('building_construction', 'building_upgrade', 'troop_training','building_repair');
 
 CREATE TABLE placed_buildings
 (
