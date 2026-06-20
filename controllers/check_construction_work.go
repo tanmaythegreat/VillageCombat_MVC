@@ -19,6 +19,7 @@ func CheckConstructionWork(userId string, conn *websocket.Conn) error {
 		var levelDetails = make([]json.RawMessage, 0, len(buildings_updated))
 		for _, building := range buildings_updated {
 			if models.BuildingID_Category[building.BuildingID] == models.TownHall {
+				err = models.IncrementUserTownHallLevel(userId)
 				if err != nil {
 					return SendError(conn)
 				}

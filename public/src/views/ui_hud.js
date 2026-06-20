@@ -577,15 +577,16 @@ function refreshTroopDetailPane(troopId, placed_building_id) {
         UserData.current_gold        -= upgCost.gold_required;
         UserData.current_elixir      -= upgCost.elxir_required;
         UserData.current_dark_elixir -= upgCost.dark_elixir_required;
-        if (lv !== 0) TrainedTroopsData[[troop, lv]] -= _troopCount;
+        if (lv !== 1) TrainedTroopsData[[troop, lv-1]] -= _troopCount;
     };
     gemBtn.onclick = (e) => {
+        console.log(_troopCount,lv)
         e.stopPropagation();
         if (!canAffordTroop(upgCost, true)) return;
         closeTroopOverlay();
         TrainTroop(troopId, _troopCount, placed_building_id, lv, true);
         UserData.current_gems -= upgCost.or_gem_required;
-        if (lv !== 0) TrainedTroopsData[[troop, lv]] -= _troopCount;
+        if (lv !== 1) TrainedTroopsData[[troop, lv-1]] -= _troopCount;
     };
 
     updateTroopCosts(troopId, placed_building_id);

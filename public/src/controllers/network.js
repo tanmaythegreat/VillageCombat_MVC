@@ -74,6 +74,7 @@ export function connectToGameServer() {
 function _handlePeacetimeMessage(data) {
     switch (data.msg_type) {
         case 'building_troop_of_user': {
+            console.log("uaer data",data.user_data)
             setUserData(data.user_data);
             setPlacedBuildings(data.building);
             localStorage.setItem('Placed_building', JSON.stringify(data.building));
@@ -84,11 +85,10 @@ function _handlePeacetimeMessage(data) {
             setTrainedTroopsData(trained);
             localStorage.setItem('Trained_troops_data', JSON.stringify(trained));
 
-            if (Object.keys(AllBuildingData).length && Object.keys(AllTroopsData).length) {
+            if (Object.keys(AllBuildingData).length && Object.keys(AllTroopsData).length)
                 LoadMap(PlacedBuildings);
-            } else {
-                SendToServer({ action: 'ALL_BUILDING_TROOP_DATA', message: '' });
-            }
+
+            SendToServer({ action: 'ALL_BUILDING_TROOP_DATA', message: '' });
             SendToServer({ action: 'CHECK_CONSTRUCTION_WORK', message: '' });
             UpdateResourceUI();
             break;

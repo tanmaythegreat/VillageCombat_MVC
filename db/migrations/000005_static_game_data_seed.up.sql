@@ -16,8 +16,8 @@
 -- =============================================================================
 INSERT INTO troop_configs (name, preferred_target,  attack_type, movement_speed, attack_speed_seconds, attack_range, housing_space)
 VALUES
-    ('Barbarian', 'defense',   'melee'::attack_type,  1.0, 1.0, 1.0, 1),
-    ('Archer',    'defense',   'ranged'::attack_type, 0.9, 1.0, 3.5, 1),
+    ('Barbarian', NULL,   'melee'::attack_type,  1.0, 1.0, 1.0, 1),
+    ('Archer',    NULL,   'ranged'::attack_type, 0.9, 1.0, 3.5, 1),
     ('Goblin',    'resource',  'melee'::attack_type,  1.4, 1.0, 1.0, 1),
     ('Giant',     'defense',   'melee'::attack_type,  0.6, 2.0, 1.0, 5);
 

@@ -66,7 +66,7 @@ func TrainTroop(userId string, data struct {
 	if data.UseGems {
 		time_req = 1
 	}
-	constructionTask, err := models.StartTrainingTroops(userId, data.TroopId, data.Count, data.BarrackPlacedBuildingID, data.LevelFrom+1, time_req, tx)
+	constructionTask, err := models.StartTrainingTroops(userId, data.TroopId, data.Count, data.BarrackPlacedBuildingID, time_req, data.LevelFrom+1, tx)
 	if err != nil {
 		tx.Rollback()
 		return SendError(conn)

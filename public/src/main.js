@@ -62,7 +62,7 @@ function animate() {
     }
 
     // day-night cycle faking
-    ambientLight.intensity = Math.max(Math.min(0.3 + Math.cos(clock.elapsedTime * 0.01) * 0.5, 0.5), 0.1);
+    ambientLight.intensity = Math.max(Math.min(0.5 + Math.cos(clock.elapsedTime * 0.01) * 0.5, 0.7), 0.2);
 
     renderer.render(scene, camera);
 }

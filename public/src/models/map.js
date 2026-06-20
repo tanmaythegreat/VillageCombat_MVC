@@ -63,6 +63,7 @@ function createCountdownSprite(durationMilliSeconds, started_at, OnDone) {
     });
 
     const sprite = new THREE.Mesh(geometry, material);
+    sprite.renderOrder = 200
     const state  = { endTime: started_at + durationMilliSeconds, canvas: cvs, texture, done: false, OnDone, durationMilliSeconds };
     drawCountdown(state);
     sprite.userData.countdown = state;
@@ -188,18 +189,18 @@ export async function LoadMap(buildings) {
     }
 
     for (const building of buildings) {
-        const name  = building.is_broken ? 'Broken' : AllBuildingData[building.building_id].name;
+        const name = building.is_broken ? 'Broken' : AllBuildingData[building.building_id].name;
         const bData = AllBuildingData[building.building_id];
-        const posX  = (building.grid_x + bData.grid_size_x / 2) * position_scaling;
-        const posZ  = (building.grid_y + bData.grid_size_y / 4) * position_scaling;
-
-        if (name in Pool && Pool[name].length > 0) {
-            const Model = Pool[name].pop();
+        const posX  = (building.grid_x + (bData.grid_size_y===1?0:(bData.grid_size_x / 2))) * position_scaling;
+        const posZ  = (building.grid_y + (bData.grid_size_y===1?0:(bData.grid_size_y / 4))) * position_scaling;
+        const name_key = name+bData.grid_size_x+bData.grid_size_y
+        if (name_key in Pool && Pool[name_key].length > 0) {
+            const Model = Pool[name_key].pop();
             Model.position.set(posX, 0, posZ);
             Model.visible  = true;
             Model.userData = building;
-            if (name in LoadedObjects) LoadedObjects[name].push(Model);
-            else LoadedObjects[name] = [Model];
+            if (name_key in LoadedObjects) LoadedObjects[name_key].push(Model);
+            else LoadedObjects[name_key] = [Model];
             _fillGrid(building, Model);
             building.Model = Model;
         } else {
@@ -224,8 +225,8 @@ export async function LoadMap(buildings) {
                         _fillGrid(building, obj);
                         scene.add(obj);
                         building.Model = obj;
-                        if (name in LoadedObjects) LoadedObjects[name].push(obj);
-                        else LoadedObjects[name] = [obj];
+                        if (name_key in LoadedObjects) LoadedObjects[name_key].push(obj);
+                        else LoadedObjects[name_key] = [obj];
                         resolve();
                     },
                     undefined,

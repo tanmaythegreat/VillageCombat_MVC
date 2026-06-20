@@ -59,8 +59,13 @@ func RepairBuilding(userId string, data struct {
 		return SendError(conn)
 	}
 	tx.Commit()
+	userData, err := models.GetUserData(userId)
+	if err != nil {
+		return SendError(conn)
+	}
 	return conn.WriteJSON(map[string]interface{}{
-		"msg_type": "construction_started",
-		"task":     task,
+		"msg_type":  "construction_started",
+		"task":      task,
+		"user_data": userData,
 	})
 }
