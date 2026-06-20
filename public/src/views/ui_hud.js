@@ -2,6 +2,7 @@ import { BuildingCategory } from '../core/enums.js';
 import { formatNum, formatTime, escapeHTML, setAffordability } from '../models/utils.js';
 import { AllBuildingData, AllTroopsData, TrainedTroopsData, UserData, ConstructionTasks } from '../models/map.js';
 import { CreateBuilding, UpgradeBuilding, RepairBuilding, TrainTroop } from '../controllers/network.js';
+import {selectToMove} from "../core/move.js";
 
 export function UpdateResourceUI() {
     document.getElementById('hud-gold-val').textContent        = formatNum(UserData.current_gold        ?? 0);
@@ -133,7 +134,13 @@ export function triggerBuildingMenu(data) {
     const gemUpgradeBtn   = document.getElementById('bm-gem-upgrade-btn');
     const gemRepairBtn    = document.getElementById('bm-gem-repair-btn');
     const repairBtn       = document.getElementById('bm-repair-btn');
-
+    const movebtn = document.getElementById('bm-move-btn')
+    movebtn.style.display = 'block'
+    movebtn.addEventListener('click',(e)=>{
+        e.stopPropagation()
+        overlay.classList.remove('is-active');
+        selectToMove()
+    })
     gemRepairBtn.style.display  = data.is_broken ? 'block' : 'none';
     repairBtn.style.display     = data.is_broken ? 'block' : 'none';
     gemUpgradeBtn.style.display = data.is_broken ? 'none'  : 'block';

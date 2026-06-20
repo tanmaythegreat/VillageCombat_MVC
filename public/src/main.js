@@ -1,4 +1,4 @@
-import { scene, clock, camera, renderer, ambientLight, canvas, ground, refreshGridHighlights } from './core/scene.js';
+import { scene, clock, camera, renderer, ambientLight, canvas, ground } from './core/scene.js';
 import { handleMovement, raycaster,mouse } from './core/scene.js';
 import { tickCountdowns, Grid } from './models/map.js';
 import { updateCollectButton } from './views/ui_hud.js';
@@ -7,6 +7,7 @@ import { openBuildingShop, triggerBuildingMenu as triggerMenu } from './views/ui
 import { connectToGameServer } from './controllers/network.js';
 import * as THREE from '../THREE/three.module.js';
 import {initProfile} from "./views/profile.js";
+import {moveUpdate, moving, putSelectedBuilding} from "./core/move.js";
 
 const position_scaling = 20;
 
@@ -20,11 +21,15 @@ window.addEventListener('mousemove', (event) => {
     const intersects = raycaster.intersectObject(ground);
     if (!intersects.length) return;
     const { x, z } = intersects[0].point;
-    meshCube.position.set(Math.round(x / position_scaling) * position_scaling, 0, Math.round(z / position_scaling) * position_scaling);
+    const X = Math.round(x / position_scaling)
+    const Z = Math.round(z/ position_scaling)
+    moveUpdate(X,Z)
+    meshCube.position.set( X* position_scaling, 0, Z * position_scaling);
 });
 
 window.addEventListener('click', onMouseClick);
 function onMouseClick(event) {
+
     if (inBattle) return;
     const bmOverlay   = document.getElementById('bm-overlay');
     const shopOverlay = document.getElementById('shop-overlay');
@@ -41,7 +46,10 @@ function onMouseClick(event) {
     const { x, z }  = intersects[0].point;
     const gridX = Math.round(x / position_scaling);
     const gridY = Math.round(z / position_scaling);
-
+    if (moving){
+        putSelectedBuilding(gridX,gridY)
+        return
+    }
     if (Grid[[gridX, gridY]]) {
         triggerMenu(Grid[[gridX, gridY]].userData);
     } else {

@@ -114,35 +114,69 @@ const gridHelper = new THREE.GridHelper(position_scaling * 100, 200, 0xff0055, 0
 gridHelper.material.transparent = true;
 gridHelper.material.opacity     = 0.5;
 scene.add(gridHelper);
-
-const cellSize     = position_scaling;
-const highlightGeo = new THREE.PlaneGeometry(cellSize * 0.95, cellSize * 0.95);
-const highlightMat = new THREE.MeshBasicMaterial({
-    color: 0xffff00, transparent: true, opacity: 0.10, depthWrite: false,
-});
-let highlightMesh = null;
-
-export function refreshGridHighlights(Grid) {
-    if (highlightMesh) {
-        scene.remove(highlightMesh);
-        highlightMesh.dispose?.();
-    }
-    const filledCells = Object.keys(Grid);
-    if (!filledCells.length) return;
-
-    highlightMesh = new THREE.InstancedMesh(highlightGeo, highlightMat, filledCells.length);
-    highlightMesh.position.y = 0.01;
-    highlightMesh.rotation.x = -Math.PI / 2;
-
-    const dummy = new THREE.Object3D();
-    filledCells.forEach((key, i) => {
-        const [x, y] = key.split(',').map(Number);
-        dummy.position.set(x * cellSize, -y * cellSize, 0);
-        dummy.updateMatrix();
-        highlightMesh.setMatrixAt(i, dummy.matrix);
-    });
-    highlightMesh.instanceMatrix.needsUpdate = true;
-    scene.add(highlightMesh);
+function coordKey(x, y) {
+    return `${x},${y}`;
 }
 
-// endregion
+let highlightGroup = null;
+
+export function highlightGridSquares(grid, badpoints) {
+    if (!badpoints) badpoints = []
+    console.log(badpoints)
+    if (highlightGroup) {
+        scene.remove(highlightGroup);
+        highlightGroup.traverse(obj => {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) obj.material.dispose();
+        });
+    }
+
+    highlightGroup = new THREE.Group();
+
+    const squareGeo = new THREE.PlaneGeometry(position_scaling*0.95, position_scaling*0.95);
+
+    const greenMat = new THREE.MeshBasicMaterial({
+        color: 0x00ff55,
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide,
+    });
+
+    const redMat = new THREE.MeshBasicMaterial({
+        color: 0xff0000,
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide,
+    });
+
+    // const badSet = new Set(badpoints.map(([x, y]) => coordKey(x, y)));
+    const badSet = new Set(badpoints)
+    // console.log(badpoints)
+    const drawSquare = (x, y, material) => {
+        const mesh = new THREE.Mesh(squareGeo, material);
+        mesh.rotation.x = -Math.PI / 2; // lie flat, matching the GridHelper
+        mesh.position.set(
+            x * position_scaling,
+            0.01, // tiny offset to avoid z-fighting with grid lines
+            y * position_scaling
+        );
+        highlightGroup.add(mesh);
+    };
+
+    // green: every key in grid (unless it's also a bad point)
+    for (const key of Object.keys(grid)) {
+        const [x, y] = key.split(',').map(Number);
+        if (!badSet.has(coordKey(x, y))) {
+            drawSquare(x, y, greenMat);
+        }
+    }
+
+    for (const k of badpoints) {
+        const [x,y] = k.split(',')
+        console.log(x,y)
+        drawSquare(x, y, redMat);
+    }
+
+    scene.add(highlightGroup);
+    return highlightGroup;
+}// endregion

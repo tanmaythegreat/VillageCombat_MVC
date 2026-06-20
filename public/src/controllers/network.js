@@ -75,7 +75,7 @@ export function connectToGameServer() {
 function _handlePeacetimeMessage(data) {
     switch (data.msg_type) {
         case 'building_troop_of_user': {
-            console.log("uaer data",data)
+            console.log("user data",data)
             setUserData(data.user_data);
             UserData.username = data.user.username
             UserData.email = data.user.email
@@ -234,6 +234,12 @@ function _handlePeacetimeMessage(data) {
             break;
         case "battle_history":
             LoadedMoreBattles(data.history)
+            break
+        case "moved":
+            const b = PlacedBuildings.find(b => b.id === data.placed_building_id)
+            b.grid_x = data.grid_x
+            b.grid_y = data.grid_y
+            LoadMap(PlacedBuildings)
             break
     }
 }

@@ -34,7 +34,6 @@ func CreateBuilding(userId string, data struct {
 		errPayload := []byte(`{"status": "error", "message": "Can't Place Here."}`)
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}
-	// TODO : townhall level check
 	cost, err := models.GetConstructionCost(data.BuildingID, 1)
 	if err != nil {
 		return SendError(conn)

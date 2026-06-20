@@ -488,6 +488,7 @@ func GetNearByBuildings(userId string, x int, y int) ([]struct {
 	At_y   int
 	Size_x int
 	Size_y int
+	Id     string
 }, error) {
 	const radius = 10
 
@@ -511,6 +512,7 @@ func GetNearByBuildings(userId string, x int, y int) ([]struct {
 		At_y   int
 		Size_x int
 		Size_y int
+		Id     string
 	}, 0, len(placedBuildings))
 
 	for _, pb := range placedBuildings {
@@ -528,11 +530,13 @@ func GetNearByBuildings(userId string, x int, y int) ([]struct {
 			At_y   int
 			Size_x int
 			Size_y int
+			Id     string
 		}{
 			At_x:   pb.GridX,
 			At_y:   pb.GridY,
 			Size_x: size.X,
 			Size_y: size.Y,
+			Id:     pb.ID,
 		})
 	}
 
@@ -1043,4 +1047,24 @@ func GetBattleHistories(userId string, lastFoughtAt time.Time, toLoad int) []Bat
 	}
 
 	return histories
+}
+func UpdatePlacedBuildingPosition(userId string, placed_building_id string, gridx, gridy int) (PlacedBuilding, error) {
+	var updatedBuilding PlacedBuilding
+
+	result := DB.Model(&updatedBuilding).
+		Clauses(clause.Returning{}).
+		Where("id = ? AND user_id = ?", placed_building_id, userId).
+		Updates(map[string]interface{}{
+			"grid_x":          gridx,
+			"grid_y":          gridy,
+			"last_updated_at": time.Now(),
+		})
+
+	if result.Error != nil {
+		return PlacedBuilding{}, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return PlacedBuilding{}, errors.New("building not found or user unauthorized")
+	}
+	return updatedBuilding, nil
 }

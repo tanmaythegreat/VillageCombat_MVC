@@ -1,5 +1,11 @@
 import * as THREE from '../../THREE/three.module.js';
-import { scene, textureLoader, position_scaling, size_scaling, refreshGridHighlights } from '../core/scene.js';
+import {
+    scene,
+    textureLoader,
+    position_scaling,
+    size_scaling,
+    highlightGridSquares
+} from '../core/scene.js';
 import { BuildingCategory } from '../core/enums.js';
 import { formatTime } from './utils.js';
 
@@ -239,7 +245,7 @@ export async function LoadMap(buildings) {
 
     await Promise.all(textureLoadPromises);
     for (const task of ConstructionTasks) SummontaskCountDown(task);
-    refreshGridHighlights(Grid);
+    highlightGridSquares(Grid);
 }
 
 function _fillGrid(building, model) {

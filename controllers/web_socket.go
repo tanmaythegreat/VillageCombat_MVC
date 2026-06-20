@@ -294,6 +294,25 @@ Loop:
 			if err != nil {
 				break Loop
 			}
+		case "MOVE":
+			var data struct {
+				PlacedBuildingID string `json:"placed_building_id"`
+				GridX            int    `json:"grid_x"`
+				GridY            int    `json:"grid_y"`
+			}
+			err := json.Unmarshal([]byte(payload.Message), &data)
+			if err != nil {
+				errPayload := []byte(`{"status": "error", "message": "Invalid JSON."}`)
+				err = conn.WriteMessage(messageType, errPayload)
+				if err != nil {
+					log.Println("Failed to send message to client:", err)
+					break Loop
+				}
+				break Switch
+			}
+			if MoveBuilding(userId, data, conn) != nil {
+				break Loop
+			}
 		default:
 			err = conn.WriteJSON(map[string]interface{}{
 				"status":  "error",
