@@ -88,7 +88,7 @@ let isDragging = false;
 let previousTouch = { x: 0, y: 0 };
 let previousPinchDistance = 0;
 
-const touchDragSpeed = 0.5;
+const touchDragSpeed = 0.005;
 const touchPinchSpeed = 0.5;
 function getPinchDistance(touch1, touch2) {
     const dx = touch1.clientX - touch2.clientX;
@@ -105,13 +105,13 @@ window.addEventListener('touchstart', (e) => {
     }
 
     else if (e.touches.length === 2) {
-        isDragging = false; // Cancel drag if a second finger goes down
+        isDragging = false;
         previousPinchDistance = getPinchDistance(e.touches[0], e.touches[1]);
     }
-}, { passive: false }); // passive: false allows us to prevent default scrolling
+}, { passive: false });
 
 window.addEventListener('touchmove', (e) => {
-    e.preventDefault(); // Stop the browser from scrolling/pull-to-refresh
+    e.preventDefault();
 
     if (e.touches.length === 1 && isDragging) {
         const currentTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -130,15 +130,22 @@ window.addEventListener('touchmove', (e) => {
 
     else if (e.touches.length === 2) {
         const currentPinchDistance = getPinchDistance(e.touches[0], e.touches[1]);
-
         const deltaDistance = currentPinchDistance - previousPinchDistance;
 
+        const sensitivity = 0.002 * touchPinchSpeed;
+
         if (isOrthographic) {
-            frustumSize -= deltaDistance * touchPinchSpeed;
-            frustumSize = Math.max(1, frustumSize);
+            const zoomFactor = Math.exp(-deltaDistance * sensitivity);
+            frustumSize *= zoomFactor;
+            frustumSize = Math.max(10, Math.min(frustumSize, 2000));
+
             updateCamera();
         } else {
-            camera.position.y -= deltaDistance * touchPinchSpeed;
+
+            const zoomFactor = Math.exp(-deltaDistance * sensitivity);
+            camera.position.y *= zoomFactor;
+
+            camera.position.y = Math.max(5, Math.min(camera.position.y, 1000));
         }
 
         previousPinchDistance = currentPinchDistance;
