@@ -181,7 +181,8 @@ func RegisterUser(username string, passwordHash string, email string) (*User, *U
 		UserID:       user.UserID,
 		LastDefended: time.Now(),
 		InBattle:     false,
-		Power:        100,
+		AttackPower:  100,
+		DefencePower: 100,
 	}
 
 	if err := tx.Create(userStatus).Error; err != nil {
@@ -895,7 +896,7 @@ func FindOpponent(attackerID string, powerRange int) (*UserStatus, error) {
 		Select("user_id").
 		Where("user_id != ?", attackerID).
 		Where("in_battle = ?", false).
-		Where("power BETWEEN ? AND ?", attacker.Power-powerRange, attacker.Power+powerRange).
+		Where("defence_power BETWEEN ? AND ?", attacker.AttackPower-powerRange, attacker.AttackPower+powerRange).
 		Order("last_defended ASC").
 		Limit(10)
 
@@ -1067,4 +1068,24 @@ func UpdatePlacedBuildingPosition(userId string, placed_building_id string, grid
 		return PlacedBuilding{}, errors.New("building not found or user unauthorized")
 	}
 	return updatedBuilding, nil
+}
+func AdjustAttackPower(userID string, delta int) error {
+	return DB.Model(&UserStatus{}).
+		Where("user_id = ?", userID).
+		Update("attack_power", gorm.Expr("attack_power + ?", delta)).
+		Error
+}
+
+func AdjustDefencePower(userID string, delta int) error {
+	return DB.Model(&UserStatus{}).
+		Where("user_id = ?", userID).
+		Update("defence_power", gorm.Expr("defence_power + ?", delta)).
+		Error
+}
+
+func MarkDefendedNow(userID string) error {
+	return DB.Model(&UserStatus{}).
+		Where("user_id = ?", userID).
+		Update("last_defended", time.Now()).
+		Error
 }

@@ -256,6 +256,7 @@ type BattleHistory struct {
 	FoughtAt         time.Time         `gorm:"default:CURRENT_TIMESTAMP;column:fought_at" json:"fought_at"`
 	BattleDuration   int               `gorm:"column:battle_duration" json:"battle_duration"`
 	DoDefenderKnow   bool              `gorm:"column:do_defender_know" json:"do_defender_know"`
+	WinnerAttacker   bool              `gorm:"column:winner_attacker" json:"winner_attacker"`
 	TroopLosses      []BattleTroopLoss `gorm:"foreignKey:BattleID" json:"troop_losses,omitempty"`
 	BrokenBuildings  []BuildingsBroken `gorm:"foreignKey:BattleID;constraint:OnDelete:CASCADE" json:"broken_buildings,omitempty"`
 }
@@ -283,7 +284,8 @@ type UserStatus struct {
 	UserID       string    `gorm:"column:user_id;primaryKey" json:"user_id"`
 	LastDefended time.Time `gorm:"column:last_defended" json:"last_defended"`
 	InBattle     bool      `gorm:"column:in_battle;default:false" json:"in_battle"`
-	Power        int       `gorm:"column:power;default:0" json:"power"`
+	AttackPower  int       `gorm:"column:attack_power;default:0" json:"attack_power"`
+	DefencePower int       `gorm:"column:defence_power;default:0" json:"defence_power"`
 }
 
 func (UserStatus) TableName() string { return "user_status" }

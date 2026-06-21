@@ -427,7 +427,8 @@ export function BattleOver(battle_outcome, attacker_troop_loss, buildings_broken
         ? new Date(battle_outcome.fought_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
     document.getElementById('bo-eyebrow').textContent  = 'Battle Report' + (dateStr ? ' · ' + dateStr : '');
-    document.getElementById('bo-headline').textContent = replay
+    document.getElementById('bo-headline').textContent = isAtt===battle_outcome.winner_attacker?"🏆 Victory":"💀 Defeat";
+    document.getElementById('bo-subline').textContent = replay
         ? `${my_name} raided ${opponent_username}'s village.`
         : (isAtt ? `You struck ${opponent_username}'s village` : `${opponent_username} raided your village`);
 

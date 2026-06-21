@@ -2067,3 +2067,30 @@ body {
 .battle-action-btn:active {
     transform: scale(0.98);
 }
+.battle-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.battle-result {
+    flex-shrink: 0;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.battle-result.win {
+    background: #d4edda;
+    color: #155724;
+}
+
+.battle-result.loss {
+    background: #f8d7da;
+    color: #721c24;
+}

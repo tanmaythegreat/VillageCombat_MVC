@@ -60,31 +60,33 @@ function renderBattleHistory() {
         els.battleList.innerHTML = '<p class="profile-no-battles">No battles yet</p>';
         return;
     }
-
-    els.battleList.innerHTML = battleHistory.map(battle => {
-        const rawOpponent = battle.attacker_name === UserData.username ? battle.defender_name : battle.attacker_name;
+    els.battleList.innerHTML = this.battleHistory.map(battle => {
+        const isAttacker = battle.attacker_name === this.userData.username;
+        const rawOpponent = isAttacker ? battle.defender_name : battle.attacker_name;
         const opponent = rawOpponent.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        const isAttacker = battle.attacker_name === UserData.username;
+        const isWin = isAttacker ? battle.winner_attacker : !battle.winner_attacker;
 
         return `
-            <div class="profile-battle-card">
-                <div class="battle-card-header">
-                    <div class="battle-info">
-                        <p class="battle-opponent">vs ${opponent}</p>
-                        <p class="battle-meta">${isAttacker ? 'Attacked' : 'Defended'} • ${formatTime(battle.fought_at)}</p>
+                <div class="profile-battle-card">
+                    <div class="battle-card-header">
+                        <div class="battle-info">
+                            <p class="battle-opponent">vs ${opponent}</p>
+                            <p class="battle-meta">${isAttacker ? 'Attacked' : 'Defended'} • ${this.formatTime(battle.fought_at)}</p>
+                        </div>
+                        <span class="battle-result ${isWin ? 'win' : 'loss'}">${isWin ? 'WIN' : 'LOSS'}</span>
                     </div>
+                    <div class="battle-loot">
+                        <span>🪙 ${this.formatNum(battle.gold_looted)}</span>
+                        <span>🧪 ${this.formatNum(battle.elixir_looted)}</span>
+                        <span>⚗️ ${this.formatNum(battle.dark_elixir_looted)}</span>
+                    </div>
+                    <button class="battle-action-btn" data-opponent="${opponent}">
+                        ${isAttacker ? '⚔️ Attack again' : '⚔️ Revenge'}
+                    </button>
                 </div>
-                <div class="battle-loot">
-                    <span>🪙 ${formatNum(battle.gold_looted)}</span>
-                    <span>🧪 ${formatNum(battle.elixir_looted)}</span>
-                    <span>⚗️ ${formatNum(battle.dark_elixir_looted)}</span>
-                </div>
-                <button class="battle-action-btn" data-opponent="${opponent}">
-                    ${isAttacker ? '⚔️ Attack again' : '⚔️ Revenge'}
-                </button>
-            </div>
-        `;
+            `;
     }).join('');
+
 
     els.battleList.querySelectorAll('.battle-action-btn').forEach(btn => {
         btn.addEventListener('click', handleRevengeClick);

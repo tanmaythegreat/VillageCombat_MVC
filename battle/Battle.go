@@ -256,6 +256,7 @@ func StartMatch(attackerID string, defenderID string) {
 	if err != nil {
 		// TODO : what to do
 	}
+	_, exist := DeathMap[models.TownHall_ID]
 	battleHistory := models.BattleHistory{
 		AttackerName:     attackerName,
 		DefenderName:     defenderName,
@@ -265,6 +266,26 @@ func StartMatch(attackerID string, defenderID string) {
 		FoughtAt:         startTime,
 		BattleDuration:   duration,
 		DoDefenderKnow:   defenderOnline,
+		WinnerAttacker:   exist,
+	}
+	if exist {
+		err := models.AdjustAttackPower(attackerID, 1)
+		if err != nil {
+			return
+		}
+		err = models.AdjustDefencePower(defenderID, -1)
+		if err != nil {
+			return
+		}
+	} else {
+		err := models.AdjustAttackPower(attackerID, -1)
+		if err != nil {
+			return
+		}
+		err = models.AdjustDefencePower(defenderID, +1)
+		if err != nil {
+			return
+		}
 	}
 	battleId, err := models.InsertBattleHistory(battleHistory)
 	if err != nil {
@@ -325,6 +346,7 @@ func StartMatch(attackerID string, defenderID string) {
 		"battle_id":           battleId,
 		"battle_outcome":      battleHistory,
 		"attacker_troop_loss": TroopLossAttacker,
+		"defender_troop_loss": TroopLossDefender,
 		"buildings_broken":    DeathMap,
 		"opponent_username":   defenderName,
 		"my_username":         attackerName,
@@ -336,6 +358,7 @@ func StartMatch(attackerID string, defenderID string) {
 			"battle_id":           battleId,
 			"battle_outcome":      battleHistory,
 			"attacker_troop_loss": TroopLossAttacker,
+			"defender_troop_loss": TroopLossDefender,
 			"buildings_broken":    DeathMap,
 			"opponent_username":   attackerName,
 			"my_username":         defenderName,
@@ -358,6 +381,7 @@ func StartMatch(attackerID string, defenderID string) {
 	if err != nil {
 		log.Println(err.Error())
 	}
+
 }
 
 type SpawnMessage struct {

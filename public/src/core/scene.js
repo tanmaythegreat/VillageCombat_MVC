@@ -65,7 +65,7 @@ export const canvas = renderer.domElement;
 
 // region Lighting & Ground
 
-export const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+export const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
 scene.add(ambientLight);
 
 export const textureLoader = new THREE.TextureLoader();
@@ -114,69 +114,72 @@ const gridHelper = new THREE.GridHelper(position_scaling * 100, 200, 0xff0055, 0
 gridHelper.material.transparent = true;
 gridHelper.material.opacity     = 0.5;
 scene.add(gridHelper);
-function coordKey(x, y) {
-    return `${x},${y}`;
-}
 
-let highlightGroup = null;
+const squareGeo = new THREE.PlaneGeometry(position_scaling * 0.95, position_scaling * 0.95);
+squareGeo.rotateX(-Math.PI / 2);
 
-export function highlightGridSquares(grid, badpoints) {
-    if (!badpoints) badpoints = []
-    console.log(badpoints)
-    if (highlightGroup) {
-        scene.remove(highlightGroup);
-        highlightGroup.traverse(obj => {
-            if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) obj.material.dispose();
-        });
-    }
+const greenMat = new THREE.MeshBasicMaterial({
+    color: 0x00ff55, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false
+});
+const redMat = new THREE.MeshBasicMaterial({
+    color: 0xff0000, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false
+});
 
-    highlightGroup = new THREE.Group();
+const MAX_INSTANCES = 100000;
 
-    const squareGeo = new THREE.PlaneGeometry(position_scaling*0.95, position_scaling*0.95);
+const greenMesh = new THREE.InstancedMesh(squareGeo, greenMat, MAX_INSTANCES);
+const redMesh = new THREE.InstancedMesh(squareGeo, redMat, 36);
 
-    const greenMat = new THREE.MeshBasicMaterial({
-        color: 0x00ff55,
-        transparent: true,
-        opacity: 0.5,
-        side: THREE.DoubleSide,
-    });
+greenMesh.frustumCulled = false;
+redMesh.frustumCulled = false;
 
-    const redMat = new THREE.MeshBasicMaterial({
-        color: 0xff0000,
-        transparent: true,
-        opacity: 0.5,
-        side: THREE.DoubleSide,
-    });
+const highlightGroup = new THREE.Group();
+highlightGroup.add(greenMesh);
+highlightGroup.add(redMesh);
 
-    // const badSet = new Set(badpoints.map(([x, y]) => coordKey(x, y)));
-    const badSet = new Set(badpoints)
-    // console.log(badpoints)
-    const drawSquare = (x, y, material) => {
-        const mesh = new THREE.Mesh(squareGeo, material);
-        mesh.rotation.x = -Math.PI / 2; // lie flat, matching the GridHelper
-        mesh.position.set(
-            x * position_scaling,
-            0.01, // tiny offset to avoid z-fighting with grid lines
-            y * position_scaling
-        );
-        highlightGroup.add(mesh);
-    };
+const dummy = new THREE.Object3D();
+let isGroupAddedToScene = false;
 
-    // green: every key in grid (unless it's also a bad point)
+export function highlightGridSquares(grid, badpoints = []) {
+
+    const badSet = new Set(badpoints);
+    let greenCount = 0;
+    let redCount = 0;
+
     for (const key of Object.keys(grid)) {
-        const [x, y] = key.split(',').map(Number);
-        if (!badSet.has(coordKey(x, y))) {
-            drawSquare(x, y, greenMat);
+        if (!badSet.has(key)) {
+            const [x, y] = key.split(',').map(Number);
+
+            // Move the dummy object, get its matrix, and apply it to the instance
+            dummy.position.set(x * position_scaling, 0.01, y * position_scaling);
+            dummy.updateMatrix();
+            greenMesh.setMatrixAt(greenCount, dummy.matrix);
+
+            greenCount++;
         }
     }
 
     for (const k of badpoints) {
-        const [x,y] = k.split(',')
-        console.log(x,y)
-        drawSquare(x, y, redMat);
+        const [x, y] = k.split(',').map(Number);
+
+        dummy.position.set(x * position_scaling, 0.01, y * position_scaling);
+        dummy.updateMatrix();
+        redMesh.setMatrixAt(redCount, dummy.matrix);
+
+        redCount++;
     }
 
-    scene.add(highlightGroup);
+    greenMesh.count = greenCount;
+    redMesh.count = redCount;
+
+    greenMesh.instanceMatrix.needsUpdate = true;
+    redMesh.instanceMatrix.needsUpdate = true;
+
+    if (!isGroupAddedToScene) {
+        scene.add(highlightGroup);
+        isGroupAddedToScene = true;
+    }
+
     return highlightGroup;
-}// endregion
+}
+// endregion

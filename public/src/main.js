@@ -60,7 +60,7 @@ function onMouseClick(event) {
 function animate() {
     requestAnimationFrame(animate);
     const dt = clock.getDelta();
-
+    console.log(1/dt,"FPS")
     handleMovement(dt);
     updateCollectButton();
     tickCountdowns(camera);
@@ -71,7 +71,7 @@ function animate() {
     }
 
     // day-night cycle faking
-    ambientLight.intensity = Math.max(Math.min(0.5 + Math.cos(clock.elapsedTime * 0.01) * 0.5, 0.7), 0.2);
+    // ambientLight.intensity = Math.max(Math.min(0.5 + Math.cos(clock.elapsedTime * 0.01) * 0.5, 0.7), 0.2);
 
     renderer.render(scene, camera);
 }

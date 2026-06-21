@@ -75,7 +75,6 @@ export function connectToGameServer() {
 function _handlePeacetimeMessage(data) {
     switch (data.msg_type) {
         case 'building_troop_of_user': {
-            console.log("user data",data)
             setUserData(data.user_data);
             UserData.username = data.user.username
             UserData.email = data.user.email
@@ -260,9 +259,8 @@ function _handleBattleMessage(data) {
             );
             break;
         case 'battle_over':
-            console.log("battleOver",data)
             DespawnTroops();
-            BattleOver(data.battle_outcome, data.attacker_troop_loss, data.buildings_broken, {}, data.opponent_username, data.my_username,data.battle_id);
+            BattleOver(data.battle_outcome, data.attacker_troop_loss, data.buildings_broken, data.defender_troop_loss, data.opponent_username, data.my_username,data.battle_id);
             setReplay(false);
             _hideDeployBar();
             setInBattle(false);
