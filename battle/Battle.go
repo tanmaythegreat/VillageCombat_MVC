@@ -66,7 +66,14 @@ func StartMatch(attackerID string, defenderID string) {
 	attackerConn, attackerOnline := Manager.Connections[attackerID]
 	defenderConn, defenderOnline := Manager.Connections[defenderID]
 	Manager.Mu.RUnlock()
-
+	err := models.SetUserBattleStatus(attackerID, false)
+	if err != nil {
+		log.Println("could not set battle status.")
+	}
+	err = models.SetUserBattleStatus(defenderID, false)
+	if err != nil {
+		log.Println("could not set battle status.")
+	}
 	state := &BattleState{
 		mu:          sync.Mutex{},
 		TroopSpawns: make([]models.TroopSpawn, 0),
@@ -141,13 +148,17 @@ func StartMatch(attackerID string, defenderID string) {
 			}{BuildingIndex: len(ToSend) - 1, HealthRemaining: health})
 		}
 	}
-
-	attackerConn.Conn.WriteJSON(map[string]interface{}{
-		"msg_type":          "battle_start",
-		"defender_building": ToSend,
-		"defender_id":       defenderID,
-		"alive_buildings":   state.AliveBuildings,
-	})
+	if attackerOnline {
+		err := attackerConn.Conn.WriteJSON(map[string]interface{}{
+			"msg_type":          "battle_start",
+			"defender_building": ToSend,
+			"defender_id":       defenderID,
+			"alive_buildings":   state.AliveBuildings,
+		})
+		if err != nil {
+			return
+		}
+	}
 	if defenderOnline {
 		err := defenderConn.Conn.WriteJSON(map[string]interface{}{
 			"msg_type":          "incoming_attack",

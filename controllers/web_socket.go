@@ -198,20 +198,14 @@ Loop:
 				break Loop
 			}
 		case "ATTACK":
-			err := models.SetUserBattleStatus(userId, true)
-			if err != nil {
-				errPayload := []byte(`{"status": "error", "message": "Internal Server Error."}`)
-				err = conn.WriteMessage(messageType, errPayload)
-				if err != nil {
-					log.Println("Failed to send message to client:", err)
-					break Loop
-				}
-				break Switch
-			}
 			opponent, err := models.FindOpponent(userId, 10)
 			if err != nil || opponent == nil {
 				conn.WriteJSON(map[string]interface{}{
 					"msg_type": "un_attack",
+				})
+				conn.WriteJSON(map[string]interface{}{
+					"status":  "error",
+					"message": "could not find opponent",
 				})
 				break
 			}

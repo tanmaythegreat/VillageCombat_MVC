@@ -51,8 +51,10 @@ export function SummontaskCountDown(task) {
         () => { import('../controllers/network.js').then(m => m.SendToServer({ action: 'CHECK_CONSTRUCTION_WORK', message: '' })); }
     );
     countdown.position.copy(placed_building.Model.position);
-    countdown.position.y += AllBuildingData[placed_building.building_id].grid_size_x * size_scaling + 0.6;
+    countdown.position.y +=  size_scaling + 0.6;//AllBuildingData[placed_building.building_id].grid_size_x *
+    console.log("Before",countdown.parent)
     scene.add(countdown);
+    console.log("After",countdown.parent)
     placed_building.Model.userData.countdownSprite = countdown;
 }
 
@@ -184,11 +186,15 @@ export async function LoadMap(buildings) {
             Model.visible = false;
             if (key in Pool) Pool[key].push(Model);
             else Pool[key] = [Model];
-            if (Model.userData.countdownSprite) {
-                scene.remove(Model.userData.countdownSprite);
-                Model.userData.countdownSprite.material.dispose();
-                Model.userData.countdownSprite.geometry.dispose();
-                delete Model.userData.countdownSprite;
+            const sprite = Model.userData.countdownSprite
+            if (sprite) {
+                const state = sprite.userData.countdown
+                console.log("remove",Model.userData.countdownSprite.parent,Model,activeCountdowns,state)
+                activeCountdowns.delete(state)
+                scene.remove(sprite)
+                sprite.material.dispose();
+                sprite.geometry.dispose();
+                delete Model.userData.countdownSprite
             }
         }
         val.length = 0;
@@ -244,7 +250,7 @@ export async function LoadMap(buildings) {
     }
 
     await Promise.all(textureLoadPromises);
-    for (const task of ConstructionTasks) SummontaskCountDown(task);
+    if (buildings===PlacedBuildings)   {console.log("Equal indedd");for (const task of ConstructionTasks) SummontaskCountDown(task);}
     highlightGridSquares(Grid);
 }
 

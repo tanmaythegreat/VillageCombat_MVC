@@ -259,7 +259,7 @@ function buildCostRows(level, is_broken = false) {
     return costs.map(c =>
             `<div class="bm-cost-row"><span class="bm-cost-label">${c.icon} ${c.label}</span><span class="bm-cost-val">${formatNum(c.val)}</span></div>`
         ).join('') +
-        `<div class="bm-divider"></div><div class="bm-time-row">⏱ ${formatTime(level.update_time_required_required / 10)} build time</div>`;
+        `<div class="bm-divider"></div><div class="bm-time-row">⏱ ${formatTime(level.update_time_required_required / d)} build time</div>`;
 }
 
 // ── Building Shop ──────────────────────────────────────────────────────────

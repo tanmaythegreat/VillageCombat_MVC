@@ -42,25 +42,4 @@ when both building data are ready I load the map.
 Most of the mechanics are intuitive enough.You can see the portion of the grid that is occupied on clicking there or the building itself you can the Building Menu.
 
 
-spawn building by clicking at blank surface
-open building menu to upgrade and all 
-
-Issues : move is not working , you can create another townhall (may be i will keep it as a feature).
-TODO : add a mechanism to collect resources from gold mines , elixir drill , elixir collect.Troops training.Battle.
-
-i tried to find animated 3d models of troops but couldn't so images moves.
-during the battle access token is to checked (will fix)
-
-there are a bunch of TODO all over the place, which i will do , the bare minimum prototype is ready
-
-issues:
-there are some bugs related to positioning of buildings
-broken buildings are not shown (it appears normal).
-there are some bugs in the battle.
-
-repairCost formulas : upgradeCost/10,for gems (1+updrageCost/10) 
-i randomly came up with it, no back story.
-
-repair is working 
-also now attackers can also attack defenders
-grid highlight adds even more feel
+know Bug : when a building is under construction the counddown is not dis appearing

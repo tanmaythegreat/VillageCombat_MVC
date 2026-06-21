@@ -38,7 +38,17 @@ func MoveBuilding(userId string, data struct {
 	}
 	if hasCollision {
 		errPayload := []byte(`{"status": "error", "message": "Can't Place Here."}`)
-		return conn.WriteMessage(websocket.TextMessage, errPayload)
+		err := conn.WriteMessage(websocket.TextMessage, errPayload)
+		if err != nil {
+			return SendError(conn, err)
+		}
+		return conn.WriteJSON(map[string]interface{}{
+			"msg_type":           "moved",
+			"placed_building_id": data.PlacedBuildingID,
+			"grid_x":             placedBuilding.GridX,
+			"grid_y":             placedBuilding.GridY,
+		})
+
 	}
 	_, err = models.UpdatePlacedBuildingPosition(userId, data.PlacedBuildingID, data.GridX, data.GridY)
 	if err != nil {
