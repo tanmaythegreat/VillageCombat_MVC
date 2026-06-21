@@ -2,7 +2,7 @@ import { BuildingCategory } from '../core/enums.js';
 import { formatNum, formatTime, escapeHTML, setAffordability } from '../models/utils.js';
 import { AllBuildingData, AllTroopsData, TrainedTroopsData, UserData, ConstructionTasks } from '../models/map.js';
 import { CreateBuilding, UpgradeBuilding, RepairBuilding, TrainTroop } from '../controllers/network.js';
-import {selectToMove} from "../core/move.js";
+import {moving, selectToMove} from "../core/move.js";
 
 export function UpdateResourceUI() {
     document.getElementById('hud-gold-val').textContent        = formatNum(UserData.current_gold        ?? 0);
@@ -637,3 +637,7 @@ function updateTroopCosts(troopId, placed_building_id) {
     setAffordability(gemBtn,   canAffordTroop(upgCost, true,  placed_building_id) && enoughTroops);
 }
 // endregion
+
+export function isAnyOverlayOn() {
+    return document.querySelector('[id*="overlay"].is-active') !== null;
+}

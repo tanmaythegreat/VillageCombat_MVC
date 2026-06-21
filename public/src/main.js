@@ -14,7 +14,8 @@ const position_scaling = 20;
 const meshCube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshNormalMaterial());
 scene.add(meshCube);
 
-window.addEventListener('mousemove', (event) => {
+window.addEventListener('mousemove', DragHandle);
+export function DragHandle(event)  {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
@@ -25,10 +26,10 @@ window.addEventListener('mousemove', (event) => {
     const Z = Math.round(z/ position_scaling)
     moveUpdate(X,Z)
     meshCube.position.set( X* position_scaling, 0, Z * position_scaling);
-});
+}
 
 window.addEventListener('click', onMouseClick);
-function onMouseClick(event) {
+export function onMouseClick(event) {
 
     if (inBattle) return;
     const bmOverlay   = document.getElementById('bm-overlay');

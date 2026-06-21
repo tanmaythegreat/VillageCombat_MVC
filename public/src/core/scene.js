@@ -1,4 +1,7 @@
 import * as THREE from '../../THREE/three.module.js';
+import {isAnyOverlayOn} from "../views/ui_hud.js";
+import {moving} from "./move.js";
+import {DragHandle, onMouseClick} from "../main.js";
 
 export const scene = new THREE.Scene();
 export const clock = new THREE.Clock();
@@ -88,8 +91,8 @@ let isDragging = false;
 let previousTouch = { x: 0, y: 0 };
 let previousPinchDistance = 0;
 
-const touchDragSpeed = 0.005;
-const touchPinchSpeed = 0.5;
+const touchDragSpeed = 0.001;
+const touchPinchSpeed = 1;
 function getPinchDistance(touch1, touch2) {
     const dx = touch1.clientX - touch2.clientX;
     const dy = touch1.clientY - touch2.clientY;
@@ -97,7 +100,7 @@ function getPinchDistance(touch1, touch2) {
 }
 
 window.addEventListener('touchstart', (e) => {
-
+    if (isAnyOverlayOn())return
     if (e.touches.length === 1) {
         isDragging = true;
         previousTouch.x = e.touches[0].clientX;
@@ -111,19 +114,27 @@ window.addEventListener('touchstart', (e) => {
 }, { passive: false });
 
 window.addEventListener('touchmove', (e) => {
+    if (moving){
+        DragHandle(e.touches[0])
+        previousTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+
+        return;
+    }
+    if (isAnyOverlayOn())return
+
     e.preventDefault();
 
     if (e.touches.length === 1 && isDragging) {
         const currentTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
 
         const deltaX = currentTouch.x - previousTouch.x;
-        const deltaY = currentTouch.y - previousTouch
+        const deltaY = currentTouch.y - previousTouch.y;
 
-        camera.position.x += Right[0] * -deltaX * touchDragSpeed;
-        camera.position.z += Right[1] * -deltaX * touchDragSpeed;
+        camera.position.x += Right[0] * -deltaX * touchDragSpeed * frustumSize;
+        camera.position.z += Right[1] * -deltaX * touchDragSpeed * frustumSize;
 
-        camera.position.x += Forward[0] * deltaY * touchDragSpeed;
-        camera.position.z += Forward[1] * deltaY * touchDragSpeed;
+        camera.position.x += Forward[0] * deltaY * touchDragSpeed * frustumSize;
+        camera.position.z += Forward[1] * deltaY * touchDragSpeed * frustumSize;
 
         previousTouch = currentTouch;
     }
@@ -153,6 +164,7 @@ window.addEventListener('touchmove', (e) => {
 }, { passive: false });
 
 window.addEventListener('touchend', (e) => {
+    if (moving){onMouseClick({clientX:previousTouch.x,clientY:previousTouch.y});return;}
     if (e.touches.length === 0) {
         isDragging = false;
     }
