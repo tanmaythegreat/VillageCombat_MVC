@@ -590,7 +590,7 @@ SELECT building_id, 6, 100 FROM building_configs_base WHERE name = 'Barracks';
 
 -- ── Town Hall (5x Gem Multiplier) ─────────────────────────────────────────────
 INSERT INTO upgrade_costs (building_id, upgrade_to_level, gold_required, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
-SELECT building_id, 1,           0,           0,         10,       0, 1 FROM building_configs_base WHERE name = 'Town Hall'
+SELECT building_id, 1,           0,           0,         10,       0, 6 FROM building_configs_base WHERE name = 'Town Hall'
 UNION ALL
 SELECT building_id, 2,       25000,        5000,        150,   14400, 1 FROM building_configs_base WHERE name = 'Town Hall'
 UNION ALL

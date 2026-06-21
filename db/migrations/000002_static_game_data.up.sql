@@ -1,5 +1,5 @@
 CREATE DOMAIN non_negative_int AS INT CHECK (VALUE >= 0);
-CREATE DOMAIN town_hall_range AS INT CHECK (VALUE BETWEEN 0 AND 6);
+CREATE DOMAIN town_hall_range AS INT CHECK (VALUE BETWEEN 0 AND 12);
 CREATE DOMAIN non_negative_numeric AS NUMERIC CHECK (VALUE >= 0.0);
 
 CREATE TYPE attack_type AS ENUM ('melee', 'ranged');
@@ -31,7 +31,7 @@ CREATE TABLE building_configs_base
 
 CREATE TABLE troop_level_stats
 (
-    troop_id               UUID             NOT NULL REFERENCES troop_configs (id) ON DELETE CASCADE,
+    troop_id               UUID             NOT NULL REFERENCES troop_configs (id) ON DELETE CASCADE ON UPDATE CASCADE,
     level                  town_hall_range  NOT NULL,
     health                 non_negative_int NOT NULL,
     damage_per_shot        non_negative_int NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE troop_level_stats
 
 CREATE TABLE building_level_stats
 (
-    building_id UUID             NOT NULL REFERENCES building_configs_base (building_id) ON DELETE CASCADE,
+    building_id UUID             NOT NULL REFERENCES building_configs_base (building_id) ON DELETE CASCADE ON UPDATE CASCADE,
     level       town_hall_range  NOT NULL,
     health      non_negative_int NOT NULL,
     PRIMARY KEY (building_id, level)
@@ -49,8 +49,8 @@ CREATE TABLE building_level_stats
 CREATE TABLE upgrade_costs
 (
     id                       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    troop_id                 UUID REFERENCES troop_configs (id) ON DELETE CASCADE,
-    building_id              UUID REFERENCES building_configs_base (building_id) ON DELETE CASCADE,
+    troop_id                 UUID REFERENCES troop_configs (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    building_id              UUID REFERENCES building_configs_base (building_id) ON DELETE CASCADE ON UPDATE CASCADE,
     upgrade_to_level         town_hall_range  NOT NULL,
     gold_required            non_negative_int NOT NULL DEFAULT 0,
     elixir_required          non_negative_int NOT NULL DEFAULT 0,
@@ -71,12 +71,12 @@ CREATE TABLE defense_building_stats
     attack_range         non_negative_numeric NOT NULL,
     damage_type          damage_type          NOT NULL,
     unit_target          unit_target_type     NOT NULL,
-    FOREIGN KEY (building_id) REFERENCES building_configs_base (building_id) ON DELETE CASCADE
+    FOREIGN KEY (building_id) REFERENCES building_configs_base (building_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE defense_building_level_stats
 (
-    building_id     UUID             NOT NULL REFERENCES building_configs_base (building_id) ON DELETE CASCADE,
+    building_id     UUID             NOT NULL REFERENCES building_configs_base (building_id) ON DELETE CASCADE ON UPDATE CASCADE,
     level           town_hall_range  NOT NULL,
     damage_per_shot non_negative_int NOT NULL,
     PRIMARY KEY (building_id, level)
@@ -86,12 +86,12 @@ CREATE TABLE resource_building_stats
 (
     building_id   UUID PRIMARY KEY,
     resource_type resource_type NOT NULL,
-    FOREIGN KEY (building_id) REFERENCES building_configs_base (building_id) ON DELETE CASCADE
+    FOREIGN KEY (building_id) REFERENCES building_configs_base (building_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE resource_building_level_stats
 (
-    building_id              UUID                 NOT NULL REFERENCES building_configs_base (building_id) ON DELETE CASCADE,
+    building_id              UUID                 NOT NULL REFERENCES building_configs_base (building_id) ON DELETE CASCADE ON UPDATE CASCADE,
     level                    town_hall_range       NOT NULL,
     generation_rate_per_hour non_negative_numeric NOT NULL,
     storage_capacity         non_negative_int     NOT NULL,
@@ -101,12 +101,12 @@ CREATE TABLE resource_building_level_stats
 CREATE TABLE army_building_stats
 (
     building_id   UUID PRIMARY KEY,
-    FOREIGN KEY (building_id) REFERENCES building_configs_base (building_id) ON DELETE CASCADE
+    FOREIGN KEY (building_id) REFERENCES building_configs_base (building_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE army_building_level_stats
 (
-    building_id    UUID             NOT NULL REFERENCES building_configs_base (building_id) ON DELETE CASCADE,
+    building_id    UUID             NOT NULL REFERENCES building_configs_base (building_id) ON DELETE CASCADE ON UPDATE CASCADE,
     level          town_hall_range  NOT NULL,
     troop_capacity non_negative_int NOT NULL,
     PRIMARY KEY (building_id, level)
