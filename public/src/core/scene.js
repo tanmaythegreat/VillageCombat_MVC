@@ -84,7 +84,79 @@ scene.add(ground);
 
 // region Camera Movement
 
-const keys      = { w: false, a: false, s: false, d: false, e: false, q: false };
+let isDragging = false;
+let previousTouch = { x: 0, y: 0 };
+let previousPinchDistance = 0;
+
+const touchDragSpeed = 0.5;
+const touchPinchSpeed = 0.5;
+function getPinchDistance(touch1, touch2) {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.hypot(dx, dy); // Equivalent to Math.sqrt(dx*dx + dy*dy)
+}
+
+window.addEventListener('touchstart', (e) => {
+
+    if (e.touches.length === 1) {
+        isDragging = true;
+        previousTouch.x = e.touches[0].clientX;
+        previousTouch.y = e.touches[0].clientY;
+    }
+
+    else if (e.touches.length === 2) {
+        isDragging = false; // Cancel drag if a second finger goes down
+        previousPinchDistance = getPinchDistance(e.touches[0], e.touches[1]);
+    }
+}, { passive: false }); // passive: false allows us to prevent default scrolling
+
+window.addEventListener('touchmove', (e) => {
+    e.preventDefault(); // Stop the browser from scrolling/pull-to-refresh
+
+    if (e.touches.length === 1 && isDragging) {
+        const currentTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+
+        const deltaX = currentTouch.x - previousTouch.x;
+        const deltaY = currentTouch.y - previousTouch
+
+        camera.position.x += Right[0] * -deltaX * touchDragSpeed;
+        camera.position.z += Right[1] * -deltaX * touchDragSpeed;
+
+        camera.position.x += Forward[0] * deltaY * touchDragSpeed;
+        camera.position.z += Forward[1] * deltaY * touchDragSpeed;
+
+        previousTouch = currentTouch;
+    }
+
+    else if (e.touches.length === 2) {
+        const currentPinchDistance = getPinchDistance(e.touches[0], e.touches[1]);
+
+        const deltaDistance = currentPinchDistance - previousPinchDistance;
+
+        if (isOrthographic) {
+            frustumSize -= deltaDistance * touchPinchSpeed;
+            frustumSize = Math.max(1, frustumSize);
+            updateCamera();
+        } else {
+            camera.position.y -= deltaDistance * touchPinchSpeed;
+        }
+
+        previousPinchDistance = currentPinchDistance;
+    }
+}, { passive: false });
+
+window.addEventListener('touchend', (e) => {
+    if (e.touches.length === 0) {
+        isDragging = false;
+    }
+    else if (e.touches.length === 1) {
+        isDragging = true;
+        previousTouch.x = e.touches[0].clientX;
+        previousTouch.y = e.touches[0].clientY;
+    }
+});
+
+const keys = { w: false, a: false, s: false, d: false, e: false, q: false };
 const moveSpeed = 200;
 
 window.addEventListener('keydown', (e) => {
