@@ -14,11 +14,11 @@ func MoveBuilding(userId string, data struct {
 
 	nearByBuildings, err := models.GetNearByBuildings(userId, data.GridX, data.GridY)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	placedBuilding, err := models.GetPlacedBuilding(userId, data.PlacedBuildingID)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	newSize, exists := models.BuildingSize[placedBuilding.BuildingID]
 	if !exists {
@@ -42,7 +42,7 @@ func MoveBuilding(userId string, data struct {
 	}
 	_, err = models.UpdatePlacedBuildingPosition(userId, data.PlacedBuildingID, data.GridX, data.GridY)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	return conn.WriteJSON(map[string]interface{}{
 		"msg_type":           "moved",

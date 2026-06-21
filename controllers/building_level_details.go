@@ -10,11 +10,11 @@ import (
 func BuildingLevelDetails(userId string, placedBuildingId string, conn *websocket.Conn) error {
 	level, err := models.GetPlacedBuildingLevel(userId, placedBuildingId)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	dataOfLevel, err := models.GetBuildingDataOfLevelJSON(placedBuildingId, level)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	return conn.WriteJSON(struct {
 		MsgType     string          `json:"msg_type"`

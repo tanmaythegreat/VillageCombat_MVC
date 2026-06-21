@@ -13,7 +13,7 @@ func RepairBuilding(userId string, data struct {
 }, conn *websocket.Conn) error {
 	constructionUnderProgress, err := models.IsConstructionUnderProgress(userId, data.PlacedBuildingID)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	if constructionUnderProgress {
 		errPayload := []byte(`{"status": "error", "message": "Building already under construction."}`)
@@ -21,7 +21,7 @@ func RepairBuilding(userId string, data struct {
 	}
 	isBroken, err := models.IsBuildingBroken(userId, data.PlacedBuildingID)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	if !isBroken {
 		errPayload := []byte(`{"status": "error", "message": "Cannot Repair unbroken building."}`)
@@ -29,11 +29,11 @@ func RepairBuilding(userId string, data struct {
 	}
 	building, err := models.GetPlacedBuilding(userId, data.PlacedBuildingID)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	cost, err := models.GetConstructionCost(building.BuildingID, building.Level+1)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	cost.TimeRequiredSeconds /= 10
 	cost.OrGemRequired /= 10
@@ -47,7 +47,7 @@ func RepairBuilding(userId string, data struct {
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	var time_req int = cost.TimeRequiredSeconds
 	if data.UseGems {
@@ -56,12 +56,12 @@ func RepairBuilding(userId string, data struct {
 	task, err := models.StartConstruction_Building(userId, models.BauildingRepair, data.PlacedBuildingID, time_req, tx)
 	if err != nil {
 		tx.Rollback()
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	tx.Commit()
 	userData, err := models.GetUserData(userId)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	return conn.WriteJSON(map[string]interface{}{
 		"msg_type":  "construction_started",

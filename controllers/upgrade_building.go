@@ -13,7 +13,7 @@ func UpgradeBuilding(userId string, data struct {
 }, conn *websocket.Conn) error {
 	constructionUnderProgress, err := models.IsConstructionUnderProgress(userId, data.PlacedBuildingID)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	if constructionUnderProgress {
 		errPayload := []byte(`{"status": "error", "message": "Building already under construction."}`)
@@ -21,7 +21,7 @@ func UpgradeBuilding(userId string, data struct {
 	}
 	isBroken, err := models.IsBuildingBroken(userId, data.PlacedBuildingID)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	if isBroken {
 		errPayload := []byte(`{"status": "error", "message": "Cannot upgrade broken building."}`)
@@ -29,15 +29,15 @@ func UpgradeBuilding(userId string, data struct {
 	}
 	building, err := models.GetPlacedBuilding(userId, data.PlacedBuildingID)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	cost, err := models.GetConstructionCost(building.BuildingID, building.Level+1)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	userData, err := models.GetUserData(userId)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	if userData.TownHallLevel < cost.TownHallLevelRequired {
 		errPayload := []byte(`{"status": "error", "message": "Town Hall Level_from not sufficient."}`)
@@ -49,7 +49,7 @@ func UpgradeBuilding(userId string, data struct {
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	var time_req int = cost.TimeRequiredSeconds
 	if data.UseGems {
@@ -58,12 +58,12 @@ func UpgradeBuilding(userId string, data struct {
 	task, err := models.UpgradeBuilding(userId, data.PlacedBuildingID, tx, time_req)
 	if err != nil {
 		tx.Rollback()
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	tx.Commit()
 	userData, err = models.GetUserData(userId)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	return conn.WriteJSON(map[string]interface{}{
 		"msg_type":  "construction_started",

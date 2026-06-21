@@ -11,22 +11,22 @@ func InitialLoad(userId string, conn *websocket.Conn) error {
 
 	troops, err := models.GetUserTrainedTroops(userId)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 
 	building, err := models.GetPlacedBuildingJSON(userId)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 
 	constructionTasks, err := models.GetConstructionTasks(userId)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 
 	userData, err := models.GetUserData(userId)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 
 	user, err := models.GetUser(userId)

@@ -22,11 +22,12 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func SendError(conn *websocket.Conn) error {
+func SendError(conn *websocket.Conn, err error) error {
 	errPayload := map[string]string{
 		"status":  "error",
 		"message": "Internal Server Error",
 	}
+	log.Printf(err.Error())
 	return conn.WriteJSON(errPayload)
 }
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {

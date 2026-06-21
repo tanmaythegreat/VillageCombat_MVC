@@ -12,7 +12,7 @@ func CollectResource(userId string, data struct {
 }, conn *websocket.Conn) error {
 	isBroken, err := models.IsBuildingBroken(userId, data.PlacedBuildingId)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	if isBroken {
 		errPayload := []byte(`{"status": "error", "message": "Cannot collect from broken building."}`)
@@ -21,12 +21,12 @@ func CollectResource(userId string, data struct {
 	}
 	placedBuilding, err := models.UpdatePlacedBuilding(userId, data.PlacedBuildingId)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	var dt = time.Now().Sub(placedBuilding.LastUpdatedAt).Hours()
 	generationRate, err := models.GetGenerationRate(placedBuilding.BuildingID, placedBuilding.Level)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	var amount = dt * generationRate
 	var user models.UserData

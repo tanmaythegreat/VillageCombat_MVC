@@ -60,7 +60,6 @@ function onMouseClick(event) {
 function animate() {
     requestAnimationFrame(animate);
     const dt = clock.getDelta();
-    console.log(1/dt,"FPS")
     handleMovement(dt);
     updateCollectButton();
     tickCountdowns(camera);

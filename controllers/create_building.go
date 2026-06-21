@@ -15,7 +15,7 @@ func CreateBuilding(userId string, data struct {
 }, conn *websocket.Conn) error {
 	nearByBuildings, err := models.GetNearByBuildings(userId, data.X, data.Y)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	newSize, exists := models.BuildingSize[data.BuildingID]
 	if !exists {
@@ -36,11 +36,11 @@ func CreateBuilding(userId string, data struct {
 	}
 	cost, err := models.GetConstructionCost(data.BuildingID, 1)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	userData, err := models.GetUserData(userId)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	if userData.TownHallLevel < cost.TownHallLevelRequired {
 		errPayload := []byte(`{"status": "error", "message": "Town Hall Level_from not sufficient."}`)
@@ -52,7 +52,7 @@ func CreateBuilding(userId string, data struct {
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	var timeReq int = cost.TimeRequiredSeconds
 	if data.UseGems {
@@ -61,12 +61,12 @@ func CreateBuilding(userId string, data struct {
 	placedBuilding, task, err := models.ConstructBuilding(userId, data.BuildingID, data.X, data.Y, tx, timeReq)
 	if err != nil {
 		tx.Rollback()
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	tx.Commit()
 	userData, err = models.GetUserData(userId)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	return conn.WriteJSON(map[string]interface{}{
 		"msg_type":        "construction_started",

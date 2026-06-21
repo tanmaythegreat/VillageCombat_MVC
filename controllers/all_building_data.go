@@ -11,29 +11,29 @@ import (
 func AllBuildingDataLoad(userId string, conn *websocket.Conn) error {
 	buildings, err := models.GetAllBuildingConfigsJSON()
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	troops, err := models.GetAllTroopsDataJSON()
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	defence, err := models.GetAllDefenceBuildingConfigsJSON()
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	army, err := models.GetAllArmyBuildingConfigsJSON()
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	resource, err := models.GetAllResourceBuildingConfigsJSON()
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	id_level, err := models.GetPlacedBuilding_ID_Level(userId)
 
 	configMap := make(map[string]json.RawMessage)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	for _, il := range id_level {
 		key := fmt.Sprintf("%s:%d", il.BuildingID, il.Level)
@@ -42,7 +42,7 @@ func AllBuildingDataLoad(userId string, conn *websocket.Conn) error {
 		}
 		jsonData, err := models.GetBuildingDataOfLevelJSON(il.BuildingID, il.Level)
 		if err != nil {
-			return SendError(conn)
+			return SendError(conn, err)
 		}
 		configMap[key] = jsonData
 	}
@@ -53,7 +53,7 @@ func AllBuildingDataLoad(userId string, conn *websocket.Conn) error {
 		}
 		jsonData, err := models.GetBuildingDataOfLevelJSON(id, 1)
 		if err != nil {
-			return SendError(conn)
+			return SendError(conn, err)
 		}
 		configMap[key] = jsonData
 	}

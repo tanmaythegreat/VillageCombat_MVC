@@ -15,7 +15,7 @@ func TrainTroop(userId string, data struct {
 }, conn *websocket.Conn) error {
 	underProgress, err := models.IsConstructionUnderProgress(userId, data.BarrackPlacedBuildingID)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	if underProgress {
 		errPayload := []byte(`{"status": "error", "message": "Already Building Construction work or Training going on here."}`)
@@ -23,7 +23,7 @@ func TrainTroop(userId string, data struct {
 	}
 	building, err := models.GetPlacedBuilding(userId, data.BarrackPlacedBuildingID)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	if building.BuildingID != models.Barracks_ID {
 		errPayload := []byte(`{"status": "error", "message": "Can only Train in Barracks."}`)
@@ -31,7 +31,7 @@ func TrainTroop(userId string, data struct {
 	}
 	isBroken, err := models.IsBuildingBroken(userId, building.ID)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	if isBroken {
 		errPayload := []byte(`{"status": "error", "message": "Cannot train in broken barracks."}`)
@@ -39,7 +39,7 @@ func TrainTroop(userId string, data struct {
 	}
 	upgradeCost, err := models.GetTroopUpgradeCost(data.TroopId, data.LevelFrom+1)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	upgradeCost.TimeRequiredSeconds *= data.Count
 	upgradeCost.DarkElixirRequired *= data.Count
@@ -48,13 +48,13 @@ func TrainTroop(userId string, data struct {
 	upgradeCost.OrGemRequired *= data.Count
 	tx, err := models.UserPurchase(userId, upgradeCost, data.UseGems)
 	if err != nil {
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 	if data.LevelFrom != 0 {
 		success, err := models.SubtractTroopsOfUser(userId, data.TroopId, data.LevelFrom, data.Count, tx)
 		if err != nil {
 			tx.Rollback()
-			return SendError(conn)
+			return SendError(conn, err)
 		}
 		if !success {
 			tx.Rollback()
@@ -69,7 +69,7 @@ func TrainTroop(userId string, data struct {
 	constructionTask, err := models.StartTrainingTroops(userId, data.TroopId, data.Count, data.BarrackPlacedBuildingID, time_req, data.LevelFrom+1, tx)
 	if err != nil {
 		tx.Rollback()
-		return SendError(conn)
+		return SendError(conn, err)
 	}
 
 	if tx.Commit().Error != nil {
