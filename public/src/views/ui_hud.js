@@ -232,14 +232,14 @@ function getBuildingStats(building, level) {
                 ['Damage / shot',  level.damage_per_shot  ?? '—'],
                 ['Range',          building.attack_range  ? `${building.attack_range} tiles` : '—'],
                 ['Attack speed',   building.attack_speed_seconds ? `${building.attack_speed_seconds}s` : '—'],
-                ['Damage type',    building.damage_type   ?? '—'],
-                ['Targets',        building.unit_target   ?? '—'],
+                ['Damage type',    building.damage_type.replaceAll('_',' ')   ?? '—'],
+                ['Targets',        building.unit_target.replaceAll('_',' ')   ?? '—'],
             ];
         case BuildingCategory.Resource:
             return [...base,
                 ['Gen rate / hr',  level.generation_rate  ? formatNum(level.generation_rate)  : '—'],
                 ['Capacity',       level.storage_capacity ? formatNum(level.storage_capacity) : '—'],
-                ['Resource',       building.resource_type ?? '—'],
+                ['Resource',       building.resource_type.replaceAll('_',' ') ?? '—'],
             ];
         case BuildingCategory.Army:
             return [...base, ['Troop capacity', level.troop_capacity ?? '—']];
@@ -337,7 +337,6 @@ function showShopDetail(building_id) {
     _shopSelectedId = building_id;
     const building  = AllBuildingData[building_id];
     const level1    = building.levels[0];
-    console.log(building,level1)
     document.getElementById('shop-detail-name').textContent = building.name;
     document.getElementById('shop-detail-cat').textContent  = building.category;
     document.getElementById('shop-detail-img').src = `./Models/${building.name}.png`;
@@ -378,10 +377,10 @@ document.getElementById('shop-build-btn').onclick = (e) => {
     if (!_shopSelectedId) return;
     closeShop();
     CreateBuilding(_shopSelectedId, _shopGridX, _shopGridY, false);
-    const ld = AllBuildingData[_shopSelectedId].levels[1];
-    UserData.current_gold        -= ld.update_gold_required;
-    UserData.current_elixir      -= ld.update_elxir_required;
-    UserData.current_dark_elixir -= ld.update_dark_elixir_required;
+    const ld = AllBuildingData[_shopSelectedId].levels[0];
+    UserData.current_gold        -= ld.update_gold_required??0;
+    UserData.current_elixir      -= ld.update_elxir_required??0;
+    UserData.current_dark_elixir -= ld.update_dark_elixir_required??0;
     UpdateResourceUI();
 };
 document.getElementById('shop-gem-btn').onclick = (e) => {
@@ -389,7 +388,7 @@ document.getElementById('shop-gem-btn').onclick = (e) => {
     if (!_shopSelectedId) return;
     closeShop();
     CreateBuilding(_shopSelectedId, _shopGridX, _shopGridY, true);
-    UserData.current_gems -= AllBuildingData[_shopSelectedId].levels[1].update_or_gem_required;
+    UserData.current_gems -= AllBuildingData[_shopSelectedId].levels[0].update_or_gem_required;
     UpdateResourceUI();
 };
 // endregion
@@ -496,7 +495,7 @@ function renderTroopDetailPane(troopId, placed_building_id) {
     document.getElementById('troop-detail-name').textContent = troop.name;
     document.getElementById('troop-pane-name').textContent   = troop.name;
     document.getElementById('troop-pane-meta').textContent   =
-        `${troop.attack_type} · ${troop.preferred_target} target · ${troop.housing_space} housing`;
+        `${troop.attack_type} · ${troop.preferred_target??"no"} ${troop.preferred_target?"target":"preference"} · ${troop.housing_space} housing`;
 
     const tabsEl = document.getElementById('troop-level-tabs');
     const tabTpl = document.getElementById('troop-level-tab-tpl');
@@ -587,7 +586,6 @@ function refreshTroopDetailPane(troopId, placed_building_id) {
         if (lv !== 1) TrainedTroopsData[[troop, lv-1]] -= _troopCount;
     };
     gemBtn.onclick = (e) => {
-        console.log(_troopCount,lv)
         e.stopPropagation();
         if (!canAffordTroop(upgCost, true)) return;
         closeTroopOverlay();

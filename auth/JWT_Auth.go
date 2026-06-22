@@ -68,7 +68,7 @@ func createAccessToken(userID string, duration time.Duration) (string, time.Time
 }
 func GenerateJWT_Token(userId string, ipAddress string, userAgent string) (JWT_Token, error) {
 
-	accessToken, expireTime, err := createAccessToken(userId, 15*time.Minute)
+	accessToken, expireTime, err := createAccessToken(userId, 4*time.Hour)
 	if err != nil {
 		return JWT_Token{}, err
 	}

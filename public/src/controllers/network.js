@@ -99,7 +99,6 @@ function _handlePeacetimeMessage(data) {
         }
 
         case 'building_troop': {
-            console.log(data)
             const buildings = data.building
             const defence = data.defence
             const army = data.army
