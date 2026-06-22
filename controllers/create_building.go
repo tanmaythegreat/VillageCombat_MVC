@@ -17,8 +17,19 @@ func CreateBuilding(userId string, data struct {
 	if err != nil {
 		return SendError(conn, err)
 	}
+	userData, err := models.GetUserData(userId)
+	if err != nil {
+		return SendError(conn, err)
+	}
 	newSize, exists := models.BuildingSize[data.BuildingID]
 	if !exists {
+		err = conn.WriteJSON(map[string]interface{}{
+			"msg_type":  "resource_collected",
+			"user_data": userData,
+		})
+		if err != nil {
+			return err
+		}
 		errPayload := []byte(`{"status": "error", "message": "Unknown Building."}`)
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}
@@ -31,6 +42,13 @@ func CreateBuilding(userId string, data struct {
 		}
 	}
 	if hasCollision {
+		err = conn.WriteJSON(map[string]interface{}{
+			"msg_type":  "resource_collected",
+			"user_data": userData,
+		})
+		if err != nil {
+			return err
+		}
 		errPayload := []byte(`{"status": "error", "message": "Can't Place Here."}`)
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}
@@ -38,16 +56,26 @@ func CreateBuilding(userId string, data struct {
 	if err != nil {
 		return SendError(conn, err)
 	}
-	userData, err := models.GetUserData(userId)
-	if err != nil {
-		return SendError(conn, err)
-	}
 	if userData.TownHallLevel < cost.TownHallLevelRequired {
+		err = conn.WriteJSON(map[string]interface{}{
+			"msg_type":  "resource_collected",
+			"user_data": userData,
+		})
+		if err != nil {
+			return err
+		}
 		errPayload := []byte(`{"status": "error", "message": "Town Hall Level_from not sufficient."}`)
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}
 	tx, err := models.UserPurchase(userId, cost, data.UseGems)
 	if errors.Is(err, errors.New("insufficient resources")) {
+		err = conn.WriteJSON(map[string]interface{}{
+			"msg_type":  "resource_collected",
+			"user_data": userData,
+		})
+		if err != nil {
+			return err
+		}
 		errPayload := []byte(`{"status": "error", "message": "Insufficient Resources."}`)
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}

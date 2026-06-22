@@ -301,7 +301,7 @@ function renderShopCards() {
     }
 
     list.innerHTML = entries.map(([building_id, building]) => {
-        const level1  = building.levels[1];
+        const level1  = building.levels[0];
         const costs   = level1 ? getConstructionCostPills(level1) : [];
         const imgSrc  = `./Models/${building.name}.png`;
         const catIcon = { defense: '🛡️', resource: '💰', army: '⚔️', townhall: '🏰' }[building.category] ?? '🏠';
@@ -336,8 +336,8 @@ function getConstructionCostPills(level) {
 function showShopDetail(building_id) {
     _shopSelectedId = building_id;
     const building  = AllBuildingData[building_id];
-    const level1    = building.levels[1];
-
+    const level1    = building.levels[0];
+    console.log(building,level1)
     document.getElementById('shop-detail-name').textContent = building.name;
     document.getElementById('shop-detail-cat').textContent  = building.category;
     document.getElementById('shop-detail-img').src = `./Models/${building.name}.png`;

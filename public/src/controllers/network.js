@@ -10,7 +10,7 @@ import {
     _hideDeployBar, setInBattle, setIsAttacker, setReplay, setState, inBattle, DealDamage,
 } from './battle.js';
 import {scene} from "../core/scene.js";
-import {LoadedMoreBattles} from "../views/profile.js";
+import {LoadedMoreBattles, renderUserInfo} from "../views/profile.js";
 
 export let access_token = localStorage.getItem('access_token');
 
@@ -79,6 +79,7 @@ function _handlePeacetimeMessage(data) {
             setUserData(data.user_data);
             UserData.username = data.user.username
             UserData.email = data.user.email
+            renderUserInfo()
             setPlacedBuildings(data.building);
             localStorage.setItem('Placed_building', JSON.stringify(data.building));
             setConstructionTasks(data.construction_tasks);
@@ -98,6 +99,7 @@ function _handlePeacetimeMessage(data) {
         }
 
         case 'building_troop': {
+            console.log(data)
             const buildings = data.building
             const defence = data.defence
             const army = data.army

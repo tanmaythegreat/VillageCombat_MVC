@@ -364,9 +364,10 @@ func GetBuildingDataOfLevelJSON(buildingID string, level int) (json.RawMessage, 
 		BuildingID: buildingID,
 		Level:      level,
 	}
-
-	if err := DB.Where("building_id = ? AND level = ?", buildingID, level).First(&response.BaseStats).Error; err != nil {
-		return nil, err
+	if level != 0 {
+		if err := DB.Where("building_id = ? AND level = ?", buildingID, level).First(&response.BaseStats).Error; err != nil {
+			return nil, err
+		}
 	}
 
 	err := DB.Where("building_id = ? AND upgrade_to_level = ?", buildingID, level+1).First(&response.UpgradeCost).Error

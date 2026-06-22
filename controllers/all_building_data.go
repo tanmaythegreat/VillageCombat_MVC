@@ -47,11 +47,11 @@ func AllBuildingDataLoad(userId string, conn *websocket.Conn) error {
 		configMap[key] = jsonData
 	}
 	for id, _ := range models.BuildingSize {
-		key := fmt.Sprintf("%s:%d", id, 1)
+		key := fmt.Sprintf("%s:%d", id, 0)
 		if _, exists := configMap[key]; exists {
 			continue
 		}
-		jsonData, err := models.GetBuildingDataOfLevelJSON(id, 1)
+		jsonData, err := models.GetBuildingDataOfLevelJSON(id, 0)
 		if err != nil {
 			return SendError(conn, err)
 		}

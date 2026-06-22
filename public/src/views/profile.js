@@ -42,7 +42,7 @@ function applyTheme(theme) {
     localStorage.setItem('gameTheme', theme);
 }
 
-function renderUserInfo() {
+export function renderUserInfo() {
 
     const initials = UserData.username
         ? UserData.username.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -71,7 +71,7 @@ function renderBattleHistory() {
                     <div class="battle-card-header">
                         <div class="battle-info">
                             <p class="battle-opponent">vs ${opponent}</p>
-                            <p class="battle-meta">${isAttacker ? 'Attacked' : 'Defended'} • ${formatTime(battle.fought_at)}</p>
+                            <p class="battle-meta">${isAttacker ? 'Attacked' : 'Defended'} • ${(new Date(battle.fought_at).toLocaleTimeString())} • ${(new Date(battle.fought_at).toDateString())}</p>
                         </div>
                         <span class="battle-result ${isWin ? 'win' : 'loss'}">${isWin ? 'WIN' : 'LOSS'}</span>
                     </div>
@@ -162,7 +162,7 @@ async function copyUserId() {
 export function initProfile() {
     cacheElements();
     // applyTheme(currentTheme);
-    els.copyBtn?.addEventListener('click' , (e)=>{e.stopPropagation();copyUserId()})
+    // els.copyBtn?.addEventListener('click' , (e)=>{e.stopPropagation();copyUserId()})
     els.profileBtn?.addEventListener('click', (e)=>{e.stopPropagation();openProfile(e)});
     els.closeBtn?.addEventListener('click', (e)=>{e.stopPropagation();closeProfile(e)});
     els.overlay?.addEventListener('click', (e)=>{e.stopPropagation();handleOverlayClick(e)});
