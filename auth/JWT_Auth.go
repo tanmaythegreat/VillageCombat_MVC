@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -94,13 +95,13 @@ func GenerateJWT_Token(userId string, ipAddress string, userAgent string) (JWT_T
 	}, nil
 }
 func RefreshAccessToken(userID string, refreshTokenB64 string, ipAddress string, userAgent string) (JWT_Token, error) {
-
+	log.Printf("Refreshing Token of user %s\n", userID)
 	storedTokenInfo, err := models.GetRefreshTokenByUserID(userID)
 	if err != nil {
 		return JWT_Token{}, errors.New("invalid session")
 	}
 
-	if time.Now().After(storedTokenInfo.ExpiresAt) || storedTokenInfo.IPAddress != ipAddress || storedTokenInfo.UserAgent != userAgent {
+	if time.Now().After(storedTokenInfo.ExpiresAt) || storedTokenInfo.UserAgent != userAgent {
 		return JWT_Token{}, errors.New("refresh token expired, please log in again")
 	}
 

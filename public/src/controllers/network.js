@@ -22,7 +22,7 @@ async function refreshAuthToken() {
         const response = await fetch('/refresh', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: AllBuildingData._userData?.user_id, refresh_token: refreshToken }),
+            body: JSON.stringify({ user_id: UserData.user_id, refresh_token: refreshToken }),
         });
         if (!response.ok) throw new Error('Session expired');
         const data = await response.json();
@@ -63,15 +63,15 @@ export function connectToGameServer() {
     socket.addEventListener('close',   ()      => { console.warn('Disconnected. Reconnecting…'); connectToGameServer(); });
     socket.addEventListener('message', (event) => {
         const data = JSON.parse(event.data);
-        if (!inBattle) _handlePeacetimeMessage(data);
-        else           _handleBattleMessage(data);
+        _handlePeacetimeMessage(data);
+        if (inBattle)           _handleBattleMessage(data);
         if (data.status === 'error') showToast(data.message);
     });
 }
 
 // endregion
 
-// region Peacetime Messages
+// region Peacetime Messageso client: websocket: clos
 
 function _handlePeacetimeMessage(data) {
     switch (data.msg_type) {
