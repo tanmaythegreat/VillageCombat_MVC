@@ -2094,3 +2094,34 @@ body {
     background: #f8d7da;
     color: #721c24;
 }
+
+.fullscreen-btn {
+    position: absolute;
+    top: 16px;
+    left: 80px;
+    width: 48px;
+    height: 48px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    transition: transform 0.2s, background-color 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.fullscreen-btn:active {
+    transform: scale(0.9);
+    background: rgba(0, 0, 0, 0.8);
+}
+
+@media (display-mode: standalone) {
+    .fullscreen-btn {
+        display: none;
+    }
+}

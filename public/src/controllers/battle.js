@@ -387,7 +387,7 @@ export function DealDamage(building_damage, attacker_troop_damage, defender_troo
     });
 
     for (const idx of building_died.toReversed()) {
-        state.Buildings[idx].Model.userData.is_broken = true;
+        state.Buildings[aliveB[idx].BuildingIndex].Model.userData.is_broken = true;
         state.AliveBuildings.splice(idx, 1);
     }
     const pool = (arr, died) => {

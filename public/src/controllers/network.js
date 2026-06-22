@@ -28,6 +28,7 @@ async function refreshAuthToken() {
         const data = await response.json();
         localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('refresh_token_b64', data.refresh_token_b64);
+        console.log("Token Refreshed")
         access_token = data.access_token;
     } catch (error) {
         console.error('Refresh failed, redirecting to login:', error);

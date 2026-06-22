@@ -25,7 +25,10 @@ func RegisterHandler(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, "Missing required fields: username, email, password", http.StatusBadRequest)
 		return
 	}
-	// TODO : check if the password is strong enough
+	if err := auth.ValidatePasswordStrength(payload.PasswordText); err != nil {
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
 	// TODO : check is the user name valid that is is it already taken,their should be no weird symbols like \{(&%$#';" etc
 	// TODO : may be Email Verification
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.PasswordText), bcrypt.DefaultCost)

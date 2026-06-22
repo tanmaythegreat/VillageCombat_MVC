@@ -44,7 +44,20 @@
             </div>
             <div class="input-group">
                 <label for="reg-password">Password</label>
-                <input type="password" id="reg-password" placeholder="Create strong password">
+                <input type="password" id="reg-password" placeholder="Create strong password" autocomplete="new-password">
+                <div id="password-strength-wrap" class="pw-strength-wrap hidden">
+                    <div class="pw-strength-bar">
+                        <div id="pw-strength-fill" class="pw-strength-fill"></div>
+                    </div>
+                    <div id="pw-strength-label" class="pw-strength-label"></div>
+                    <ul id="pw-requirements" class="pw-requirements">
+                        <li id="req-length">At least 8 characters</li>
+                        <li id="req-upper">One uppercase letter</li>
+                        <li id="req-lower">One lowercase letter</li>
+                        <li id="req-number">One number</li>
+                        <li id="req-special">One special character</li>
+                    </ul>
+                </div>
             </div>
             <button type="submit" class="game-btn red-btn">REGISTER USER</button>
         </form>

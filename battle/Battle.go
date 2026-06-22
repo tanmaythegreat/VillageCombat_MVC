@@ -61,19 +61,41 @@ type BattleState struct {
 	StartTime time.Time
 }
 
+// logErr logs a non-fatal error with context, and is a no-op if err is nil.
+func logErr(context string, err error) {
+	if err != nil {
+		log.Printf("%s: %v", context, err)
+	}
+}
+
+// notifyBattleFailed informs any online participant that the battle could not
+// proceed, so a client never sits waiting on a battle that silently died server-side.
+func notifyBattleFailed(attackerConn Connection, attackerOnline bool, defenderConn Connection, defenderOnline bool, reason string, attackerID, defenderID string) {
+	payload := map[string]interface{}{
+		"msg_type": "error",
+		"message":  reason,
+	}
+	if attackerOnline {
+		if err := attackerConn.Conn.WriteJSON(payload); err != nil {
+			log.Println("notifyBattleFailed: failed to notify attacker:", err)
+		}
+	}
+	if defenderOnline {
+		if err := defenderConn.Conn.WriteJSON(payload); err != nil {
+			log.Println("notifyBattleFailed: failed to notify defender:", err)
+		}
+	}
+	logErr("StartMatch: could not clear attacker battle status", models.SetUserBattleStatus(attackerID, false))
+	logErr("StartMatch: could not clear defender battle status", models.SetUserBattleStatus(defenderID, false))
+}
+
 func StartMatch(attackerID string, defenderID string) {
 	Manager.Mu.RLock()
 	attackerConn, attackerOnline := Manager.Connections[attackerID]
 	defenderConn, defenderOnline := Manager.Connections[defenderID]
 	Manager.Mu.RUnlock()
-	err := models.SetUserBattleStatus(attackerID, false)
-	if err != nil {
-		log.Println("could not set battle status.")
-	}
-	err = models.SetUserBattleStatus(defenderID, false)
-	if err != nil {
-		log.Println("could not set battle status.")
-	}
+	logErr("StartMatch: could not clear attacker battle status", models.SetUserBattleStatus(attackerID, true))
+	logErr("StartMatch: could not clear defender battle status", models.SetUserBattleStatus(defenderID, true))
 	state := &BattleState{
 		mu:          sync.Mutex{},
 		TroopSpawns: make([]models.TroopSpawn, 0),
@@ -104,7 +126,9 @@ func StartMatch(attackerID string, defenderID string) {
 	}
 	placedBuildings, err := models.GetPlacedBuildings(defenderID)
 	if err != nil {
-		// TODO : stop the battle
+		log.Println("StartMatch: failed to load defender's placed buildings:", err)
+		notifyBattleFailed(attackerConn, attackerOnline, defenderConn, defenderOnline, "Could not load village layout. Battle cancelled.", attackerID, defenderID)
+		return
 	}
 	ToSend := make([]models.PlacedBuilding, 0, len(placedBuildings))
 
@@ -115,12 +139,12 @@ func StartMatch(attackerID string, defenderID string) {
 		ToSend = append(ToSend, building)
 		health, err := models.GetBuildingHealth(building.BuildingID, building.Level)
 		if err != nil {
-			// TODO : its game over
+			log.Printf("StartMatch: failed to get health for building %s (lvl %d): %v — treating as not-alive", building.BuildingID, building.Level, err)
 		}
 		if models.BuildingID_Category[building.BuildingID] == models.Defense {
-			levelStat, stat, err := models.GetDefenceBuildingStatAndLevelStat(building.BuildingID, building.Level)
-			if err != nil {
-				// TODO : end the battle, its all over :(
+			levelStat, stat, defErr := models.GetDefenceBuildingStatAndLevelStat(building.BuildingID, building.Level)
+			if defErr != nil {
+				log.Printf("StartMatch: failed to get defense stats for building %s (lvl %d): %v", building.BuildingID, building.Level, defErr)
 			}
 			state.Buildings = append(state.Buildings, struct {
 				Placed_Building models.PlacedBuilding
@@ -141,7 +165,8 @@ func StartMatch(attackerID string, defenderID string) {
 				}
 			}{Placed_Building: building, Defender: nil})
 		}
-		if !building.IsBroken {
+
+		if !building.IsBroken && err == nil {
 			state.AliveBuildings = append(state.AliveBuildings, struct {
 				BuildingIndex   int `json:"BuildingIndex"`
 				HealthRemaining int `json:"HealthRemaining"`
@@ -149,25 +174,25 @@ func StartMatch(attackerID string, defenderID string) {
 		}
 	}
 	if attackerOnline {
-		err := attackerConn.Conn.WriteJSON(map[string]interface{}{
+		if err := attackerConn.Conn.WriteJSON(map[string]interface{}{
 			"msg_type":          "battle_start",
 			"defender_building": ToSend,
 			"defender_id":       defenderID,
 			"alive_buildings":   state.AliveBuildings,
-		})
-		if err != nil {
+		}); err != nil {
+			log.Println("StartMatch: failed to send battle_start to attacker, aborting match:", err)
+			notifyBattleFailed(attackerConn, attackerOnline, defenderConn, defenderOnline, "Attacker could not send message.", attackerID, defenderID)
 			return
 		}
 	}
 	if defenderOnline {
-		err := defenderConn.Conn.WriteJSON(map[string]interface{}{
+		if err := defenderConn.Conn.WriteJSON(map[string]interface{}{
 			"msg_type":          "incoming_attack",
 			"defender_building": ToSend,
 			"defender_id":       defenderID,
 			"alive_buildings":   state.AliveBuildings,
-		})
-		if err != nil {
-
+		}); err != nil {
+			log.Println("StartMatch: failed to send incoming_attack to defender:", err)
 		}
 	}
 
@@ -183,34 +208,33 @@ func StartMatch(attackerID string, defenderID string) {
 	var startTime = time.Now()
 	runSimulation(ctx, state, attackerConn.Conn, defenderConn.Conn, attackerOnline, defenderOnline, &WriteMU, 1)
 	var duration = int(time.Since(startTime).Seconds())
-	err = models.SetUserBattleStatus(attackerID, false)
-	if err != nil {
-		log.Println("could not set battle status.")
-	}
-	err = models.SetUserBattleStatus(defenderID, false)
-	if err != nil {
-		log.Println("could not set battle status.")
-	}
+	logErr("StartMatch: could not clear attacker battle status (post-battle)", models.SetUserBattleStatus(attackerID, false))
+	logErr("StartMatch: could not clear defender battle status (post-battle)", models.SetUserBattleStatus(defenderID, false))
+
 	tx := models.DB.Begin()
 	for _, troopAtkr := range state.AliveTroopAttacker {
 		err := models.AddTroopsToUser(attackerID, state.TroopSpawns[troopAtkr.TroopIndex].TroopID, state.TroopSpawns[troopAtkr.TroopIndex].TroopLevel, 1, tx)
 		if err != nil {
-			log.Println("Error occurred while Adding troop after battle")
+			log.Println("StartMatch: error occurred while adding surviving attacker troop:", err)
 			tx.Rollback()
 			break
 		}
 	}
-	tx.Commit()
+	if commitErr := tx.Commit().Error; commitErr != nil {
+		log.Println("StartMatch: failed to commit attacker troop return transaction:", commitErr)
+	}
 	tx = models.DB.Begin()
 	for _, troopdfndr := range state.AliveTroopDefender {
 		err := models.AddTroopsToUser(defenderID, state.TroopSpawns[troopdfndr.TroopIndex].TroopID, state.TroopSpawns[troopdfndr.TroopIndex].TroopLevel, 1, tx)
 		if err != nil {
-			log.Println("Error occurred while Adding troop after battle")
+			log.Println("StartMatch: error occurred while adding surviving defender troop:", err)
 			tx.Rollback()
 			break
 		}
 	}
-	tx.Commit()
+	if commitErr := tx.Commit().Error; commitErr != nil {
+		log.Println("StartMatch: failed to commit defender troop return transaction:", commitErr)
+	}
 
 	DeathMap := make(map[string]int)
 	DeathIDArray := make([]string, 0)
@@ -223,9 +247,8 @@ func StartMatch(attackerID string, defenderID string) {
 			DeathMap[state.Buildings[i].Placed_Building.BuildingID] = 1
 		}
 	}
-	err = models.SetBrokenBuildings(defenderID, DeathIDArray, true)
-	if err != nil {
-		// TODO : building dint break
+	if err := models.SetBrokenBuildings(defenderID, DeathIDArray, true); err != nil {
+		log.Println("StartMatch: failed to persist broken buildings:", err)
 	}
 	var totalElixirB = 0
 	var totalGoldB = 0
@@ -244,7 +267,8 @@ func StartMatch(attackerID string, defenderID string) {
 	dark_elixir, _ := DeathMap[models.DarkElixirDrill_ID]
 	defender, err := models.GetUserData(defenderID)
 	if err != nil {
-		// TODO : what if defender deleted the account during battle !! (even though there is no delete account option)
+		log.Println("StartMatch: failed to load defender data for loot calculation, treating loot as 0:", err)
+		defender = models.UserData{}
 	}
 
 	var goldLooted int
@@ -261,11 +285,13 @@ func StartMatch(attackerID string, defenderID string) {
 	}
 	defenderName, err := models.GetUsername(defenderID)
 	if err != nil {
-		// TODO : what to do
+		log.Println("StartMatch: failed to load defender username:", err)
+		defenderName = "Unknown"
 	}
 	attackerName, err := models.GetUsername(attackerID)
 	if err != nil {
-		// TODO : what to do
+		log.Println("StartMatch: failed to load attacker username:", err)
+		attackerName = "Unknown"
 	}
 	_, exist := DeathMap[models.TownHall_ID]
 	battleHistory := models.BattleHistory{
@@ -279,33 +305,25 @@ func StartMatch(attackerID string, defenderID string) {
 		DoDefenderKnow:   defenderOnline,
 		WinnerAttacker:   exist,
 	}
+
 	if exist {
-		err := models.AdjustAttackPower(attackerID, 1)
-		if err != nil {
-			return
-		}
-		err = models.AdjustDefencePower(defenderID, -1)
-		if err != nil {
-			return
-		}
+		logErr("StartMatch: failed to adjust attacker power", models.AdjustAttackPower(attackerID, 1))
+		logErr("StartMatch: failed to adjust defender power", models.AdjustDefencePower(defenderID, -1))
 	} else {
-		err := models.AdjustAttackPower(attackerID, -1)
-		if err != nil {
-			return
-		}
-		err = models.AdjustDefencePower(defenderID, +1)
-		if err != nil {
-			return
-		}
+		logErr("StartMatch: failed to adjust attacker power", models.AdjustAttackPower(attackerID, -1))
+		logErr("StartMatch: failed to adjust defender power", models.AdjustDefencePower(defenderID, 1))
 	}
 	battleId, err := models.InsertBattleHistory(battleHistory)
+	battleHistorySaved := err == nil
 	if err != nil {
-		// TODO : Couldn't insert
+		log.Println("StartMatch: failed to insert battle history, skipping dependent records:", err)
 	}
-	for buildingId, count := range DeathMap {
-		err := models.InsertBrokenBuildingBattleHistory(battleId, buildingId, count)
-		if err != nil {
-			// TODO :
+
+	if battleHistorySaved {
+		for buildingId, count := range DeathMap {
+			if err := models.InsertBrokenBuildingBattleHistory(battleId, buildingId, count); err != nil {
+				log.Println("StartMatch: failed to insert broken building history:", err)
+			}
 		}
 	}
 	TroopLossAttacker := make(map[string]int)
@@ -333,38 +351,55 @@ func StartMatch(attackerID string, defenderID string) {
 	for _, s := range state.AliveTroopDefender {
 		TroopLossDefender[state.TroopSpawns[s.TroopIndex].TroopID] -= 1
 	}
-	for troopId, count := range TroopLossAttacker {
-		err := models.InsertTroopLoosesBattleHistory(battleId, troopId, count, true)
-		if err != nil {
-			// TODO : handle it
+	if battleHistorySaved {
+		for troopId, count := range TroopLossAttacker {
+			if err := models.InsertTroopLoosesBattleHistory(battleId, troopId, count, true); err != nil {
+				log.Println("StartMatch: failed to insert attacker troop loss history:", err)
+			}
+		}
+		for troopId, count := range TroopLossDefender {
+			if err := models.InsertTroopLoosesBattleHistory(battleId, troopId, count, false); err != nil {
+				log.Println("StartMatch: failed to insert defender troop loss history:", err)
+			}
 		}
 	}
 
-	for troopId, count := range TroopLossAttacker {
-		err := models.InsertTroopLoosesBattleHistory(battleId, troopId, count, false)
-		if err != nil {
-			// TODO : handle it
+	if _, err := models.AddUserGold(attackerID, goldLooted); err != nil {
+		log.Println("StartMatch: failed to credit looted gold to attacker:", err)
+	}
+	if _, err := models.AddUserElixir(attackerID, elixirLooted); err != nil {
+		log.Println("StartMatch: failed to credit looted elixir to attacker:", err)
+	}
+	if _, err := models.AddUserDarkElixir(attackerID, darkElixirLooted); err != nil {
+		log.Println("StartMatch: failed to credit looted dark elixir to attacker:", err)
+	}
+	if _, err := models.AddUserGold(defenderID, -goldLooted); err != nil {
+		log.Println("StartMatch: failed to credit looted gold to attacker:", err)
+	}
+	if _, err := models.AddUserElixir(defenderID, -elixirLooted); err != nil {
+		log.Println("StartMatch: failed to credit looted elixir to attacker:", err)
+	}
+	if _, err := models.AddUserDarkElixir(defenderID, -darkElixirLooted); err != nil {
+		log.Println("StartMatch: failed to credit looted dark elixir to attacker:", err)
+	}
+
+	if attackerOnline {
+		if err := attackerConn.Conn.WriteJSON(map[string]interface{}{
+			"msg_type":            "battle_over",
+			"battle_id":           battleId,
+			"battle_outcome":      battleHistory,
+			"attacker_troop_loss": TroopLossAttacker,
+			"defender_troop_loss": TroopLossDefender,
+			"buildings_broken":    DeathMap,
+			"opponent_username":   defenderName,
+			"my_username":         attackerName,
+		}); err != nil {
+			log.Println("StartMatch: failed to send battle_over to attacker:", err)
 		}
+		attackerConn.Mu.Unlock()
 	}
-	_, err = models.AddUserGold(attackerID, goldLooted)
-	_, err = models.AddUserElixir(attackerID, elixirLooted)
-	_, err = models.AddUserDarkElixir(attackerID, darkElixirLooted)
-	if err != nil {
-		return
-	}
-	attackerConn.Conn.WriteJSON(map[string]interface{}{
-		"msg_type":            "battle_over",
-		"battle_id":           battleId,
-		"battle_outcome":      battleHistory,
-		"attacker_troop_loss": TroopLossAttacker,
-		"defender_troop_loss": TroopLossDefender,
-		"buildings_broken":    DeathMap,
-		"opponent_username":   defenderName,
-		"my_username":         attackerName,
-	})
-	attackerConn.Mu.Unlock()
 	if defenderOnline {
-		defenderConn.Conn.WriteJSON(map[string]interface{}{
+		if err := defenderConn.Conn.WriteJSON(map[string]interface{}{
 			"msg_type":            "battle_over",
 			"battle_id":           battleId,
 			"battle_outcome":      battleHistory,
@@ -373,8 +408,9 @@ func StartMatch(attackerID string, defenderID string) {
 			"buildings_broken":    DeathMap,
 			"opponent_username":   attackerName,
 			"my_username":         defenderName,
-		})
-
+		}); err != nil {
+			log.Println("StartMatch: failed to send battle_over to defender:", err)
+		}
 		defenderConn.Mu.Unlock()
 	}
 	var initialBuildingPos models.InitialBuildingArray = make([]models.InitialBattleBuilding, len(state.Buildings))
@@ -384,13 +420,17 @@ func StartMatch(attackerID string, defenderID string) {
 		initialBuildingPos[i].Grid_X = building.Placed_Building.GridX
 		initialBuildingPos[i].Grid_Y = building.Placed_Building.GridY
 	}
-	err = models.SaveBattleRecord(&models.BattleRecord{
-		BattleID:         battleId,
-		TroopSpawns:      state.TroopSpawns,
-		InitialBuildings: initialBuildingPos,
-	})
-	if err != nil {
-		log.Println(err.Error())
+	if battleHistorySaved {
+		err = models.SaveBattleRecord(&models.BattleRecord{
+			BattleID:         battleId,
+			TroopSpawns:      state.TroopSpawns,
+			InitialBuildings: initialBuildingPos,
+		})
+		if err != nil {
+			log.Println("StartMatch: failed to save battle record:", err)
+		}
+	} else {
+		log.Println("StartMatch: skipping battle record save, battle history was not saved")
 	}
 
 }
@@ -464,7 +504,10 @@ Loop:
 					}
 					continue
 				}
-				tx.Commit()
+				if commitErr := tx.Commit().Error; commitErr != nil {
+					log.Println("readPlayerMessages: failed to commit troop spawn transaction:", commitErr)
+					continue
+				}
 				troop := models.TroopSpawn{
 					TroopID:           msg.TroopID,
 					TroopLevel:        msg.TroopLevel,
@@ -503,15 +546,19 @@ Loop:
 				state.mu.Unlock()
 				WriteMU.Lock()
 				if otherOnline {
-					otherConn.WriteJSON(map[string]interface{}{
+					if err := otherConn.WriteJSON(map[string]interface{}{
 						"msg_type": "spawn_troop",
 						"troop":    troop,
-					})
+					}); err != nil {
+						log.Println("readPlayerMessages: failed to relay spawn_troop to opponent:", err)
+					}
 				}
-				conn.Conn.WriteJSON(map[string]interface{}{
+				if err := conn.Conn.WriteJSON(map[string]interface{}{
 					"msg_type": "spawn_troop",
 					"troop":    troop,
-				})
+				}); err != nil {
+					log.Println("readPlayerMessages: failed to echo spawn_troop to sender:", err)
+				}
 				WriteMU.Unlock()
 			} else if (msg.Action == "" || msg.Action == "retreat") && isAttacker {
 				cancel()
@@ -544,10 +591,14 @@ func runSimulation(
 
 			WriteMU.Lock()
 			if attackerOnline {
-				attackerConn.WriteJSON(update)
+				if err := attackerConn.WriteJSON(update); err != nil {
+					log.Println("runSimulation: failed to send battle_update to attacker:", err)
+				}
 			}
 			if defenderOnline {
-				defenderConn.WriteJSON(update)
+				if err := defenderConn.WriteJSON(update); err != nil {
+					log.Println("runSimulation: failed to send battle_update to defender:", err)
+				}
 			}
 			WriteMU.Unlock()
 		}

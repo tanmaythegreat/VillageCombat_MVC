@@ -801,25 +801,22 @@ func GetCapacityDifference(building_id string, level1 int, level2 int) (int, err
 }
 func AddUserGold(userId string, gold int) (UserData, error) {
 	var updatedUser UserData
-
 	err := DB.Model(&updatedUser).
 		Clauses(clause.Returning{}).
 		Where("user_id = ?", userId).
 		Updates(map[string]interface{}{
-			"current_gold": gorm.Expr("LEAST(current_gold + ?, total_gold_capacity)", gold),
+			"current_gold": gorm.Expr("GREATEST(0, LEAST(current_gold + ?, total_gold_capacity))", gold),
 			"updated_at":   time.Now(),
 		}).Error
-
 	return updatedUser, err
 }
-
 func AddUserElixir(userId string, elixir int) (UserData, error) {
 	var updatedUser UserData
 	err := DB.Model(&updatedUser).
 		Clauses(clause.Returning{}).
 		Where("user_id = ?", userId).
 		Updates(map[string]interface{}{
-			"current_elixir": gorm.Expr("LEAST(current_elixir + ?, total_elixir_capacity)", elixir),
+			"current_elixir": gorm.Expr("GREATEST(0, LEAST(current_elixir + ?, total_elixir_capacity))", elixir),
 			"updated_at":     time.Now(),
 		}).Error
 	return updatedUser, err
@@ -830,22 +827,20 @@ func AddUserDarkElixir(userId string, darkElixir int) (UserData, error) {
 		Clauses(clause.Returning{}).
 		Where("user_id = ?", userId).
 		Updates(map[string]interface{}{
-			"current_dark_elixir": gorm.Expr("LEAST(current_dark_elixir + ?, total_dark_elixir_capacity)", darkElixir),
+			"current_dark_elixir": gorm.Expr("GREATEST(0, LEAST(current_dark_elixir + ?, total_dark_elixir_capacity))", darkElixir),
 			"updated_at":          time.Now(),
 		}).Error
 	return updatedUser, err
 }
 func AddUserGems(userId string, gems int) (UserData, error) {
 	var updatedUser UserData
-
 	err := DB.Model(&updatedUser).
 		Clauses(clause.Returning{}).
 		Where("user_id = ?", userId).
 		Updates(map[string]interface{}{
-			"current_gems": gorm.Expr("current_gems + ?", gems),
+			"current_gems": gorm.Expr("GREATEST(current_gems + ?, 0)", gems),
 			"updated_at":   time.Now(),
 		}).Error
-
 	return updatedUser, err
 }
 func AddUserCapacity(userId string, gold_capacity int, elixir_capacity int, dark_elixir_capacity int) (UserData, error) {

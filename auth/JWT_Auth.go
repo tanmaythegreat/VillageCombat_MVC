@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unicode"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -156,4 +157,38 @@ func VerifyJWT_Token(token string) (string, bool) {
 		return "", false
 	}
 	return userID, true
+}
+
+func ValidatePasswordStrength(password string) error {
+	if len(password) < 8 {
+		return errors.New("password must be at least 8 characters")
+	}
+
+	var hasUpper, hasLower, hasNumber, hasSpecial bool
+
+	for _, char := range password {
+		switch {
+		case unicode.IsUpper(char):
+			hasUpper = true
+		case unicode.IsLower(char):
+			hasLower = true
+		case unicode.IsDigit(char):
+			hasNumber = true
+		case unicode.IsPunct(char) || unicode.IsSymbol(char):
+			hasSpecial = true
+		}
+	}
+
+	switch {
+	case !hasUpper:
+		return errors.New("password must contain at least one uppercase letter")
+	case !hasLower:
+		return errors.New("password must contain at least one lowercase letter")
+	case !hasNumber:
+		return errors.New("password must contain at least one number")
+	case !hasSpecial:
+		return errors.New("password must contain at least one special character")
+	}
+
+	return nil
 }

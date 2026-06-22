@@ -3,6 +3,7 @@ package battle
 import (
 	"Village_combat/models"
 	"context"
+	"log"
 	"sync"
 	"time"
 
@@ -12,11 +13,15 @@ import (
 func Replay(battleId string, conn *websocket.Conn) error {
 	record, err := models.GetBattleRecord(battleId)
 	if err != nil {
+		log.Println("Replay: failed to load battle record:", err)
 		errPayload := map[string]string{
 			"status":  "error",
 			"message": "Internal Server Error",
 		}
-		return conn.WriteJSON(errPayload)
+		if writeErr := conn.WriteJSON(errPayload); writeErr != nil {
+			log.Println("Replay: failed to send error payload to client:", writeErr)
+		}
+		return err
 	}
 	state := &BattleState{
 		mu:          sync.Mutex{},
@@ -56,12 +61,12 @@ func Replay(battleId string, conn *websocket.Conn) error {
 		ToSend[i].BuildingID = building.BuildingID
 		health, err := models.GetBuildingHealth(building.BuildingID, building.Level)
 		if err != nil {
-			// TODO : its game over
+			log.Printf("Replay: failed to get health for building %s (lvl %d): %v — treating as not-alive", building.BuildingID, building.Level, err)
 		}
 		if models.BuildingID_Category[building.BuildingID] == models.Defense {
-			levelStat, stat, err := models.GetDefenceBuildingStatAndLevelStat(building.BuildingID, building.Level)
-			if err != nil {
-				// TODO : end the battle, its all over :(
+			levelStat, stat, defErr := models.GetDefenceBuildingStatAndLevelStat(building.BuildingID, building.Level)
+			if defErr != nil {
+				log.Printf("Replay: failed to get defense stats for building %s (lvl %d): %v", building.BuildingID, building.Level, defErr)
 			}
 			state.Buildings = append(state.Buildings, struct {
 				Placed_Building models.PlacedBuilding
@@ -82,23 +87,26 @@ func Replay(battleId string, conn *websocket.Conn) error {
 				}
 			}{Placed_Building: ToSend[i], Defender: nil})
 		}
-		if !building.IsBroken {
+		if !building.IsBroken && err == nil {
 			state.AliveBuildings = append(state.AliveBuildings, struct {
 				BuildingIndex   int `json:"BuildingIndex"`
 				HealthRemaining int `json:"HealthRemaining"`
-			}{BuildingIndex: len(ToSend) - 1, HealthRemaining: health})
+			}{BuildingIndex: i, HealthRemaining: health})
 		}
 	}
 
-	conn.WriteJSON(map[string]interface{}{
+	if err := conn.WriteJSON(map[string]interface{}{
 		"msg_type":          "replay",
 		"defender_building": ToSend,
 		"alive_buildings":   state.AliveBuildings,
-	})
+	}); err != nil {
+		log.Println("Replay: failed to send initial replay payload:", err)
+		return err
+	}
 
 	battleHistory, err := models.GetBattleHistory(battleId)
 	if err != nil {
-		// TODO : ..
+		log.Println("Replay: failed to load battle history:", err)
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(battleHistory.BattleDuration)*time.Second)
@@ -125,15 +133,19 @@ func Replay(battleId string, conn *websocket.Conn) error {
 	defenderName := battleHistory.DefenderName
 	attackerName := battleHistory.AttackerName
 
-	conn.WriteJSON(map[string]interface{}{
+	if err := conn.WriteJSON(map[string]interface{}{
 		"msg_type":            "battle_over",
 		"battle_id":           battleId,
 		"battle_outcome":      battleHistory,
 		"attacker_troop_loss": TroopLossAttacker,
+		"defender_troop_loss": TroopLossDefender,
 		"buildings_broken":    DeathMap,
 		"opponent_username":   defenderName,
 		"my_username":         attackerName,
-	})
+	}); err != nil {
+		log.Println("Replay: failed to send battle_over payload:", err)
+		return err
+	}
 	return nil
 }
 
@@ -174,10 +186,12 @@ func SpawnTroopsOverTime(troops []models.TroopSpawn, state *BattleState, WriteMU
 		}
 		state.mu.Unlock()
 		WriteMU.Lock()
-		conn.WriteJSON(map[string]interface{}{
+		if err := conn.WriteJSON(map[string]interface{}{
 			"msg_type": "spawn_troop",
 			"troop":    troop,
-		})
+		}); err != nil {
+			log.Println("SpawnTroopsOverTime: failed to send spawn_troop:", err)
+		}
 		WriteMU.Unlock()
 	}
 }
