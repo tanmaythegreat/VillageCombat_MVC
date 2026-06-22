@@ -87,6 +87,14 @@ scene.add(ground);
 
 // region Camera Movement
 
+const MAX_FRUSTUM = 800
+const MIN_FRUSTUM = 100
+const MAX_Z = 1700
+const MIN_Z = 300
+const MAX_X = -300
+const MIN_X = -1700
+const K= 1.618;
+
 let isDragging = false;
 let previousTouch = { x: 0, y: 0 };
 let previousPinchDistance = 0;
@@ -136,6 +144,9 @@ window.addEventListener('touchmove', (e) => {
         camera.position.x += Forward[0] * deltaY * touchDragSpeed * frustumSize;
         camera.position.z += Forward[1] * deltaY * touchDragSpeed * frustumSize;
 
+        camera.position.z = Math.max(Math.min(MAX_Z-frustumSize/K,camera.position.z),MIN_Z+frustumSize/K);
+        camera.position.x = Math.max(Math.min(MAX_X-frustumSize/K,camera.position.x),MIN_X+frustumSize/K);
+
         previousTouch = currentTouch;
     }
 
@@ -148,7 +159,7 @@ window.addEventListener('touchmove', (e) => {
         if (isOrthographic) {
             const zoomFactor = Math.exp(-deltaDistance * sensitivity);
             frustumSize *= zoomFactor;
-            frustumSize = Math.max(10, Math.min(frustumSize, 2000));
+            frustumSize = Math.max(MIN_FRUSTUM, Math.min(frustumSize, MAX_FRUSTUM));
 
             updateCamera();
         } else {
@@ -186,12 +197,14 @@ window.addEventListener('keyup', (e) => {
 });
 
 export function handleMovement(dt) {
-    if (keys.d) { camera.position.z += moveSpeed * dt * Right[1];   camera.position.x += Right[0]   * moveSpeed * dt; }
+    if (keys.d) { camera.position.z += moveSpeed * dt * Right[1]; camera.position.x += Right[0]   * moveSpeed * dt; }
     if (keys.w) { camera.position.z += moveSpeed * dt * Forward[1]; camera.position.x += Forward[0] * moveSpeed * dt; }
     if (keys.a) { camera.position.z -= moveSpeed * dt * Right[1];   camera.position.x -= Right[0]   * moveSpeed * dt; }
     if (keys.s) { camera.position.z -= moveSpeed * dt * Forward[1]; camera.position.x -= Forward[0] * moveSpeed * dt; }
-    if (keys.e) { if (isOrthographic) { frustumSize += moveSpeed * dt; updateCamera(); } else camera.position.y += moveSpeed * dt; }
-    if (keys.q) { if (isOrthographic) { frustumSize -= moveSpeed * dt; updateCamera(); } else camera.position.y -= moveSpeed * dt; }
+    camera.position.z = Math.max(Math.min(MAX_Z-frustumSize/K,camera.position.z),MIN_Z+frustumSize/K);
+    camera.position.x = Math.max(Math.min(MAX_X-frustumSize/K,camera.position.x),MIN_X+frustumSize/K);
+    if (keys.e) { if (isOrthographic) { frustumSize += moveSpeed * dt; frustumSize = Math.min(frustumSize,MAX_FRUSTUM);updateCamera(); } else camera.position.y += moveSpeed * dt; }
+    if (keys.q) { if (isOrthographic) { frustumSize -= moveSpeed * dt; frustumSize = Math.max(frustumSize,MIN_FRUSTUM);updateCamera(); } else camera.position.y -= moveSpeed * dt; }
 }
 
 // endregion
