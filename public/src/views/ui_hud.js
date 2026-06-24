@@ -1,13 +1,20 @@
 import { BuildingCategory } from '../core/enums.js';
 import { formatNum, formatTime, escapeHTML, setAffordability } from '../models/utils.js';
-import { AllBuildingData, AllTroopsData, TrainedTroopsData, UserData, ConstructionTasks } from '../models/map.js';
-import { CreateBuilding, UpgradeBuilding, RepairBuilding, TrainTroop } from '../controllers/network.js';
+import {
+    AllBuildingData,
+    AllTroopsData,
+    TrainedTroopsData,
+    UserData,
+    ConstructionTasks,
+    PlacedBuildings
+} from '../models/map.js';
+import {CreateBuilding, UpgradeBuilding, RepairBuilding, TrainTroop, CollectAll} from '../controllers/network.js';
 import {moving, selectToMove} from "../core/move.js";
 
 export function UpdateResourceUI() {
-    document.getElementById('hud-gold-val').textContent        = formatNum(UserData.current_gold        ?? 0);
-    document.getElementById('hud-elixir-val').textContent      = formatNum(UserData.current_elixir      ?? 0);
-    document.getElementById('hud-dark-elixir-val').textContent = formatNum(UserData.current_dark_elixir ?? 0);
+    document.getElementById('hud-gold-val').textContent        = `${formatNum(UserData.current_gold        ?? 0)}`//${formatNum(UserData.total_gold_capacity)}`;
+    document.getElementById('hud-elixir-val').textContent      = `${formatNum(UserData.current_elixir      ?? 0)}`//${formatNum(UserData.total_elixir_capacity)}`;
+    document.getElementById('hud-dark-elixir-val').textContent = `${formatNum(UserData.current_dark_elixir ?? 0)}`//${formatNum(UserData.total_dark_elixir_capacity)}`;
     document.getElementById('hud-gems-val').textContent        = formatNum(UserData.current_gems        ?? 0);
 }
 
@@ -54,7 +61,7 @@ export function updateCollectButton() {
         levelDetails = building.levels[data.level];
     } catch { return; }
 
-    if (building.category === BuildingCategory.Resource && building.levels[1].generation_rate > 0 && !data.is_broken) {
+    if (building.category === BuildingCategory.Resource && building.levels[0].generation_rate > 0 && !data.is_broken) {
         collect.style.display = 'block';
         const elapsed  = (Date.now() - new Date(_placed_building.last_updated_at).getTime()) / 3600000;
         const toCollect = Math.min(levelDetails.storage_capacity, levelDetails.generation_rate * elapsed);
@@ -634,6 +641,73 @@ function updateTroopCosts(troopId, placed_building_id) {
     setAffordability(trainBtn, canAffordTroop(upgCost, false, placed_building_id) && enoughTroops);
     setAffordability(gemBtn,   canAffordTroop(upgCost, true,  placed_building_id) && enoughTroops);
 }
+// endregion
+
+
+// region Resource Detail Hover
+const resourceHud       = document.getElementById('resource-hud');
+const resourceDetailBox = document.getElementById('resource-detail-box');
+let _resourceHideTimeout = null;
+
+function showResourceDetail() {
+    if (_resourceHideTimeout) { clearTimeout(_resourceHideTimeout); _resourceHideTimeout = null; }
+    updateResourceDetailBox();
+    resourceDetailBox.classList.add('is-active');
+}
+
+function scheduleHideResourceDetail() {
+    if (_resourceHideTimeout) clearTimeout(_resourceHideTimeout);
+    _resourceHideTimeout = setTimeout(() => {
+        resourceDetailBox.classList.remove('is-active');
+        _resourceHideTimeout = null;
+    }, 150);
+}
+
+function fillResourceDetailRow(key, current, capacity, temporary) {
+    const collectable = Math.min((temporary ?? 0 )+ current, capacity ?? 0)-current;
+    document.getElementById(`detail-${key}-stored`).textContent      = `${formatNum(current ?? 0)} / ${formatNum(capacity ?? 0)}`;
+    document.getElementById(`detail-${key}-mine`).textContent        = formatNum(temporary ?? 0);
+    document.getElementById(`detail-${key}-collectable`).textContent = formatNum(collectable);
+    return collectable
+}
+
+export function updateResourceDetailBox() {
+    const stored = {gold:0,elixir:0,dark_elixir:0}
+    for (const data of PlacedBuildings) {
+
+        const building     = AllBuildingData[data.building_id];
+        const levelDetails = building.levels[data.level];
+        if (building.category === BuildingCategory.Resource && building.levels[0].generation_rate > 0 && !data.is_broken) {
+            const elapsed  = (Date.now() - new Date(data.last_updated_at).getTime()) / 3600000;
+            const toCollect = Math.min(levelDetails.storage_capacity, levelDetails.generation_rate * elapsed);
+
+            const Key   = [building.resource_type];
+            stored[Key]+=toCollect;
+        }
+    }
+    UserData.temporary_gold = stored.gold
+    UserData.temporary_elixir = stored.elixir
+    UserData.temporary_dark_elixir = stored.dark_elixir
+    const g = fillResourceDetailRow('gold',   UserData.current_gold,        UserData.total_gold_capacity,        UserData.temporary_gold);
+    const e = fillResourceDetailRow('elixir', UserData.current_elixir,      UserData.total_elixir_capacity,      UserData.temporary_elixir);
+    const de = fillResourceDetailRow('dark',   UserData.current_dark_elixir, UserData.total_dark_elixir_capacity, UserData.temporary_dark_elixir);
+
+    const totalCollectable = g + e + de;
+
+    setAffordability(document.getElementById('resource-collect-all-btn'), totalCollectable > 0);
+}
+
+resourceHud.addEventListener('mouseenter', showResourceDetail);
+resourceHud.addEventListener('mouseleave', scheduleHideResourceDetail);
+resourceDetailBox.addEventListener('mouseenter', showResourceDetail);
+resourceDetailBox.addEventListener('mouseleave', scheduleHideResourceDetail);
+
+document.getElementById('resource-collect-all-btn').onclick = (e) => {
+    e.stopPropagation();
+    CollectAll();
+    UpdateResourceUI();
+};
+
 // endregion
 
 export function isAnyOverlayOn() {

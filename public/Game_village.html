@@ -8,6 +8,25 @@
     <link rel="icon" type="image/x-icon" href="grid.jpg">
 </head>
 <body>
+<div id="controls-overlay" class="controls-overlay">
+    <div class="controls-panel">
+        <h3>🎮 Game Controls</h3>
+        <div class="controls-grid">
+            <div class="control-row">
+                <span class="control-key">W</span>
+                <span class="control-key">A</span>
+                <span class="control-key">S</span>
+                <span class="control-key">D</span>
+                <span class="control-desc">Movement (Up, Left, Down, Right)</span>
+            </div>
+            <div class="control-row">
+                <span class="control-key">Q</span>
+                <span class="control-key">E</span>
+                <span class="control-desc">Zoom In / Zoom Out</span>
+            </div>
+        </div>
+    </div>
+</div>
 <!--<button id="fullscreen-btn" class="fullscreen-btn" title="Toggle Fullscreen">-->
 <!--    <span class="fs-icon-enter">📺</span>-->
 <!--</button>-->
@@ -39,6 +58,9 @@
                 </div>
                 <div class="profile-user-info">
                     <p class="profile-username" id="profile-username">--</p>
+                    <button class="profile-logout-btn" id="profile-logout-btn" title="Logout">
+                            <span>Logout</span>
+                    </button>
                 </div>
             </div>
 
@@ -47,15 +69,6 @@
                     <span class="profile-detail-label">Email</span>
                     <span class="profile-detail-value" id="profile-email">--</span>
                 </div>
-<!--                    <div class="profile-detail-row">-->
-<!--                        <div>-->
-<!--                            <span class="profile-detail-label">User ID</span>-->
-<!--                            <span class="profile-detail-value profile-userid" id="profile-userid">&#45;&#45;</span>-->
-<!--                        </div>-->
-<!--                        <button class="profile-copy-btn" id="profile-copy-btn" title="Copy User ID">-->
-<!--                            📋-->
-<!--                        </button>-->
-<!--                    </div>-->
             </div>
 
             <div class="profile-attack-section">
@@ -298,6 +311,29 @@
     <div class="res-pill" id="hud-gems">
         <span class="res-icon">💎</span>
         <span class="res-val" id="hud-gems-val">0</span>
+    </div>
+
+    <div id="resource-detail-box">
+        <div class="res-detail-row">
+            <div class="res-detail-header"><span>🪙</span><span>Gold</span></div>
+            <div class="res-detail-line"><span>Stored</span><span id="detail-gold-stored">0 / 0</span></div>
+            <div class="res-detail-line"><span>In mines</span><span id="detail-gold-mine">0</span></div>
+            <div class="res-detail-line highlight"><span>Collectable</span><span id="detail-gold-collectable">0</span></div>
+        </div>
+        <div class="res-detail-row">
+            <div class="res-detail-header"><span>🧪</span><span>Elixir</span></div>
+            <div class="res-detail-line"><span>Stored</span><span id="detail-elixir-stored">0 / 0</span></div>
+            <div class="res-detail-line"><span>In mines</span><span id="detail-elixir-mine">0</span></div>
+            <div class="res-detail-line highlight"><span>Collectable</span><span id="detail-elixir-collectable">0</span></div>
+        </div>
+        <div class="res-detail-row">
+            <div class="res-detail-header"><span>⚗️</span><span>Dark Elixir</span></div>
+            <div class="res-detail-line"><span>Stored</span><span id="detail-dark-stored">0 / 0</span></div>
+            <div class="res-detail-line"><span>In mines</span><span id="detail-dark-mine">0</span></div>
+            <div class="res-detail-line highlight"><span>Collectable</span><span id="detail-dark-collectable">0</span></div>
+        </div>
+
+        <button id="resource-collect-all-btn">✨️ Collect All</button>
     </div>
 </div>
 

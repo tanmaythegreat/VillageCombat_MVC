@@ -39,6 +39,10 @@ var TroopLevelDetails map[struct {
 	ID    string
 	Level int
 }]TroopLevelStats
+var ResourceLevelDetails map[struct {
+	ID    string
+	Level int
+}]ResourceBuildingLevelStats
 
 func InitDB(dsn string) {
 	var err error
@@ -54,6 +58,10 @@ func InitDB(dsn string) {
 	err = LoadStaticTroopData()
 	if err != nil {
 		panic("Unable to load Troops data.")
+	}
+	err = LoadStaticResourceData()
+	if err != nil {
+		panic("Unable to load Resource data.")
 	}
 }
 func LoadStaticTroopData() error {
@@ -81,6 +89,24 @@ func LoadStaticTroopData() error {
 			ID    string
 			Level int
 		}{ID: stats.TroopID, Level: stats.Level}] = stats
+	}
+	return nil
+}
+func LoadStaticResourceData() error {
+	var lvlstat []ResourceBuildingLevelStats
+	err := DB.Table(ResourceBuildingLevelStats{}.TableName()).Find(&lvlstat).Error
+	if err != nil {
+		return err
+	}
+	ResourceLevelDetails = make(map[struct {
+		ID    string
+		Level int
+	}]ResourceBuildingLevelStats)
+	for _, stats := range lvlstat {
+		ResourceLevelDetails[struct {
+			ID    string
+			Level int
+		}{ID: stats.BuildingID, Level: stats.Level}] = stats
 	}
 	return nil
 }
@@ -251,7 +277,13 @@ func AddRefreshToken(userID string, tokenHash string, ipAddress string, userAgen
 		IsUsed:       false,
 	}).Error
 }
-
+func RemoveRefreshToken(userID string) error {
+	err := DB.Where("user_id = ?", userID).Delete(&RefreshToken{}).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func GetRefreshTokenByUserID(userID string) (*RefreshToken, error) {
 	var token RefreshToken
 	err := DB.Where("user_id = ?", userID).First(&token).Error
@@ -340,6 +372,16 @@ func UpdatePlacedBuilding(userId string, placedBuildingID string) (PlacedBuildin
 		Where("id = ?", placedBuildingID).
 		Update("last_updated_at", time.Now()).Error
 	return oldBuilding, err
+}
+func DecreaseUpdateTime(userId string, placedBuildingID string, hours float64) error {
+	var updatedBuilding PlacedBuilding
+	secondsToSubtract := hours * 3600
+	err := DB.Model(&updatedBuilding).
+		Clauses(clause.Returning{}).
+		Where("id = ? AND user_id = ?", placedBuildingID, userId).
+		Update("last_updated_at", gorm.Expr("last_updated_at - ? * INTERVAL '1 second'", secondsToSubtract)).
+		Error
+	return err
 }
 func GetPlacedBuilding_ID_Level(userID string) ([]PlacedBuilding, error) {
 	var placedBuildings []PlacedBuilding
@@ -833,6 +875,86 @@ func AddUserDarkElixir(userId string, darkElixir int) (UserData, error) {
 		}).Error
 	return updatedUser, err
 }
+
+func AddUserGoldGetRemaining(userId string, gold int) (UserData, error, int) {
+	var updatedUser UserData
+	var extraGold int
+
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("user_id = ?", userId).First(&updatedUser).Error; err != nil {
+			return err
+		}
+		newGold := updatedUser.CurrentGold + gold
+		if newGold > updatedUser.TotalGoldCapacity {
+			extraGold = newGold - updatedUser.TotalGoldCapacity
+			updatedUser.CurrentGold = updatedUser.TotalGoldCapacity
+		} else {
+			extraGold = 0
+			updatedUser.CurrentGold = newGold
+		}
+		return tx.Model(&updatedUser).Updates(map[string]interface{}{
+			"current_gold": updatedUser.CurrentGold,
+			"updated_at":   time.Now(),
+		}).Error
+	})
+
+	return updatedUser, err, extraGold
+}
+func AddUserElixirGetRemaining(userId string, elixir int) (UserData, error, int) {
+	var updatedUser UserData
+	var extraElixir int
+
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("user_id = ?", userId).First(&updatedUser).Error; err != nil {
+			return err
+		}
+
+		newElixir := updatedUser.CurrentElixir + elixir
+
+		if newElixir > updatedUser.TotalElixirCapacity {
+			extraElixir = newElixir - updatedUser.TotalElixirCapacity
+			updatedUser.CurrentElixir = updatedUser.TotalElixirCapacity
+		} else {
+			extraElixir = 0
+			updatedUser.CurrentElixir = newElixir
+		}
+
+		return tx.Model(&updatedUser).Updates(map[string]interface{}{
+			"current_elixir": updatedUser.CurrentElixir,
+			"updated_at":     time.Now(),
+		}).Error
+	})
+
+	return updatedUser, err, extraElixir
+}
+func AddUserDarkElixirGetRemaining(userId string, darkElixir int) (UserData, error, int) {
+	var updatedUser UserData
+	var extraDarkElixir int
+
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("user_id = ?", userId).First(&updatedUser).Error; err != nil {
+			return err
+		}
+
+		newDarkElixir := updatedUser.CurrentDarkElixir + darkElixir
+
+		if newDarkElixir > updatedUser.TotalDarkElixirCapacity {
+			extraDarkElixir = newDarkElixir - updatedUser.TotalDarkElixirCapacity
+			updatedUser.CurrentDarkElixir = updatedUser.TotalDarkElixirCapacity
+		} else {
+			extraDarkElixir = 0
+			updatedUser.CurrentDarkElixir = newDarkElixir
+		}
+
+		return tx.Model(&updatedUser).Updates(map[string]interface{}{
+			"current_dark_elixir": updatedUser.CurrentDarkElixir,
+			"updated_at":          time.Now(),
+		}).Error
+	})
+
+	return updatedUser, err, extraDarkElixir
+}
+
 func AddUserGems(userId string, gems int) (UserData, error) {
 	var updatedUser UserData
 	err := DB.Model(&updatedUser).
@@ -908,14 +1030,6 @@ func FindOpponent(attackerID string, powerRange int) (*UserStatus, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("no opponent found: %w", err)
-	}
-
-	err = tx.Model(&UserStatus{}).
-		Where("user_id = ?", opponent.UserID).
-		Update("in_battle", true).Error
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to mark in_battle: %w", err)
 	}
 
 	if err = tx.Commit().Error; err != nil {

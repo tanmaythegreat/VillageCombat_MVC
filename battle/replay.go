@@ -113,7 +113,7 @@ func Replay(battleId string, conn *websocket.Conn) error {
 	defer cancel()
 	WriteMU := sync.Mutex{} // this is write lock for connections only for these 3 functions
 	go SpawnTroopsOverTime(record.TroopSpawns, state, &WriteMU, conn)
-	runSimulation(ctx, state, conn, nil, true, false, &WriteMU, 1)
+	runSimulation(ctx, state, conn, nil, true, false, &WriteMU, 1, cancel)
 
 	DeathMap := make(map[string]int)
 

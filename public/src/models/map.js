@@ -19,7 +19,14 @@ export let Grid              = {};
 export let UserData          = null;
 export let ConstructionTasks = null;
 
-export function setUserData(data)         { UserData          = data; }
+export function setUserData(data,keepName_mail = true) {
+
+    if (keepName_mail) {
+        data.username = UserData.username
+        data.email = UserData.email
+    }
+    UserData = data;
+}
 export function setPlacedBuildings(arr)   { PlacedBuildings   = arr;  }
 export function setTrainedTroopsData(obj) { TrainedTroopsData = obj;  }
 export function setConstructionTasks(arr) { ConstructionTasks = arr;  }

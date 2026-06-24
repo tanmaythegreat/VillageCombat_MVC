@@ -592,9 +592,8 @@ body {
     z-index: 50;
     display: flex;
     gap: 6px;
-    pointer-events: none;
+    pointer-events: auto;
 }
-
 .res-pill {
     display: flex;
     align-items: center;
@@ -2124,4 +2123,195 @@ body {
     .fullscreen-btn {
         display: none;
     }
+}
+
+.controls-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999; /* Ensure it stays above all HUDs and overlays */
+    opacity: 1;
+    transition: opacity 0.5s ease;
+    pointer-events: none; /* Prevents clicking through during display, changes via JS */
+}
+
+.controls-panel {
+    background: #1a1a1a;
+    border: 2px solid #333;
+    border-radius: 12px;
+    padding: 24px 32px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    font-family: sans-serif;
+    color: #fff;
+    max-width: 400px;
+}
+
+.controls-panel h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+    color: #ffd700; /* Gold color matching your theme icons */
+}
+
+.controls-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.control-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+}
+
+.control-key {
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-weight: bold;
+    font-family: monospace;
+    box-shadow: 0 3px 0 #111;
+    min-width: 20px;
+    text-align: center;
+}
+
+.control-desc {
+    margin-left: 12px;
+    font-size: 0.95rem;
+    color: #ccc;
+}
+
+.profile-user-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+}
+
+.profile-username {
+    margin: 0;
+    font-weight: bold;
+}
+
+.profile-logout-btn {
+    padding: 6px 12px;
+    background-color: #e74c3c;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap; /* Prevents text from breaking into two lines */
+}
+
+.profile-logout-btn:hover {
+    background-color: #c0392b;
+}
+
+.profile-logout-btn:active {
+    transform: scale(0.97);
+}
+
+#resource-collect-all-btn {
+    margin-top: 2px;
+    padding: 9px 0;
+    border-radius: 8px;
+    border: none;
+    background: #2C2C2A;
+    color: #FAC775;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+#resource-collect-all-btn:hover {
+    background: #444441;
+}
+#resource-collect-all-btn:active {
+    transform: scale(0.98);
+}
+#resource-collect-all-btn.btn-unaffordable {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(40%);
+}
+
+/* ── Resource Detail Panel ──────────────────────────── */
+#resource-detail-box {
+    position: absolute;
+    top: 100%;          /* flush against the pills, no gap, so mouseleave doesn't fire crossing it */
+    right: 0;
+    width: 250px;
+    background: rgba(30, 29, 27, 0.96);
+    border: 1px solid rgba(250, 199, 117, 0.25);
+    border-radius: 12px;
+    padding: 14px 14px 10px;
+    margin-top: 8px; /* visual gap only — doesn't affect hit area since it's inside the box */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+#resource-detail-box.is-active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+}
+
+.res-detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.res-detail-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.res-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #FAC775;
+    margin-bottom: 3px;
+}
+.res-detail-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #B4B2A9;
+}
+.res-detail-line span:last-child {
+    color: #fff;
+    font-weight: 600;
+}
+.res-detail-line.highlight span:last-child {
+    color: #2ecc71;
 }

@@ -184,6 +184,7 @@ func StartMatch(attackerID string, defenderID string) {
 			notifyBattleFailed(attackerConn, attackerOnline, defenderConn, defenderOnline, "Attacker could not send message.", attackerID, defenderID)
 			return
 		}
+		log.Printf("sent message to attacker %s\n", attackerID)
 	}
 	if defenderOnline {
 		if err := defenderConn.Conn.WriteJSON(map[string]interface{}{
@@ -194,19 +195,29 @@ func StartMatch(attackerID string, defenderID string) {
 		}); err != nil {
 			log.Println("StartMatch: failed to send incoming_attack to defender:", err)
 		}
+		log.Printf("sent message to defender %s\n", defenderID)
+
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	WriteMU := sync.Mutex{} // this is write lock for connections only for these 3 functions
+
 	if attackerOnline {
+		log.Printf("BATTLE locking mutex of attacker user : %s\n", attackerID)
+		attackerConn.Mu.Lock()
+		log.Printf("BATTLE locked mutex of attacker user : %s\n", attackerID)
 		go readPlayerMessages(ctx, attackerConn, state, true, attackerID, defenderID, defenderOnline, defenderConn.Conn, &WriteMU, cancel)
 	}
 	if defenderOnline {
+		log.Printf("BATTLE locking mutex of defender user : %s\n", defenderID)
+		defenderConn.Mu.Lock()
+		log.Printf("BATTLE locked mutex of defender user : %s\n", defenderID)
 		go readPlayerMessages(ctx, defenderConn, state, false, defenderID, defenderID, attackerOnline, attackerConn.Conn, &WriteMU, cancel)
 	}
 	var startTime = time.Now()
-	runSimulation(ctx, state, attackerConn.Conn, defenderConn.Conn, attackerOnline, defenderOnline, &WriteMU, 1)
+	runSimulation(ctx, state, attackerConn.Conn, defenderConn.Conn, attackerOnline, defenderOnline, &WriteMU, 1, cancel)
+
 	var duration = int(time.Since(startTime).Seconds())
 	logErr("StartMatch: could not clear attacker battle status (post-battle)", models.SetUserBattleStatus(attackerID, false))
 	logErr("StartMatch: could not clear defender battle status (post-battle)", models.SetUserBattleStatus(defenderID, false))
@@ -396,7 +407,9 @@ func StartMatch(attackerID string, defenderID string) {
 		}); err != nil {
 			log.Println("StartMatch: failed to send battle_over to attacker:", err)
 		}
+		log.Printf("BATTLE unlocking mutex of attacker user : %s\n", attackerID)
 		attackerConn.Mu.Unlock()
+		log.Printf("BATTLE unlocked mutex of attacker user : %s\n", attackerID)
 	}
 	if defenderOnline {
 		if err := defenderConn.Conn.WriteJSON(map[string]interface{}{
@@ -411,7 +424,9 @@ func StartMatch(attackerID string, defenderID string) {
 		}); err != nil {
 			log.Println("StartMatch: failed to send battle_over to defender:", err)
 		}
+		log.Printf("BATTLE unlocking mutex of defender user : %s\n", defenderID)
 		defenderConn.Mu.Unlock()
+		log.Printf("BATTLE unlocked mutex of defender user : %s\n", defenderID)
 	}
 	var initialBuildingPos models.InitialBuildingArray = make([]models.InitialBattleBuilding, len(state.Buildings))
 	for i, building := range state.Buildings {
@@ -444,7 +459,6 @@ type SpawnMessage struct {
 }
 
 func readPlayerMessages(ctx context.Context, conn Connection, state *BattleState, isAttacker bool, userID string, defenderId string, otherOnline bool, otherConn *websocket.Conn, WriteMU *sync.Mutex, cancel context.CancelFunc) {
-	conn.Mu.Lock() // unlocking is done outside this function
 	var msg SpawnMessage
 Loop:
 	for {
@@ -576,6 +590,7 @@ func runSimulation(
 	defenderOnline bool,
 	WriteMU *sync.Mutex,
 	tickFrequency time.Duration,
+	cancel context.CancelFunc,
 ) {
 	ticker := time.NewTicker(tickFrequency * time.Second)
 	defer ticker.Stop()
@@ -593,6 +608,7 @@ func runSimulation(
 			if attackerOnline {
 				if err := attackerConn.WriteJSON(update); err != nil {
 					log.Println("runSimulation: failed to send battle_update to attacker:", err)
+					cancel()
 				}
 			}
 			if defenderOnline {
@@ -720,8 +736,8 @@ func simulate(state *BattleState) map[string]interface{} {
 
 		for tIdx := 0; tIdx < len(state.AliveTroopAttacker); tIdx++ {
 			t := &state.AliveTroopAttacker[tIdx]
-			dx := t.Current_X - float64(b.Placed_Building.GridX)
-			dy := t.Current_Y - float64(b.Placed_Building.GridY)
+			dx := t.Current_X - float64(b.Placed_Building.GridX+models.BuildingSize[b.Placed_Building.BuildingID].X/2)
+			dy := t.Current_Y - float64(b.Placed_Building.GridY+models.BuildingSize[b.Placed_Building.BuildingID].Y/2)
 			dstSq := dx*dx + dy*dy
 			if dstSq <= rangeSq && dstSq < minDstSq {
 				minDstSq = dstSq

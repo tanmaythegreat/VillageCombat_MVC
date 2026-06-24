@@ -65,7 +65,7 @@ export function connectToGameServer() {
         const data = JSON.parse(event.data);
         _handlePeacetimeMessage(data);
         if (inBattle)           _handleBattleMessage(data);
-        if (data.status === 'error') showToast(data.message);
+        if (data.status === 'error') {showToast(data.message);console.log(data)}
     });
 }
 
@@ -76,7 +76,7 @@ export function connectToGameServer() {
 function _handlePeacetimeMessage(data) {
     switch (data.msg_type) {
         case 'building_troop_of_user': {
-            setUserData(data.user_data);
+            setUserData(data.user_data,false);
             UserData.username = data.user.username
             UserData.email = data.user.email
             renderUserInfo()
@@ -186,6 +186,9 @@ function _handlePeacetimeMessage(data) {
 
         case 'resource_collected':
             setUserData(data.user_data);
+            if (data.placed_buildings) {
+                setPlacedBuildings(data.placed_buildings)
+            }
             UpdateResourceUI();
             break;
 
@@ -293,6 +296,14 @@ export function Revenge(opponentName) {
 }
 export function getBattleHistory(fought_at,to_load){
     SendToServer({action:"BATTLE_HISTORY",message:JSON.stringify({fought_at,to_load})})
+}
+export function Logout(){
+    localStorage.clear()
+    SendToServer({action:"LOGOUT",message:""})
+    window.location.href = "./Login.html"
+}
+export function CollectAll(){
+    SendToServer({action:"COLLECT_ALL",message:""})
 }
 // endregion
 

@@ -287,3 +287,69 @@ export function highlightGridSquares(grid, badpoints = []) {
     return highlightGroup;
 }
 // endregion
+
+
+// region Defence Building Circle
+let rangeCircle = null;
+
+export function showCircle(x, y, r) {
+    if (!rangeCircle) {
+        rangeCircle = new THREE.Group();
+
+        const segments = 64;
+
+        const lineGeometry = new THREE.BufferGeometry();
+        const positions = [];
+        for (let i = 0; i <= segments; i++) {
+            const theta = (i / segments) * Math.PI * 2;
+            positions.push(Math.cos(theta), 0, Math.sin(theta));
+        }
+        lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+        const lineMaterial = new THREE.LineBasicMaterial({
+            color: 0xffaa00,
+            transparent: true,
+            opacity: 0.8,
+            depthWrite: false
+        });
+
+        const outline = new THREE.LineLoop(lineGeometry, lineMaterial);
+        rangeCircle.add(outline);
+
+
+        const fillGeometry = new THREE.CircleGeometry(1, segments);
+        fillGeometry.rotateX(-Math.PI / 2);
+
+        const fillMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffaa00,
+            transparent: true,
+            opacity: 0.15,      // Low opacity so grid items under it remain readable
+            side: THREE.DoubleSide,
+            depthWrite: false   // Prevents ugly sorting/layering issues over your grid highlights
+        });
+
+        const fill = new THREE.Mesh(fillGeometry, fillMaterial);
+        rangeCircle.add(fill);
+
+        scene.add(rangeCircle);
+    }
+
+    // Convert grid coordinate units to world transforms
+    const worldRadius = r * position_scaling;
+    const worldX = x * position_scaling;
+    const worldZ = y * position_scaling;
+
+    // Moving/scaling the group automatically updates both the outline and fill perfectly
+    rangeCircle.position.set(worldX, 0.02, worldZ);
+    rangeCircle.scale.set(worldRadius, 1, worldRadius);
+    rangeCircle.visible = true;
+
+    return rangeCircle;
+}
+
+export function hideCircle() {
+    if (rangeCircle) {
+        rangeCircle.visible = false;
+    }
+}
+// endregion

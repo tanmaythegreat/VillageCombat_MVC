@@ -1,13 +1,14 @@
-import { scene, clock, camera, renderer, ambientLight, canvas, ground } from './core/scene.js';
+import {scene, clock, camera, renderer, ambientLight, canvas, ground, hideCircle, showCircle} from './core/scene.js';
 import { handleMovement, raycaster,mouse } from './core/scene.js';
-import { tickCountdowns, Grid } from './models/map.js';
-import { updateCollectButton } from './views/ui_hud.js';
+import {tickCountdowns, Grid, UserData, PlacedBuildings, AllBuildingData} from './models/map.js';
+import {updateCollectButton, updateResourceDetailBox} from './views/ui_hud.js';
 import { inBattle, simulate } from './controllers/battle.js';
 import { openBuildingShop, triggerBuildingMenu as triggerMenu } from './views/ui_hud.js';
 import { connectToGameServer } from './controllers/network.js';
 import * as THREE from '../THREE/three.module.js';
 import {initProfile} from "./views/profile.js";
 import {moveUpdate, moving, putSelectedBuilding} from "./core/move.js";
+import {BuildingCategory} from "./core/enums.js";
 
 const position_scaling = 20;
 
@@ -26,6 +27,12 @@ export function DragHandle(event)  {
     const Z = Math.round(z/ position_scaling)
     moveUpdate(X,Z)
     meshCube.position.set( X* position_scaling, 0, Z * position_scaling);
+    if (Grid[[X,Z]] && AllBuildingData[Grid[[X,Z]].userData.building_id].category===BuildingCategory.Defense){
+        showCircle(Grid[[X,Z]].userData.grid_x+Math.floor(AllBuildingData[Grid[[X,Z]].userData.building_id].grid_size_x/2),Grid[[X,Z]].userData.grid_y+Math.floor(AllBuildingData[Grid[[X,Z]].userData.building_id].grid_size_y/2),AllBuildingData[Grid[[X,Z]].userData.building_id].attack_range)
+    }
+    else {
+        hideCircle()
+    }
 }
 
 window.addEventListener('click', onMouseClick);
@@ -62,8 +69,6 @@ function animate() {
     requestAnimationFrame(animate);
     const dt = clock.getDelta();
     handleMovement(dt);
-    updateCollectButton();
-    tickCountdowns(camera);
 
     if (inBattle) {
         try { simulate(dt); }
@@ -79,3 +84,23 @@ function animate() {
 animate();
 connectToGameServer();
 initProfile()
+function secondTick() {
+    if (!UserData)return;
+    updateCollectButton();
+    tickCountdowns(camera);
+    updateResourceDetailBox();
+}
+setInterval(secondTick, 1000);
+document.addEventListener("DOMContentLoaded", () => {
+    const controlsOverlay = document.getElementById("controls-overlay");
+
+    if (controlsOverlay) {
+        controlsOverlay.style.pointerEvents = "auto";
+        setTimeout(() => {
+            controlsOverlay.style.opacity = "0";
+            setTimeout(() => {
+                controlsOverlay.remove();
+            }, 500);
+        }, 1000);
+    }
+});

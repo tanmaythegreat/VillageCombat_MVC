@@ -1,6 +1,6 @@
 import {UserData} from "../models/map.js";
 import {formatNum, formatTime} from "../models/utils.js";
-import {getBattleHistory, Revenge} from "../controllers/network.js";
+import {getBattleHistory, Logout, Revenge} from "../controllers/network.js";
 
 let battleHistoryLoaded = 0;
 let isLoadingMore = false;
@@ -21,6 +21,15 @@ function cacheElements() {
     els.attackInput      = document.getElementById('profile-attack-input');
     els.attackBtn         = document.getElementById('profile-attack-btn');
     els.battleList       = document.getElementById('profile-battle-list');
+    els.logoutBtn        = document.getElementById('profile-logout-btn'); // Added
+}
+function handleLogout(e) {
+    if (e) e.stopPropagation();
+
+    console.log("Logging out user...");
+    Logout()
+    closeProfile();
+
 }
 
 function applyTheme(theme) {
@@ -43,11 +52,9 @@ function applyTheme(theme) {
 }
 
 export function renderUserInfo() {
-
     const initials = UserData.username
         ? UserData.username.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
         : '--';
-
     if (els.avatarInitials) els.avatarInitials.textContent = initials;
     if (els.usernameEl) els.usernameEl.textContent = UserData.username || '--';
     if (els.emailEl) els.emailEl.textContent = UserData.email || '--';
@@ -162,7 +169,7 @@ async function copyUserId() {
 export function initProfile() {
     cacheElements();
     // applyTheme(currentTheme);
-    // els.copyBtn?.addEventListener('click' , (e)=>{e.stopPropagation();copyUserId()})
+
     els.profileBtn?.addEventListener('click', (e)=>{e.stopPropagation();openProfile(e)});
     els.closeBtn?.addEventListener('click', (e)=>{e.stopPropagation();closeProfile(e)});
     els.overlay?.addEventListener('click', (e)=>{e.stopPropagation();handleOverlayClick(e)});
@@ -170,4 +177,5 @@ export function initProfile() {
     els.attackBtn?.addEventListener('click', (e)=>{e.stopPropagation();handleCustomAttack(e)});
     els.attackInput?.addEventListener('keydown', (e)=>{handleInputKey(e)});
     els.battleList?.addEventListener('scroll', (e)=>{handleScroll(e)});
+    els.logoutBtn?.addEventListener('click', (e)=>{handleLogout(e)}); // Added
 }

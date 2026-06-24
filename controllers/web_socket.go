@@ -45,9 +45,9 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	Mu := sync.Mutex{}
 	var chanel chan []byte = make(chan []byte)
 	battle.Manager.Mu.Lock()
-
 	battle.Manager.Connections[userId] = battle.Connection{Conn: conn, Mu: &Mu, Ch: chanel}
 	battle.Manager.Mu.Unlock()
+	log.Printf("user joined Manager state:%v\n", battle.Manager)
 	defer conn.Close()
 	defer delete(battle.Manager.Connections, userId)
 	fmt.Printf("Client successfully connected to WebSocket server!, client : %s\n", userId)
@@ -65,9 +65,13 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 Loop:
 	for {
 		messageType := websocket.TextMessage
+		log.Printf("locking mutex of user : %s\n", userId)
 		Mu.Lock()
+		log.Printf("locked mutex of user : %s\n", userId)
 		p := <-chanel
+		log.Printf("unlocking mutex of user : %s\n", userId)
 		Mu.Unlock()
+		log.Printf("unlocked mutex of user : %s\n", userId)
 		if p == nil || len(p) == 0 {
 			errPayload := []byte(`{"status": "error", "message": "Action payload cannot be empty"}`)
 			err = conn.WriteMessage(messageType, errPayload)
@@ -306,6 +310,13 @@ Loop:
 				break Switch
 			}
 			if MoveBuilding(userId, data, conn) != nil {
+				break Loop
+			}
+		case "LOGOUT":
+			_ = models.RemoveRefreshToken(userId)
+			break Loop
+		case "COLLECT_ALL":
+			if CollectAllResource(userId, conn) != nil {
 				break Loop
 			}
 		default:

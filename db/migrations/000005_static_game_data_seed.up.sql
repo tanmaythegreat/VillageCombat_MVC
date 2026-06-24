@@ -463,7 +463,7 @@ SELECT building_id,  'dark_elixir'::resource_type FROM building_configs_base WHE
 
 -- Gold Mine
 INSERT INTO resource_building_level_stats (building_id, level, generation_rate_per_hour, storage_capacity)
-SELECT building_id, 0,     0,      0 FROM building_configs_base WHERE name = 'Gold Mine'
+SELECT building_id, 0,     1,      0 FROM building_configs_base WHERE name = 'Gold Mine'
 UNION ALL
 SELECT building_id, 1,   200,   1000 FROM building_configs_base WHERE name = 'Gold Mine'
 UNION ALL
@@ -495,7 +495,7 @@ SELECT building_id, 6,     0, 900000 FROM building_configs_base WHERE name = 'Go
 
 -- Elixir Collector
 INSERT INTO resource_building_level_stats (building_id, level, generation_rate_per_hour, storage_capacity)
-SELECT building_id, 0,     0,      0 FROM building_configs_base WHERE name = 'Elixir Collector'
+SELECT building_id, 0,     1,      0 FROM building_configs_base WHERE name = 'Elixir Collector'
 UNION ALL
 SELECT building_id, 1,   200,   1000 FROM building_configs_base WHERE name = 'Elixir Collector'
 UNION ALL
@@ -527,7 +527,7 @@ SELECT building_id, 6,     0, 900000 FROM building_configs_base WHERE name = 'El
 
 -- Dark Elixir Drill
 INSERT INTO resource_building_level_stats (building_id, level, generation_rate_per_hour, storage_capacity)
-SELECT building_id, 0,     0,      0 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
+SELECT building_id, 0,     1,      0 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
 UNION ALL
 SELECT building_id, 1,    20,     80 FROM building_configs_base WHERE name = 'Dark Elixir Drill'
 UNION ALL
