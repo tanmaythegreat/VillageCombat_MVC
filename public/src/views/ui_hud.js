@@ -643,7 +643,6 @@ function updateTroopCosts(troopId, placed_building_id) {
 }
 // endregion
 
-
 // region Resource Detail Hover
 const resourceHud       = document.getElementById('resource-hud');
 const resourceDetailBox = document.getElementById('resource-detail-box');
@@ -655,6 +654,11 @@ function showResourceDetail() {
     resourceDetailBox.classList.add('is-active');
 }
 
+function hideResourceDetail() {
+    if (_resourceHideTimeout) { clearTimeout(_resourceHideTimeout); _resourceHideTimeout = null; }
+    resourceDetailBox.classList.remove('is-active');
+}
+
 function scheduleHideResourceDetail() {
     if (_resourceHideTimeout) clearTimeout(_resourceHideTimeout);
     _resourceHideTimeout = setTimeout(() => {
@@ -664,36 +668,34 @@ function scheduleHideResourceDetail() {
 }
 
 function fillResourceDetailRow(key, current, capacity, temporary) {
-    const collectable = Math.min((temporary ?? 0 )+ current, capacity ?? 0)-current;
+    const collectable = Math.min((temporary ?? 0) + current, capacity ?? 0) - current;
     document.getElementById(`detail-${key}-stored`).textContent      = `${formatNum(current ?? 0)} / ${formatNum(capacity ?? 0)}`;
     document.getElementById(`detail-${key}-mine`).textContent        = formatNum(temporary ?? 0);
     document.getElementById(`detail-${key}-collectable`).textContent = formatNum(collectable);
-    return collectable
+    return collectable;
 }
 
 export function updateResourceDetailBox() {
-    const stored = {gold:0,elixir:0,dark_elixir:0}
+    const stored = { gold: 0, elixir: 0, dark_elixir: 0 };
     for (const data of PlacedBuildings) {
-
         const building     = AllBuildingData[data.building_id];
         const levelDetails = building.levels[data.level];
         if (building.category === BuildingCategory.Resource && building.levels[0].generation_rate > 0 && !data.is_broken) {
-            const elapsed  = (Date.now() - new Date(data.last_updated_at).getTime()) / 3600000;
-            const toCollect = Math.min(levelDetails.storage_capacity, levelDetails.generation_rate * elapsed);
-
-            const Key   = [building.resource_type];
-            stored[Key]+=toCollect;
+            const elapsed   = (Date.now() - new Date(data.last_updated_at).getTime()) / 3600000;
+            const toCollect  = Math.min(levelDetails.storage_capacity, levelDetails.generation_rate * elapsed);
+            const key        = building.resource_type;
+            stored[key]     += toCollect;
         }
     }
-    UserData.temporary_gold = stored.gold
-    UserData.temporary_elixir = stored.elixir
-    UserData.temporary_dark_elixir = stored.dark_elixir
-    const g = fillResourceDetailRow('gold',   UserData.current_gold,        UserData.total_gold_capacity,        UserData.temporary_gold);
-    const e = fillResourceDetailRow('elixir', UserData.current_elixir,      UserData.total_elixir_capacity,      UserData.temporary_elixir);
+    UserData.temporary_gold        = stored.gold;
+    UserData.temporary_elixir      = stored.elixir;
+    UserData.temporary_dark_elixir = stored.dark_elixir;
+
+    const g  = fillResourceDetailRow('gold',   UserData.current_gold,        UserData.total_gold_capacity,        UserData.temporary_gold);
+    const e  = fillResourceDetailRow('elixir', UserData.current_elixir,      UserData.total_elixir_capacity,      UserData.temporary_elixir);
     const de = fillResourceDetailRow('dark',   UserData.current_dark_elixir, UserData.total_dark_elixir_capacity, UserData.temporary_dark_elixir);
 
     const totalCollectable = g + e + de;
-
     setAffordability(document.getElementById('resource-collect-all-btn'), totalCollectable > 0);
 }
 
@@ -702,12 +704,31 @@ resourceHud.addEventListener('mouseleave', scheduleHideResourceDetail);
 resourceDetailBox.addEventListener('mouseenter', showResourceDetail);
 resourceDetailBox.addEventListener('mouseleave', scheduleHideResourceDetail);
 
+resourceHud.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (resourceDetailBox.classList.contains('is-active')) {
+        hideResourceDetail();
+    } else {
+        showResourceDetail();
+    }
+});
+
+resourceDetailBox.addEventListener('click', (e) => {
+    e.stopPropagation();
+});
+
+document.addEventListener('click', (e) => {
+    if (resourceDetailBox.classList.contains('is-active') && !resourceHud.contains(e.target)) {
+        e.stopPropagation();
+        hideResourceDetail();
+    }
+});
+
 document.getElementById('resource-collect-all-btn').onclick = (e) => {
     e.stopPropagation();
     CollectAll();
     UpdateResourceUI();
 };
-
 // endregion
 
 export function isAnyOverlayOn() {

@@ -29,12 +29,12 @@ func CollectAllResource(userId string, conn *websocket.Conn) error {
 				return SendError(conn, err)
 			}
 			if building.BuildingID == models.ElixirCollector_ID {
-				_, err, extra = models.AddUserGoldGetRemaining(userId, int(toCollect))
+				_, err, extra = models.AddUserElixirGetRemaining(userId, int(toCollect))
 				if err != nil {
 					return SendError(conn, err)
 				}
 			} else if building.BuildingID == models.GoldMine_ID {
-				_, err, extra = models.AddUserElixirGetRemaining(userId, int(toCollect))
+				_, err, extra = models.AddUserGoldGetRemaining(userId, int(toCollect))
 				if err != nil {
 					return SendError(conn, err)
 				}
