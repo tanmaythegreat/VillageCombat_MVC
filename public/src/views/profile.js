@@ -1,5 +1,5 @@
 import {UserData} from "../models/map.js";
-import {formatNum, formatTime} from "../models/utils.js";
+import {escapeHTML, formatNum, formatTime} from "../models/utils.js";
 import {getBattleHistory, Logout, Revenge} from "../controllers/network.js";
 
 let battleHistoryLoaded = 0;
@@ -77,7 +77,7 @@ function renderBattleHistory() {
                 <div class="profile-battle-card">
                     <div class="battle-card-header">
                         <div class="battle-info">
-                            <p class="battle-opponent">vs ${opponent}</p>
+                            <p class="battle-opponent">vs ${escapeHTML(opponent)}</p>
                             <p class="battle-meta">${isAttacker ? 'Attacked' : 'Defended'} • ${(new Date(battle.fought_at).toLocaleTimeString())} • ${(new Date(battle.fought_at).toDateString())}</p>
                         </div>
                         <span class="battle-result ${isWin ? 'win' : 'loss'}">${isWin ? 'WIN' : 'LOSS'}</span>
@@ -87,7 +87,7 @@ function renderBattleHistory() {
                         <span>🧪 ${formatNum(battle.elixir_looted)}</span>
                         <span>⚗️ ${formatNum(battle.dark_elixir_looted)}</span>
                     </div>
-                    <button class="battle-action-btn" data-opponent="${opponent}">
+                    <button class="battle-action-btn" data-opponent="${escapeHTML(opponent)}">
                         ${isAttacker ? '⚔️ Attack again' : '⚔️ Revenge'}
                     </button>
                 </div>
