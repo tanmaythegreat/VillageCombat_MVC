@@ -4,10 +4,11 @@ import {
     textureLoader,
     position_scaling,
     size_scaling,
-    highlightGridSquares
+    highlightGridSquares, camera
 } from '../core/scene.js';
 import { BuildingCategory } from '../core/enums.js';
 import { formatTime } from './utils.js';
+import {inBattle} from "../controllers/battle.js";
 
 // region State
 
@@ -58,9 +59,9 @@ export function SummontaskCountDown(task) {
         () => { import('../controllers/network.js').then(m => m.SendToServer({ action: 'CHECK_CONSTRUCTION_WORK', message: '' })); }
     );
     countdown.position.copy(placed_building.Model.position);
-    countdown.position.y +=  size_scaling + 0.6;//AllBuildingData[placed_building.building_id].grid_size_x *
+    countdown.position.y +=  size_scaling + 0.6;
     scene.add(countdown);
-    placed_building.Model.userData.countdownSprite = countdown;
+    placed_building.countdownSprite = countdown;
 }
 
 function createCountdownSprite(durationMilliSeconds, started_at, OnDone) {
@@ -80,6 +81,10 @@ function createCountdownSprite(durationMilliSeconds, started_at, OnDone) {
     const state  = { endTime: started_at + durationMilliSeconds, canvas: cvs, texture, done: false, OnDone, durationMilliSeconds };
     drawCountdown(state);
     sprite.userData.countdown = state;
+    sprite.rotation.y = Math.atan2(
+        camera.position.x - sprite.position.x,
+        camera.position.z - sprite.position.z
+    );
     activeCountdowns.add(sprite);
     return sprite;
 }
@@ -193,12 +198,15 @@ export async function LoadMap(buildings) {
             else Pool[key] = [Model];
             const sprite = Model.userData.countdownSprite
             if (sprite) {
-                const state = sprite.userData.countdown
-                activeCountdowns.delete(state)
-                scene.remove(sprite)
+                activeCountdowns.delete(sprite)
+                scene.remove(sprite);
                 sprite.material.dispose();
                 sprite.geometry.dispose();
-                delete Model.userData.countdownSprite
+                delete Model.userData.countdownSprite;
+            }
+            const collectGizmo = Model.userData.collectGizmo;
+            if (collectGizmo){
+                scene.remove(collectGizmo)
             }
         }
         val.length = 0;
@@ -254,7 +262,11 @@ export async function LoadMap(buildings) {
     }
 
     await Promise.all(textureLoadPromises);
-    if (buildings===PlacedBuildings)   {for (const task of ConstructionTasks) SummontaskCountDown(task);}
+    if (!inBattle)   {
+        for (const task of ConstructionTasks) {
+            SummontaskCountDown(task);
+        }
+    }
     highlightGridSquares(Grid);
 }
 

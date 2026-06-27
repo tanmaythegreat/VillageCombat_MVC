@@ -94,8 +94,6 @@ func StartMatch(attackerID string, defenderID string) {
 	attackerConn, attackerOnline := Manager.Connections[attackerID]
 	defenderConn, defenderOnline := Manager.Connections[defenderID]
 	Manager.Mu.RUnlock()
-	logErr("StartMatch: could not clear attacker battle status", models.SetUserBattleStatus(attackerID, true))
-	logErr("StartMatch: could not clear defender battle status", models.SetUserBattleStatus(defenderID, true))
 	state := &BattleState{
 		mu:          sync.Mutex{},
 		TroopSpawns: make([]models.TroopSpawn, 0),
@@ -203,16 +201,15 @@ func StartMatch(attackerID string, defenderID string) {
 	defer cancel()
 	WriteMU := sync.Mutex{} // this is write lock for connections only for these 3 functions
 
+	logErr("StartMatch: could not clear attacker battle status", models.SetUserBattleStatus(attackerID, true))
+	logErr("StartMatch: could not clear defender battle status", models.SetUserBattleStatus(defenderID, true))
+
 	if attackerOnline {
-		log.Printf("BATTLE locking mutex of attacker user : %s\n", attackerID)
 		attackerConn.Mu.Lock()
-		log.Printf("BATTLE locked mutex of attacker user : %s\n", attackerID)
 		go readPlayerMessages(ctx, attackerConn, state, true, attackerID, defenderID, defenderOnline, defenderConn.Conn, &WriteMU, cancel)
 	}
 	if defenderOnline {
-		log.Printf("BATTLE locking mutex of defender user : %s\n", defenderID)
 		defenderConn.Mu.Lock()
-		log.Printf("BATTLE locked mutex of defender user : %s\n", defenderID)
 		go readPlayerMessages(ctx, defenderConn, state, false, defenderID, defenderID, attackerOnline, attackerConn.Conn, &WriteMU, cancel)
 	}
 	var startTime = time.Now()
@@ -651,19 +648,37 @@ func simulate(state *BattleState) map[string]interface{} {
 		minDstSq := math.MaxFloat64
 		targetIsTroop := false
 
+		var bestTargetX, bestTargetY float64
+
 		for j, ab := range state.AliveBuildings {
 			b := &state.Buildings[ab.BuildingIndex]
 			if hasPreferred && models.BuildingID_Category[b.Placed_Building.BuildingID] != prefCat && models.BuildingID_Category[b.Placed_Building.BuildingID] != models.Wall {
 				continue
 			}
-			dx := float64(b.Placed_Building.GridX) - troop.Current_X
-			dy := float64(b.Placed_Building.GridY) - troop.Current_Y
+
+			bID := b.Placed_Building.BuildingID
+			bSize := models.BuildingSize[bID]
+			bSize_X := bSize.X - 1
+			bSize_Y := bSize.Y - 1
+			minX := float64(b.Placed_Building.GridX)
+			maxX := minX + float64(bSize_X)
+			minY := float64(b.Placed_Building.GridY)
+			maxY := minY + float64(bSize_Y)
+
+			closestX := math.Max(minX, math.Min(troop.Current_X, maxX))
+			closestY := math.Max(minY, math.Min(troop.Current_Y, maxY))
+
+			dx := closestX - troop.Current_X
+			dy := closestY - troop.Current_Y
 			dstSq := dx*dx + dy*dy
+
 			if dstSq < minDstSq {
 				minDstSq = dstSq
 				bestBuildingIdx = ab.BuildingIndex
 				bestBuildingi = j
 				targetIsTroop = false
+				bestTargetX = closestX
+				bestTargetY = closestY
 			}
 		}
 
@@ -701,7 +716,6 @@ func simulate(state *BattleState) map[string]interface{} {
 				troop.Current_Y += dy * ratio
 			}
 		} else if bestBuildingIdx != -1 {
-			targetBuilding := &state.Buildings[bestBuildingIdx]
 			dist := math.Sqrt(minDstSq)
 			if dist <= troop.Config.AttackRange {
 				dmg := float64(troop.LevelStat.DamagePerShot) / troop.Config.AttackSpeedSeconds
@@ -716,8 +730,9 @@ func simulate(state *BattleState) map[string]interface{} {
 					moveDist = dist
 				}
 				ratio := moveDist / dist
-				dx := float64(targetBuilding.Placed_Building.GridX) - troop.Current_X
-				dy := float64(targetBuilding.Placed_Building.GridY) - troop.Current_Y
+
+				dx := bestTargetX - troop.Current_X
+				dy := bestTargetY - troop.Current_Y
 				troop.Current_X += dx * ratio
 				troop.Current_Y += dy * ratio
 			}

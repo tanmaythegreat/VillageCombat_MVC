@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"Village_combat/models"
+	"math"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -19,11 +20,12 @@ func CollectAllResource(userId string, conn *websocket.Conn) error {
 		}
 		if models.BuildingID_Category[building.BuildingID] == models.Resource {
 			var extra int
-			generationRate := models.ResourceLevelDetails[struct {
+			levelDet := models.ResourceLevelDetails[struct {
 				ID    string
 				Level int
-			}{ID: building.BuildingID, Level: building.Level}].GenerationRatePerHour
-			toCollect := generationRate * now.Sub(building.LastUpdatedAt).Hours()
+			}{ID: building.BuildingID, Level: building.Level}]
+			generationRate := levelDet.GenerationRatePerHour
+			toCollect := math.Min(generationRate*now.Sub(building.LastUpdatedAt).Hours(), float64(levelDet.StorageCapacity))
 			_, err = models.UpdatePlacedBuilding(userId, building.ID)
 			if err != nil {
 				return SendError(conn, err)
@@ -49,7 +51,6 @@ func CollectAllResource(userId string, conn *websocket.Conn) error {
 				if err != nil {
 					return SendError(conn, err)
 				}
-				break
 			}
 		}
 	}

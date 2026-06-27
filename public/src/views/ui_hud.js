@@ -10,6 +10,8 @@ import {
 } from '../models/map.js';
 import {CreateBuilding, UpgradeBuilding, RepairBuilding, TrainTroop, CollectAll} from '../controllers/network.js';
 import {moving, selectToMove} from "../core/move.js";
+import {position_scaling, scene, size_scaling, textureLoader} from "../core/scene.js";
+import * as THREE from "../../THREE/three.module.js";
 
 export function UpdateResourceUI() {
     document.getElementById('hud-gold-val').textContent        = `${formatNum(UserData.current_gold        ?? 0)}`//${formatNum(UserData.total_gold_capacity)}`;
@@ -680,11 +682,59 @@ export function updateResourceDetailBox() {
     for (const data of PlacedBuildings) {
         const building     = AllBuildingData[data.building_id];
         const levelDetails = building.levels[data.level];
-        if (building.category === BuildingCategory.Resource && building.levels[0].generation_rate > 0 && !data.is_broken) {
+        if (building.category === BuildingCategory.Resource && building.levels[0].generation_rate > 0) {
             const elapsed   = (Date.now() - new Date(data.last_updated_at).getTime()) / 3600000;
             const toCollect  = Math.min(levelDetails.storage_capacity, levelDetails.generation_rate * elapsed);
             const key        = building.resource_type;
             stored[key]     += toCollect;
+            if (toCollect>=0.75*levelDetails.storage_capacity) {
+                if (!data.collectGizmo) {
+                    const posX = (data.grid_x + (building.grid_size_y === 1 ? 0 : (building.grid_size_x / 2))) * position_scaling;
+                    const posZ = (data.grid_y + (building.grid_size_y === 1 ? 0 : (building.grid_size_y / 4))) * position_scaling;
+                    const posY = position_scaling;
+                    textureLoader.load(
+                        `./Models/Collect.png`,
+                        (texture) => {
+                            const mesh = new THREE.PlaneGeometry(building.grid_size_x * size_scaling/4, building.grid_size_y * size_scaling/4);
+                            const aspect = texture.image.width / texture.image.height;
+
+                            if (aspect > 1) {
+                                texture.repeat.set(1 / aspect, 1);
+                                texture.offset.set((1 - 1 / aspect) / 2, 0);
+                            } else {
+                                texture.repeat.set(1, aspect);
+                                texture.offset.set(0, (1 - aspect) / 2);
+                            }
+
+
+                            const material = new THREE.MeshStandardMaterial({
+                                map: texture, transparent: true, alphaTest: 0.3, depthTest: false, depthWrite: false,
+                                emissive: new THREE.Color(0xffffff),
+                                // emissiveMap: texture,
+                                emissiveIntensity: 0.20
+                            });
+                            const obj = new THREE.Mesh(mesh, material);
+                            obj.rotation.y = -Math.PI / 4;
+                            obj.position.set(posX, posY, posZ);
+                            obj.renderOrder = 60;
+                            scene.add(obj);
+                            data.collectGizmo = obj;
+                        },
+                        undefined,
+                        (error) => {
+                            console.error(`Failed to load texture for ${name}:`, error);
+                            resolve();
+                        }
+                    );
+                }
+            }
+            else if (data.collectGizmo){
+                scene.remove(data.collectGizmo)
+                data.collectGizmo.material.dispose()
+                data.collectGizmo.geometry.dispose()
+                delete data.collectGizmo
+                console.log("removed indeed",data.collectGizmo)
+            }
         }
     }
     UserData.temporary_gold        = stored.gold;

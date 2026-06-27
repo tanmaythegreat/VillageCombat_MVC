@@ -65,13 +65,9 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 Loop:
 	for {
 		messageType := websocket.TextMessage
-		log.Printf("locking mutex of user : %s\n", userId)
 		Mu.Lock()
-		log.Printf("locked mutex of user : %s\n", userId)
 		p := <-chanel
-		log.Printf("unlocking mutex of user : %s\n", userId)
 		Mu.Unlock()
-		log.Printf("unlocked mutex of user : %s\n", userId)
 		if p == nil || len(p) == 0 {
 			errPayload := []byte(`{"status": "error", "message": "Action payload cannot be empty"}`)
 			err = conn.WriteMessage(messageType, errPayload)
@@ -211,9 +207,9 @@ Loop:
 					"status":  "error",
 					"message": "could not find opponent",
 				})
-				break
+			} else {
+				battle.StartMatch(userId, opponent.UserID)
 			}
-			battle.StartMatch(userId, opponent.UserID)
 		case "DEFEND":
 			time.Sleep(time.Second)
 		case "REVENGE":

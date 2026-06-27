@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"Village_combat/models"
+	"math"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -24,11 +25,12 @@ func CollectResource(userId string, data struct {
 	}
 	var dt = time.Now().Sub(placedBuilding.LastUpdatedAt).Hours()
 
-	generationRate := models.ResourceLevelDetails[struct {
+	leveldat := models.ResourceLevelDetails[struct {
 		ID    string
 		Level int
-	}{ID: placedBuilding.BuildingID, Level: placedBuilding.Level}].GenerationRatePerHour
-	var amount = dt * generationRate
+	}{ID: placedBuilding.BuildingID, Level: placedBuilding.Level}]
+	generationRate := leveldat.GenerationRatePerHour
+	var amount = math.Min(dt*generationRate, float64(leveldat.StorageCapacity))
 	var user models.UserData
 	var extra int
 	if placedBuilding.BuildingID == models.GoldMine_ID {

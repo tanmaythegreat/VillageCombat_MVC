@@ -68,7 +68,7 @@ export const canvas = renderer.domElement;
 
 // region Lighting & Ground
 
-export const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+export const ambientLight = new THREE.AmbientLight(0xffffff, 1);
 scene.add(ambientLight);
 
 export const textureLoader = new THREE.TextureLoader();
@@ -287,7 +287,6 @@ export function highlightGridSquares(grid, badpoints = []) {
     return highlightGroup;
 }
 // endregion
-
 
 // region Defence Building Circle
 let rangeCircle = null;

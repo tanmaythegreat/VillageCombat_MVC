@@ -295,17 +295,48 @@ export function simulate(deltaTime) {
         const hasPref    = prefCat != null;
 
         let bestBIdx = -1, minBDstSq = Infinity;
+        let bestTargetX = 0, bestTargetY = 0;
+
+        const checkBuilding = (pb, bIdx) => {
+            const bData = AllBuildingData[pb.building_id];
+
+            const width = bData.grid_size_x -1;
+            const height = bData.grid_size_y-1;
+
+            const minX = pb.grid_x;
+            const maxX = pb.grid_x + width;
+            const minY = pb.grid_y;
+            const maxY = pb.grid_y + height;
+
+            const closestX = Math.max(minX, Math.min(tX, maxX));
+            const closestY = Math.max(minY, Math.min(tY, maxY));
+
+            const dx = closestX - tX;
+            const dy = closestY - tY;
+            const dq = dx * dx + dy * dy;
+
+            if (dq < minBDstSq) {
+                minBDstSq = dq;
+                bestBIdx = bIdx;
+                bestTargetX = closestX;
+                bestTargetY = closestY;
+            }
+        };
+
         for (let abIdx = 0; abIdx < aliveB.length; abIdx++) {
-            const pb = buildings[aliveB[abIdx].BuildingIndex];
-            if (hasPref && AllBuildingData[pb.building_id].category !== prefCat && AllTroopsData[pb.building_id] !== 'wall') continue;
-            const dx = pb.grid_x - tX, dy = pb.grid_y - tY, dq = dx * dx + dy * dy;
-            if (dq < minBDstSq) { minBDstSq = dq; bestBIdx = aliveB[abIdx].BuildingIndex; }
+            const bIdx = aliveB[abIdx].BuildingIndex;
+            const pb = buildings[bIdx];
+
+            if (hasPref && AllBuildingData[pb.building_id].category !== prefCat && AllBuildingData[pb.building_id].category !== 'wall') continue;
+
+            checkBuilding(pb, bIdx);
         }
+
         if (hasPref && bestBIdx === -1) {
             for (let abIdx = 0; abIdx < aliveB.length; abIdx++) {
-                const pb = buildings[aliveB[abIdx].BuildingIndex];
-                const dx = pb.grid_x - tX, dy = pb.grid_y - tY, dq = dx * dx + dy * dy;
-                if (dq < minBDstSq) { minBDstSq = dq; bestBIdx = aliveB[abIdx].BuildingIndex; }
+                const bIdx = aliveB[abIdx].BuildingIndex;
+                const pb = buildings[bIdx];
+                checkBuilding(pb, bIdx);
             }
         }
 
@@ -326,10 +357,9 @@ export function simulate(deltaTime) {
                 troop.position.z += (target.position.z / position_scaling - tY) * ratio * position_scaling;
             }
         } else if (bestBIdx !== -1 && minBDstSq > atkRangeSq) {
-            const tb = buildings[bestBIdx];
             const dist = Math.sqrt(minBDstSq), moveDist = Math.min(config.movement_speed * deltaTime, dist), ratio = moveDist / dist;
-            troop.position.x += (tb.grid_x - tX) * ratio * position_scaling;
-            troop.position.z += (tb.grid_y - tY) * ratio * position_scaling;
+            troop.position.x += (bestTargetX - tX) * ratio * position_scaling;
+            troop.position.z += (bestTargetY - tY) * ratio * position_scaling;
         }
     }
 
@@ -352,7 +382,6 @@ export function simulate(deltaTime) {
         }
     }
 }
-
 export function DealDamage(building_damage, attacker_troop_damage, defender_troop_damage, building_died, attacker_troop_died, defender_troop_died) {
     const { AliveTroopAttacker: att, AliveTroopDefender: def, AliveBuildings: aliveB, Buildings: buildings } = state;
     const container = canvas.parentElement;
@@ -474,6 +503,8 @@ export function BattleOver(battle_outcome, attacker_troop_loss, buildings_broken
         SendToServer({action:"REPLAY",message:battle_id})
     });
 }
-
+document.getElementById('battle-over-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'battle-over-overlay') closeBattleOver(e);
+});
 function closeBattleOver(e) { if (e) e.stopPropagation(); document.getElementById('battle-over-overlay').classList.remove('is-active'); }
 document.getElementById('bo-close-btn').addEventListener('click', closeBattleOver);
