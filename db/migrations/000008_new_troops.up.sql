@@ -119,3 +119,29 @@ UNION ALL SELECT id, 3,   1000000,      0,      1000,  36000, 4 FROM troop_confi
 UNION ALL SELECT id, 4,  15000000,      0,     15000,  72000, 5 FROM troop_configs WHERE name = 'Doraemon'
 UNION ALL SELECT id, 5,         0,   6000,       600, 144000, 6 FROM troop_configs WHERE name = 'Doraemon'
 UNION ALL SELECT id, 6,         0,  60000,      6000, 216000, 6 FROM troop_configs WHERE name = 'Doraemon';
+
+-- =============================================================================
+-- CUSTOM TROOP: Shinchan (fan-fun unit — cheeky, fast, annoying to defenses)
+-- =============================================================================
+INSERT INTO troop_configs (name, preferred_target, attack_type, movement_speed, attack_speed_seconds, attack_range, housing_space)
+VALUES
+    ('Shinchan', NULL, 'melee'::attack_type, 1.8, 0.6, 1.0, 1);
+
+-- Low HP, fast attack speed, decent damage relative to housing cost (a "troll" unit)
+INSERT INTO troop_level_stats (troop_id, level, health, damage_per_shot)
+SELECT id, 0,   0,  0 FROM troop_configs WHERE name = 'Shinchan'
+UNION ALL SELECT id, 1, 150, 50 FROM troop_configs WHERE name = 'Shinchan'
+UNION ALL SELECT id, 2, 180, 65 FROM troop_configs WHERE name = 'Shinchan'
+UNION ALL SELECT id, 3, 220, 82 FROM troop_configs WHERE name = 'Shinchan'
+UNION ALL SELECT id, 4, 270, 105 FROM troop_configs WHERE name = 'Shinchan'
+UNION ALL SELECT id, 5, 330, 130 FROM troop_configs WHERE name = 'Shinchan'
+UNION ALL SELECT id, 6, 400, 160 FROM troop_configs WHERE name = 'Shinchan';
+
+-- Upgrade costs (cheap elixir troop, unlocked TH1)
+INSERT INTO upgrade_costs (troop_id, upgrade_to_level, elixir_required, or_gem_required, time_required_seconds, town_hall_level_required)
+SELECT id, 1,      1800,        2,    900, 1 FROM troop_configs WHERE name = 'Shinchan'
+UNION ALL SELECT id, 2,      9000,       10,   3600, 1 FROM troop_configs WHERE name = 'Shinchan'
+UNION ALL SELECT id, 3,     90000,      100,  14400, 2 FROM troop_configs WHERE name = 'Shinchan'
+UNION ALL SELECT id, 4,   1350000,     1500,  43200, 3 FROM troop_configs WHERE name = 'Shinchan'
+UNION ALL SELECT id, 5,  27000000,    30000,  86400, 4 FROM troop_configs WHERE name = 'Shinchan'
+UNION ALL SELECT id, 6, 675000000,   750000, 172800, 5 FROM troop_configs WHERE name = 'Shinchan';

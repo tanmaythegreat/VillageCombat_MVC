@@ -1,4 +1,4 @@
-import { BuildingCategory } from '../core/enums.js';
+import {BuildingCategory, ConstructionType} from '../core/enums.js';
 import { formatNum, formatTime, escapeHTML, setAffordability } from '../models/utils.js';
 import {
     AllBuildingData,
@@ -38,11 +38,13 @@ export function canAfford(level, checkGems = false, placed_building_id = null, i
 
 export function canAffordTroop(upgCost, checkGems = false, placed_building_id) {
     if (!upgCost) return false;
-    const notBusy = !(placed_building_id != null && ConstructionTasks.some(t => t.placed_building_id === placed_building_id));
+    const notBusy = !(placed_building_id != null && ConstructionTasks.some(t => {return t.placed_building_id === placed_building_id || t.task_type===ConstructionType.TroopTraining}));
+    const capacity_check = (_troopCount+Object.values(TrainedTroopsData).reduce((acc, val) => acc + val, 0)<=UserData.total_troop_capacity)
+    console.log(capacity_check,UserData,TrainedTroopsData)
     const thOk    = UserData.town_hall_level >= upgCost.town_hall_level_required;
     const n       = _troopCount;
-    if (checkGems) return (UserData.current_gems ?? 0) >= (upgCost.or_gem_required ?? 0) * n;
-    return notBusy && thOk
+    if (checkGems) return capacity_check && notBusy && thOk && (UserData.current_gems ?? 0) >= (upgCost.or_gem_required ?? 0) * n;
+    return capacity_check && notBusy && thOk
         && (UserData.current_gold        ?? 0) >= (upgCost.gold_required        ?? 0) * n
         && (UserData.current_elixir      ?? 0) >= (upgCost.elixir_required      ?? 0) * n
         && (UserData.current_dark_elixir ?? 0) >= (upgCost.dark_elixir_required ?? 0) * n;
@@ -410,7 +412,9 @@ export function openTroopTraining(placed_building_id) {
     _troopSelectedId    = null;
     _troopSelectedLevel = 1;
     _troopCount         = 1;
+    document.getElementById('train-troop-heading').textContent = `Train Troops (${Object.values(TrainedTroopsData).reduce((acc, val) => acc + val, 0)}/${UserData.total_troop_capacity})`
     showTroopGrid(placed_building_id);
+
     document.getElementById('troop-overlay').classList.add('is-active');
 }
 
@@ -641,7 +645,9 @@ function updateTroopCosts(troopId, placed_building_id) {
     const prevOwned    = isNewTrain ? Infinity : (TrainedTroopsData[[troopId, lv - 1]] ?? 0);
     const enoughTroops = isNewTrain || n <= prevOwned;
     setAffordability(trainBtn, canAffordTroop(upgCost, false, placed_building_id) && enoughTroops);
-    setAffordability(gemBtn,   canAffordTroop(upgCost, true,  placed_building_id) && enoughTroops);
+    const aff_gem = canAffordTroop(upgCost, true,  placed_building_id)
+    console.log(aff_gem)
+    setAffordability(gemBtn,   aff_gem && enoughTroops);
 }
 // endregion
 

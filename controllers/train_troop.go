@@ -21,6 +21,14 @@ func TrainTroop(userId string, data struct {
 		errPayload := []byte(`{"status": "error", "message": "Already Building Construction work or Training going on here."}`)
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}
+	hasTroopTraining, err := models.HasTroopTrainingTask(userId)
+	if err != nil {
+		return SendError(conn, err)
+	}
+	if hasTroopTraining {
+		errPayload := []byte(`{"status": "error", "message": "Already Troop Training going on."}`)
+		return conn.WriteMessage(websocket.TextMessage, errPayload)
+	}
 	building, err := models.GetPlacedBuilding(userId, data.BarrackPlacedBuildingID)
 	if err != nil {
 		return SendError(conn, err)
@@ -35,6 +43,14 @@ func TrainTroop(userId string, data struct {
 	}
 	if isBroken {
 		errPayload := []byte(`{"status": "error", "message": "Cannot train in broken barracks."}`)
+		return conn.WriteMessage(websocket.TextMessage, errPayload)
+	}
+	canTrain, err := models.CanAddTroops(userId, data.Count)
+	if err != nil {
+		return SendError(conn, err)
+	}
+	if !canTrain {
+		errPayload := []byte(`{"status": "error", "message": "Cannot train, exceeds troop capacity."}`)
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}
 	upgradeCost, err := models.GetTroopUpgradeCost(data.TroopId, data.LevelFrom+1)

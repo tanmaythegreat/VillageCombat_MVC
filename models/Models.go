@@ -54,7 +54,7 @@ const (
 	BuildingConstruction ConstructionType = "building_construction"
 	BuildingUpgrade      ConstructionType = "building_upgrade"
 	TroopTraining        ConstructionType = "troop_training"
-	BauildingRepair      ConstructionType = "building_repair"
+	BuildingRepair       ConstructionType = "building_repair"
 )
 
 type User struct {
@@ -240,6 +240,7 @@ type UserData struct {
 	TotalGoldCapacity       int64     `gorm:"column:total_gold_capacity" json:"total_gold_capacity"`
 	TotalElixirCapacity     int64     `gorm:"column:total_elixir_capacity" json:"total_elixir_capacity"`
 	TotalDarkElixirCapacity int64     `gorm:"column:total_dark_elixir_capacity" json:"total_dark_elixir_capacity"`
+	TotalTroopCapacity      int       `gorm:"column:total_troop_capacity" json:"total_troop_capacity"`
 	CurrentGems             int64     `gorm:"column:current_gems" json:"current_gems"`
 	UpdatedAt               time.Time `gorm:"column:updated_at" json:"updated_at"`
 }

@@ -53,7 +53,7 @@ func RepairBuilding(userId string, data struct {
 	if data.UseGems {
 		time_req = 1
 	}
-	task, err := models.StartConstruction_Building(userId, models.BauildingRepair, data.PlacedBuildingID, time_req, tx)
+	task, err := models.StartConstruction_Building(userId, models.BuildingRepair, data.PlacedBuildingID, time_req, tx)
 	if err != nil {
 		tx.Rollback()
 		return SendError(conn, err)

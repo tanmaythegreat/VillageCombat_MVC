@@ -16,6 +16,7 @@ func CheckConstructionWork(userId string, conn *websocket.Conn) error {
 		var goldCapacityIncrement int64 = 0
 		var darkElixirCapacityIncrement int64 = 0
 		var elixirCapacityIncrement int64 = 0
+		var troopCapacityIncrement int = 0
 		var levelDetails = make([]json.RawMessage, 0, len(buildings_updated))
 		for _, building := range buildings_updated {
 			if models.BuildingID_Category[building.BuildingID] == models.TownHall {
@@ -43,6 +44,12 @@ func CheckConstructionWork(userId string, conn *websocket.Conn) error {
 					}
 					darkElixirCapacityIncrement += difference
 				}
+			} else if models.BuildingID_Category[building.BuildingID] == models.Army {
+				difference, err := models.GetTroopCapacityDifference(building.Level-1, building.Level)
+				if err != nil {
+					return SendError(conn, err)
+				}
+				troopCapacityIncrement += difference
 			}
 			levelJSON, err := models.GetBuildingDataOfLevelJSON(building.BuildingID, building.Level)
 			if err != nil {
@@ -50,7 +57,7 @@ func CheckConstructionWork(userId string, conn *websocket.Conn) error {
 			}
 			levelDetails = append(levelDetails, levelJSON)
 		}
-		userData, err := models.AddUserCapacity(userId, goldCapacityIncrement, elixirCapacityIncrement, darkElixirCapacityIncrement)
+		userData, err := models.AddUserCapacity(userId, goldCapacityIncrement, elixirCapacityIncrement, darkElixirCapacityIncrement, troopCapacityIncrement)
 		if err != nil {
 			return SendError(conn, err)
 		}

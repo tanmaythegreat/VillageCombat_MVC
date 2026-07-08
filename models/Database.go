@@ -680,7 +680,7 @@ func CheckIsConstructionComplete(userId string) ([]ConstructionTask, []PlacedBui
 				tx.Rollback()
 				return nil, nil, err
 			}
-		} else if task.TaskType == BauildingRepair {
+		} else if task.TaskType == BuildingRepair {
 			err = SetBrokenBuilding(userId, task.PlacedBuildingID, false, tx)
 			if err != nil {
 				tx.Rollback()
@@ -842,6 +842,39 @@ func GetCapacityDifference(building_id string, level1 int, level2 int) (int64, e
 	}
 	return cap2 - cap1, nil
 }
+func GetTroopCapacityDifference(level1 int, level2 int) (int, error) {
+	var stats []ArmyBuildingLevelStats
+
+	result := DB.Select("level, troop_capacity").
+		Where("building_id = ? AND level IN (?, ?)", Barracks_ID, level1, level2).
+		Find(&stats)
+
+	if result.Error != nil {
+		return 0, result.Error
+	}
+
+	var cap1, cap2 int
+	found1, found2 := false, false
+
+	for _, s := range stats {
+		if s.Level == level1 {
+			cap1 = s.TroopCapacity
+			found1 = true
+		} else if s.Level == level2 {
+			cap2 = s.TroopCapacity
+			found2 = true
+		}
+	}
+
+	if !found1 || !found2 {
+		log.Printf(
+			"Warning: Missing army building stats for building %s (level1 found: %v, level2 found: %v)\n",
+			found1, found2,
+		)
+	}
+
+	return cap2 - cap1, nil
+}
 func AddUserGold(userId string, gold int64) (UserData, error) {
 	var updatedUser UserData
 	err := DB.Model(&updatedUser).
@@ -966,7 +999,7 @@ func AddUserGems(userId string, gems int64) (UserData, error) {
 		}).Error
 	return updatedUser, err
 }
-func AddUserCapacity(userId string, gold_capacity int64, elixir_capacity int64, dark_elixir_capacity int64) (UserData, error) {
+func AddUserCapacity(userId string, gold_capacity int64, elixir_capacity int64, dark_elixir_capacity int64, troop_capacity int) (UserData, error) {
 	var updatedUser UserData
 
 	err := DB.Model(&updatedUser).
@@ -976,6 +1009,7 @@ func AddUserCapacity(userId string, gold_capacity int64, elixir_capacity int64, 
 			"total_gold_capacity":        gorm.Expr("total_gold_capacity + ?", gold_capacity),
 			"total_elixir_capacity":      gorm.Expr("total_elixir_capacity + ?", elixir_capacity),
 			"total_dark_elixir_capacity": gorm.Expr("total_dark_elixir_capacity + ?", dark_elixir_capacity),
+			"total_troop_capacity":       gorm.Expr("total_troop_capacity + ?", troop_capacity),
 			"updated_at":                 time.Now(),
 		}).Error
 
@@ -1198,4 +1232,44 @@ func MarkDefendedNow(userID string) error {
 		Where("user_id = ?", userID).
 		Update("last_defended", time.Now()).
 		Error
+}
+
+func HasTroopTrainingTask(userID string) (bool, error) {
+	var task ConstructionTask
+
+	err := DB.
+		Select("id").
+		Where("user_id = ? AND task_type = ?", userID, TroopTraining).
+		Limit(1).
+		First(&task).Error
+
+	if err == nil {
+		return true, nil
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, nil
+	}
+	return false, err
+}
+
+func CanAddTroops(userID string, count int) (bool, error) {
+	var canAdd bool
+
+	err := DB.Model(&UserData{}).
+		Select(`
+			COALESCE(SUM(trained_troops.count), 0) + ? <= user_data.total_troop_capacity AS can_add
+		`, count).
+		Joins(`
+			LEFT JOIN trained_troops 
+			ON trained_troops.user_id = user_data.user_id
+		`).
+		Where("user_data.user_id = ?", userID).
+		Group("user_data.user_id, user_data.total_troop_capacity").
+		Scan(&canAdd).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return canAdd, nil
 }
