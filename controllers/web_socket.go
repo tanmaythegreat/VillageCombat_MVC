@@ -31,15 +31,36 @@ func SendError(conn *websocket.Conn, err error) error {
 	return conn.WriteJSON(errPayload)
 }
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	var token = r.URL.Query().Get("token")
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, "Failed to establish WebSocket connection", http.StatusBadRequest)
+		return
+	}
+	defer conn.Close()
+	_, p, err := conn.ReadMessage()
+	var payload struct {
+		Action      string `json:"action"`
+		Message     string `json:"message"`
+		AccessToken string `json:"access_token"`
+	}
+	err = json.Unmarshal(p, &payload)
+	if err != nil {
+		errPayload := []byte(`{"status": "error", "message": "Invalid JSON."}`)
+		err = conn.WriteMessage(websocket.TextMessage, errPayload)
+		return
+	}
+
+	var token = payload.AccessToken
 	userId, verified := auth.VerifyJWT_Token(token)
 	if !verified {
 		http.Error(w, "Invalid Token.", http.StatusUnauthorized)
 		return
 	}
-	conn, err := upgrader.Upgrade(w, r, nil)
+	err = conn.WriteJSON(map[string]interface{}{
+		"msg_type": "authorised",
+	})
 	if err != nil {
-		http.Error(w, "Failed to establish WebSocket connection", http.StatusBadRequest)
+		log.Println("Failed to send message to client:", err)
 		return
 	}
 	Mu := sync.Mutex{}
@@ -48,7 +69,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	battle.Manager.Connections[userId] = battle.Connection{Conn: conn, Mu: &Mu, Ch: chanel}
 	battle.Manager.Mu.Unlock()
 	log.Printf("user joined Manager state:%v\n", battle.Manager)
-	defer conn.Close()
+
 	defer delete(battle.Manager.Connections, userId)
 	fmt.Printf("Client successfully connected to WebSocket server!, client : %s\n", userId)
 

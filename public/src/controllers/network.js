@@ -17,10 +17,11 @@ export function SendToServer(dataObject) {
 
 export function connectToGameServer() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socketUrl = `${protocol}//${window.location.host}/ws?token=${access_token}`;
+    const socketUrl = `${protocol}//${window.location.host}/ws`;
+
     socket = new WebSocket(socketUrl);
 
-    socket.addEventListener('open', () => SendToServer({ action: 'INITIAL_LOAD', message: '' }));
+    socket.addEventListener('open', () => SendToServer({action:"auth",message:''}));
     socket.addEventListener('error', (err) => console.error('WebSocket Error:', err));
     socket.addEventListener('close', () => {
         console.warn('Disconnected. Reconnecting…');

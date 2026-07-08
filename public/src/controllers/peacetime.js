@@ -16,6 +16,7 @@ import {SendToServer} from "./network.js";
 
 export function handlePeacetimeMessage(data) {
     switch (data.msg_type) {
+        case 'authorised' :            SendToServer({ action: 'INITIAL_LOAD', message: '' });break;
         case 'building_troop_of_user': handleInitialUserLoad(data); break;
         case 'building_troop':         handleStaticGameData(data); break;
         case 'construction_started':   handleConstructionStarted(data); break;
