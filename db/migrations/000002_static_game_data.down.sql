@@ -19,3 +19,5 @@ DROP TYPE IF EXISTS attack_type CASCADE;
 DROP DOMAIN IF EXISTS non_negative_numeric CASCADE;
 DROP DOMAIN IF EXISTS town_hall_range CASCADE;
 DROP DOMAIN IF EXISTS non_negative_int CASCADE;
+DROP DOMAIN IF EXISTS non_negative_bigint CASCADE;
+

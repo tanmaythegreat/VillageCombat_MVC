@@ -100,7 +100,7 @@ func (TroopConfig) TableName() string { return "troop_configs" }
 type TroopLevelStats struct {
 	TroopID       string `gorm:"column:troop_id;primaryKey" json:"troop_id"`
 	Level         int    `gorm:"column:level;primaryKey" json:"level"`
-	Health        int    `gorm:"column:health" json:"health"`
+	Health        int64  `gorm:"column:health" json:"health"`
 	DamagePerShot int    `gorm:"column:damage_per_shot" json:"damage_per_shot"`
 }
 
@@ -111,10 +111,10 @@ type UpgradeCost struct {
 	TroopID               *string `gorm:"column:troop_id" json:"troop_id,omitempty"`
 	BuildingID            *string `gorm:"column:building_id" json:"building_id,omitempty"`
 	UpgradeToLevel        int     `gorm:"column:upgrade_to_level" json:"upgrade_to_level"`
-	GoldRequired          int     `gorm:"column:gold_required" json:"gold_required"`
-	ElixirRequired        int     `gorm:"column:elixir_required" json:"elixir_required"`
-	DarkElixirRequired    int     `gorm:"column:dark_elixir_required" json:"dark_elixir_required"`
-	OrGemRequired         int     `gorm:"column:or_gem_required" json:"or_gem_required"`
+	GoldRequired          int64   `gorm:"column:gold_required" json:"gold_required"`
+	ElixirRequired        int64   `gorm:"column:elixir_required" json:"elixir_required"`
+	DarkElixirRequired    int64   `gorm:"column:dark_elixir_required" json:"dark_elixir_required"`
+	OrGemRequired         int64   `gorm:"column:or_gem_required" json:"or_gem_required"`
 	TimeRequiredSeconds   int     `gorm:"column:time_required_seconds" json:"time_required_seconds"`
 	TownHallLevelRequired int     `gorm:"column:town_hall_level_required" json:"town_hall_level_required"`
 }
@@ -136,7 +136,7 @@ func (BuildingConfigBase) TableName() string { return "building_configs_base" }
 type BuildingLevelStats struct {
 	BuildingID string `gorm:"column:building_id;primaryKey" json:"building_id"`
 	Level      int    `gorm:"column:level;primaryKey" json:"level"`
-	Health     int    `gorm:"column:health" json:"health"`
+	Health     int64  `gorm:"column:health" json:"health"`
 }
 
 func (BuildingLevelStats) TableName() string { return "building_level_stats" }
@@ -172,7 +172,7 @@ type ResourceBuildingLevelStats struct {
 	BuildingID            string  `gorm:"column:building_id;primaryKey" json:"building_id"`
 	Level                 int     `gorm:"column:level;primaryKey" json:"level"`
 	GenerationRatePerHour float64 `gorm:"column:generation_rate_per_hour" json:"generation_rate_per_hour"`
-	StorageCapacity       int     `gorm:"column:storage_capacity" json:"storage_capacity"`
+	StorageCapacity       int64   `gorm:"column:storage_capacity" json:"storage_capacity"`
 }
 
 func (ResourceBuildingLevelStats) TableName() string { return "resource_building_level_stats" }
@@ -234,13 +234,13 @@ func (ConstructionTask) TableName() string { return "construction_tasks" }
 type UserData struct {
 	UserID                  string    `gorm:"column:user_id;primaryKey" json:"user_id"`
 	TownHallLevel           int       `gorm:"column:town_hall_level" json:"town_hall_level"`
-	CurrentGold             int       `gorm:"column:current_gold" json:"current_gold"`
-	CurrentElixir           int       `gorm:"column:current_elixir" json:"current_elixir"`
-	CurrentDarkElixir       int       `gorm:"column:current_dark_elixir" json:"current_dark_elixir"`
-	TotalGoldCapacity       int       `gorm:"column:total_gold_capacity" json:"total_gold_capacity"`
-	TotalElixirCapacity     int       `gorm:"column:total_elixir_capacity" json:"total_elixir_capacity"`
-	TotalDarkElixirCapacity int       `gorm:"column:total_dark_elixir_capacity" json:"total_dark_elixir_capacity"`
-	CurrentGems             int       `gorm:"column:current_gems" json:"current_gems"`
+	CurrentGold             int64     `gorm:"column:current_gold" json:"current_gold"`
+	CurrentElixir           int64     `gorm:"column:current_elixir" json:"current_elixir"`
+	CurrentDarkElixir       int64     `gorm:"column:current_dark_elixir" json:"current_dark_elixir"`
+	TotalGoldCapacity       int64     `gorm:"column:total_gold_capacity" json:"total_gold_capacity"`
+	TotalElixirCapacity     int64     `gorm:"column:total_elixir_capacity" json:"total_elixir_capacity"`
+	TotalDarkElixirCapacity int64     `gorm:"column:total_dark_elixir_capacity" json:"total_dark_elixir_capacity"`
+	CurrentGems             int64     `gorm:"column:current_gems" json:"current_gems"`
 	UpdatedAt               time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
@@ -250,9 +250,9 @@ type BattleHistory struct {
 	BattleID         string            `gorm:"type:uuid;primaryKey;default:uuid_generate_v4();column:battle_id" json:"battle_id"`
 	AttackerName     string            `gorm:"type:uuid;not null;column:attacker_name" json:"attacker_name"`
 	DefenderName     string            `gorm:"type:uuid;not null;column:defender_name" json:"defender_name"`
-	ElixirLooted     int               `gorm:"default:0;column:elixir_looted" json:"elixir_looted"`
-	GoldLooted       int               `gorm:"default:0;column:gold_looted" json:"gold_looted"`
-	DarkElixirLooted int               `gorm:"default:0;column:dark_elixir_looted" json:"dark_elixir_looted"`
+	ElixirLooted     int64             `gorm:"default:0;column:elixir_looted" json:"elixir_looted"`
+	GoldLooted       int64             `gorm:"default:0;column:gold_looted" json:"gold_looted"`
+	DarkElixirLooted int64             `gorm:"default:0;column:dark_elixir_looted" json:"dark_elixir_looted"`
 	FoughtAt         time.Time         `gorm:"default:CURRENT_TIMESTAMP;column:fought_at" json:"fought_at"`
 	BattleDuration   int               `gorm:"column:battle_duration" json:"battle_duration"`
 	DoDefenderKnow   bool              `gorm:"column:do_defender_know" json:"do_defender_know"`

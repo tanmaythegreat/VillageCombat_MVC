@@ -36,7 +36,7 @@ type BattleState struct {
 		Current_Y       float64
 		Config          models.TroopConfig
 		LevelStat       models.TroopLevelStats
-		HealthRemaining int
+		HealthRemaining int64
 	}
 	AliveTroopDefender []struct {
 		TroopIndex      int //index in TroopSpawns slice
@@ -44,7 +44,7 @@ type BattleState struct {
 		Current_Y       float64
 		Config          models.TroopConfig
 		LevelStat       models.TroopLevelStats
-		HealthRemaining int
+		HealthRemaining int64
 	}
 	Buildings []struct {
 		Placed_Building models.PlacedBuilding
@@ -54,8 +54,8 @@ type BattleState struct {
 		}
 	}
 	AliveBuildings []struct {
-		BuildingIndex   int `json:"BuildingIndex"` //index in the Buildings slice
-		HealthRemaining int `json:"HealthRemaining"`
+		BuildingIndex   int   `json:"BuildingIndex"` //index in the Buildings slice
+		HealthRemaining int64 `json:"HealthRemaining"`
 	}
 	DeathMap  []int
 	StartTime time.Time
@@ -103,7 +103,7 @@ func StartMatch(attackerID string, defenderID string) {
 			Current_Y       float64
 			Config          models.TroopConfig
 			LevelStat       models.TroopLevelStats
-			HealthRemaining int
+			HealthRemaining int64
 		}, 0),
 		Buildings: make([]struct {
 			Placed_Building models.PlacedBuilding
@@ -113,11 +113,11 @@ func StartMatch(attackerID string, defenderID string) {
 			}
 		}, 0),
 		AliveBuildings: []struct {
-			BuildingIndex   int `json:"BuildingIndex"`
-			HealthRemaining int `json:"HealthRemaining"`
+			BuildingIndex   int   `json:"BuildingIndex"`
+			HealthRemaining int64 `json:"HealthRemaining"`
 		}(make([]struct {
 			BuildingIndex   int
-			HealthRemaining int
+			HealthRemaining int64
 		}, 0)),
 		StartTime: time.Now(),
 		DeathMap:  make([]int, 0),
@@ -166,8 +166,8 @@ func StartMatch(attackerID string, defenderID string) {
 
 		if !building.IsBroken && err == nil {
 			state.AliveBuildings = append(state.AliveBuildings, struct {
-				BuildingIndex   int `json:"BuildingIndex"`
-				HealthRemaining int `json:"HealthRemaining"`
+				BuildingIndex   int   `json:"BuildingIndex"`
+				HealthRemaining int64 `json:"HealthRemaining"`
 			}{BuildingIndex: len(ToSend) - 1, HealthRemaining: health})
 		}
 	}
@@ -258,9 +258,9 @@ func StartMatch(attackerID string, defenderID string) {
 	if err := models.SetBrokenBuildings(defenderID, DeathIDArray, true); err != nil {
 		log.Println("StartMatch: failed to persist broken buildings:", err)
 	}
-	var totalElixirB = 0
-	var totalGoldB = 0
-	var totalDarkelixirB = 0
+	var totalElixirB int64 = 0
+	var totalGoldB int64 = 0
+	var totalDarkelixirB int64 = 0
 	for _, building := range state.Buildings {
 		if building.Placed_Building.BuildingID == models.GoldStorage_ID {
 			totalGoldB += 1
@@ -279,17 +279,17 @@ func StartMatch(attackerID string, defenderID string) {
 		defender = models.UserData{}
 	}
 
-	var goldLooted int
+	var goldLooted int64
 	if totalGoldB != 0 {
-		goldLooted = (gold * defender.CurrentGold) / totalGoldB
+		goldLooted = (int64(gold) * defender.CurrentGold) / totalGoldB
 	}
-	var elixirLooted int
+	var elixirLooted int64
 	if totalElixirB != 0 {
-		elixirLooted = (elixir * defender.CurrentElixir) / totalElixirB
+		elixirLooted = (int64(elixir) * defender.CurrentElixir) / totalElixirB
 	}
-	var darkElixirLooted int
+	var darkElixirLooted int64
 	if totalDarkelixirB != 0 {
-		darkElixirLooted = (dark_elixir * defender.CurrentDarkElixir) / totalDarkelixirB
+		darkElixirLooted = (int64(dark_elixir) * defender.CurrentDarkElixir) / totalDarkelixirB
 	}
 	defenderName, err := models.GetUsername(defenderID)
 	if err != nil {
@@ -538,7 +538,7 @@ Loop:
 					Current_Y       float64
 					Config          models.TroopConfig //they wont be nil
 					LevelStat       models.TroopLevelStats
-					HealthRemaining int
+					HealthRemaining int64
 				}{
 					TroopIndex:      len(state.TroopSpawns),
 					Current_X:       float64(troop.SpawnedAt_X),
@@ -620,9 +620,9 @@ func runSimulation(
 }
 func simulate(state *BattleState) map[string]interface{} {
 
-	buildingDmgDone := make([]int, len(state.AliveBuildings))
-	AttackertroopDmgDone := make([]int, len(state.AliveTroopAttacker))
-	DefendertroopDmgDone := make([]int, len(state.AliveTroopDefender))
+	buildingDmgDone := make([]int64, len(state.AliveBuildings))
+	AttackertroopDmgDone := make([]int64, len(state.AliveTroopAttacker))
+	DefendertroopDmgDone := make([]int64, len(state.AliveTroopDefender))
 
 	for i := 0; i < len(state.AliveTroopAttacker); i++ {
 		troop := &state.AliveTroopAttacker[i]
@@ -699,7 +699,7 @@ func simulate(state *BattleState) map[string]interface{} {
 			dist := math.Sqrt(minDstSq)
 			if dist <= troop.Config.AttackRange {
 				dmg := float64(troop.LevelStat.DamagePerShot) / troop.Config.AttackSpeedSeconds
-				intDmg := int(dmg)
+				intDmg := int64(dmg)
 				if intDmg <= 0 && troop.LevelStat.DamagePerShot > 0 {
 					intDmg = 1
 				}
@@ -719,7 +719,7 @@ func simulate(state *BattleState) map[string]interface{} {
 			dist := math.Sqrt(minDstSq)
 			if dist <= troop.Config.AttackRange {
 				dmg := float64(troop.LevelStat.DamagePerShot) / troop.Config.AttackSpeedSeconds
-				intDmg := int(dmg)
+				intDmg := int64(dmg)
 				if intDmg <= 0 && troop.LevelStat.DamagePerShot > 0 {
 					intDmg = 1
 				}
@@ -762,7 +762,7 @@ func simulate(state *BattleState) map[string]interface{} {
 
 		if bestTroopi != -1 {
 			dmg := float64(b.Defender.LevelStat.DamagePerShot) / b.Defender.Stat.AttackSpeedSeconds
-			intDmg := int(dmg)
+			intDmg := int64(dmg)
 			if intDmg <= 0 && b.Defender.LevelStat.DamagePerShot > 0 {
 				intDmg = 1
 			}
@@ -811,7 +811,7 @@ func simulate(state *BattleState) map[string]interface{} {
 
 		if dist <= troop.Config.AttackRange {
 			dmg := float64(troop.LevelStat.DamagePerShot) / troop.Config.AttackSpeedSeconds
-			intDmg := int(dmg)
+			intDmg := int64(dmg)
 			if intDmg <= 0 && troop.LevelStat.DamagePerShot > 0 {
 				intDmg = 1
 			}

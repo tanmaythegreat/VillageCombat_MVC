@@ -32,13 +32,13 @@ func CollectResource(userId string, data struct {
 	generationRate := leveldat.GenerationRatePerHour
 	var amount = math.Min(dt*generationRate, float64(leveldat.StorageCapacity))
 	var user models.UserData
-	var extra int
+	var extra int64
 	if placedBuilding.BuildingID == models.GoldMine_ID {
-		user, err, extra = models.AddUserGoldGetRemaining(userId, int(amount))
+		user, err, extra = models.AddUserGoldGetRemaining(userId, int64(amount))
 	} else if placedBuilding.BuildingID == models.ElixirCollector_ID {
-		user, err, extra = models.AddUserElixirGetRemaining(userId, int(amount))
+		user, err, extra = models.AddUserElixirGetRemaining(userId, int64(amount))
 	} else if placedBuilding.BuildingID == models.DarkElixirDrill_ID {
-		user, err, extra = models.AddUserDarkElixirGetRemaining(userId, int(amount))
+		user, err, extra = models.AddUserDarkElixirGetRemaining(userId, int64(amount))
 	}
 	if err != nil {
 		return SendError(conn, err)

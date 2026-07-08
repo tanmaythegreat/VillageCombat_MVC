@@ -19,7 +19,7 @@ func CollectAllResource(userId string, conn *websocket.Conn) error {
 			continue
 		}
 		if models.BuildingID_Category[building.BuildingID] == models.Resource {
-			var extra int
+			var extra int64
 			levelDet := models.ResourceLevelDetails[struct {
 				ID    string
 				Level int
@@ -31,17 +31,17 @@ func CollectAllResource(userId string, conn *websocket.Conn) error {
 				return SendError(conn, err)
 			}
 			if building.BuildingID == models.ElixirCollector_ID {
-				_, err, extra = models.AddUserElixirGetRemaining(userId, int(toCollect))
+				_, err, extra = models.AddUserElixirGetRemaining(userId, int64(toCollect))
 				if err != nil {
 					return SendError(conn, err)
 				}
 			} else if building.BuildingID == models.GoldMine_ID {
-				_, err, extra = models.AddUserGoldGetRemaining(userId, int(toCollect))
+				_, err, extra = models.AddUserGoldGetRemaining(userId, int64(toCollect))
 				if err != nil {
 					return SendError(conn, err)
 				}
 			} else if building.BuildingID == models.DarkElixirDrill_ID {
-				_, err, extra = models.AddUserDarkElixirGetRemaining(userId, int(toCollect))
+				_, err, extra = models.AddUserDarkElixirGetRemaining(userId, int64(toCollect))
 				if err != nil {
 					return SendError(conn, err)
 				}

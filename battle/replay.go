@@ -32,7 +32,7 @@ func Replay(battleId string, conn *websocket.Conn) error {
 			Current_Y       float64
 			Config          models.TroopConfig
 			LevelStat       models.TroopLevelStats
-			HealthRemaining int
+			HealthRemaining int64
 		}, 0),
 		Buildings: make([]struct {
 			Placed_Building models.PlacedBuilding
@@ -42,11 +42,11 @@ func Replay(battleId string, conn *websocket.Conn) error {
 			}
 		}, 0),
 		AliveBuildings: []struct {
-			BuildingIndex   int `json:"BuildingIndex"`
-			HealthRemaining int `json:"HealthRemaining"`
+			BuildingIndex   int   `json:"BuildingIndex"`
+			HealthRemaining int64 `json:"HealthRemaining"`
 		}(make([]struct {
 			BuildingIndex   int
-			HealthRemaining int
+			HealthRemaining int64
 		}, 0)),
 		StartTime: time.Now(),
 		DeathMap:  make([]int, 0),
@@ -89,8 +89,8 @@ func Replay(battleId string, conn *websocket.Conn) error {
 		}
 		if !building.IsBroken && err == nil {
 			state.AliveBuildings = append(state.AliveBuildings, struct {
-				BuildingIndex   int `json:"BuildingIndex"`
-				HealthRemaining int `json:"HealthRemaining"`
+				BuildingIndex   int   `json:"BuildingIndex"`
+				HealthRemaining int64 `json:"HealthRemaining"`
 			}{BuildingIndex: i, HealthRemaining: health})
 		}
 	}
@@ -168,7 +168,7 @@ func SpawnTroopsOverTime(troops []models.TroopSpawn, state *BattleState, WriteMU
 			Current_Y       float64
 			Config          models.TroopConfig
 			LevelStat       models.TroopLevelStats
-			HealthRemaining int
+			HealthRemaining int64
 		}{
 			TroopIndex:      len(state.TroopSpawns),
 			Current_X:       float64(troop.SpawnedAt_X),

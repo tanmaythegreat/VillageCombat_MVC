@@ -475,8 +475,8 @@ func GetDefenceBuildingStatAndLevelStat(buildingId string, level int) (DefenseBu
 
 	return levelStats, buildingStats, nil
 }
-func GetBuildingHealth(buildingID string, level int) (int, error) {
-	var health int
+func GetBuildingHealth(buildingID string, level int) (int64, error) {
+	var health int64
 	err := DB.Model(&BuildingLevelStats{}).
 		Where("building_id = ? AND level = ?", buildingID, level).
 		Pluck("health", &health).
@@ -815,7 +815,7 @@ func StartTrainingTroops(userID string, troopId string, count int, placedBuildin
 	).Clauses(clause.Returning{}).Create(&newTask).Error
 	return newTask, err
 }
-func GetCapacityDifference(building_id string, level1 int, level2 int) (int, error) {
+func GetCapacityDifference(building_id string, level1 int, level2 int) (int64, error) {
 	var stats []ResourceBuildingLevelStats
 
 	result := DB.Select("level, storage_capacity").
@@ -826,7 +826,7 @@ func GetCapacityDifference(building_id string, level1 int, level2 int) (int, err
 		return 0, result.Error
 	}
 
-	var cap1, cap2 int
+	var cap1, cap2 int64
 	found1, found2 := false, false
 	for _, s := range stats {
 		if s.Level == level1 {
@@ -842,7 +842,7 @@ func GetCapacityDifference(building_id string, level1 int, level2 int) (int, err
 	}
 	return cap2 - cap1, nil
 }
-func AddUserGold(userId string, gold int) (UserData, error) {
+func AddUserGold(userId string, gold int64) (UserData, error) {
 	var updatedUser UserData
 	err := DB.Model(&updatedUser).
 		Clauses(clause.Returning{}).
@@ -853,7 +853,7 @@ func AddUserGold(userId string, gold int) (UserData, error) {
 		}).Error
 	return updatedUser, err
 }
-func AddUserElixir(userId string, elixir int) (UserData, error) {
+func AddUserElixir(userId string, elixir int64) (UserData, error) {
 	var updatedUser UserData
 	err := DB.Model(&updatedUser).
 		Clauses(clause.Returning{}).
@@ -864,7 +864,7 @@ func AddUserElixir(userId string, elixir int) (UserData, error) {
 		}).Error
 	return updatedUser, err
 }
-func AddUserDarkElixir(userId string, darkElixir int) (UserData, error) {
+func AddUserDarkElixir(userId string, darkElixir int64) (UserData, error) {
 	var updatedUser UserData
 	err := DB.Model(&updatedUser).
 		Clauses(clause.Returning{}).
@@ -876,9 +876,9 @@ func AddUserDarkElixir(userId string, darkElixir int) (UserData, error) {
 	return updatedUser, err
 }
 
-func AddUserGoldGetRemaining(userId string, gold int) (UserData, error, int) {
+func AddUserGoldGetRemaining(userId string, gold int64) (UserData, error, int64) {
 	var updatedUser UserData
-	var extraGold int
+	var extraGold int64
 
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("user_id = ?", userId).First(&updatedUser).Error; err != nil {
@@ -900,9 +900,9 @@ func AddUserGoldGetRemaining(userId string, gold int) (UserData, error, int) {
 
 	return updatedUser, err, extraGold
 }
-func AddUserElixirGetRemaining(userId string, elixir int) (UserData, error, int) {
+func AddUserElixirGetRemaining(userId string, elixir int64) (UserData, error, int64) {
 	var updatedUser UserData
-	var extraElixir int
+	var extraElixir int64
 
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("user_id = ?", userId).First(&updatedUser).Error; err != nil {
@@ -927,9 +927,9 @@ func AddUserElixirGetRemaining(userId string, elixir int) (UserData, error, int)
 
 	return updatedUser, err, extraElixir
 }
-func AddUserDarkElixirGetRemaining(userId string, darkElixir int) (UserData, error, int) {
+func AddUserDarkElixirGetRemaining(userId string, darkElixir int64) (UserData, error, int64) {
 	var updatedUser UserData
-	var extraDarkElixir int
+	var extraDarkElixir int64
 
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("user_id = ?", userId).First(&updatedUser).Error; err != nil {
@@ -955,7 +955,7 @@ func AddUserDarkElixirGetRemaining(userId string, darkElixir int) (UserData, err
 	return updatedUser, err, extraDarkElixir
 }
 
-func AddUserGems(userId string, gems int) (UserData, error) {
+func AddUserGems(userId string, gems int64) (UserData, error) {
 	var updatedUser UserData
 	err := DB.Model(&updatedUser).
 		Clauses(clause.Returning{}).
@@ -966,7 +966,7 @@ func AddUserGems(userId string, gems int) (UserData, error) {
 		}).Error
 	return updatedUser, err
 }
-func AddUserCapacity(userId string, gold_capacity int, elixir_capacity int, dark_elixir_capacity int) (UserData, error) {
+func AddUserCapacity(userId string, gold_capacity int64, elixir_capacity int64, dark_elixir_capacity int64) (UserData, error) {
 	var updatedUser UserData
 
 	err := DB.Model(&updatedUser).

@@ -42,10 +42,10 @@ func TrainTroop(userId string, data struct {
 		return SendError(conn, err)
 	}
 	upgradeCost.TimeRequiredSeconds *= data.Count
-	upgradeCost.DarkElixirRequired *= data.Count
-	upgradeCost.ElixirRequired *= data.Count
-	upgradeCost.GoldRequired *= data.Count
-	upgradeCost.OrGemRequired *= data.Count
+	upgradeCost.DarkElixirRequired *= int64(data.Count)
+	upgradeCost.ElixirRequired *= int64(data.Count)
+	upgradeCost.GoldRequired *= int64(data.Count)
+	upgradeCost.OrGemRequired *= int64(data.Count)
 	tx, err := models.UserPurchase(userId, upgradeCost, data.UseGems)
 	if err != nil {
 		return SendError(conn, err)

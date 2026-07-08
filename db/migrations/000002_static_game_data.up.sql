@@ -1,4 +1,5 @@
 CREATE DOMAIN non_negative_int AS INT CHECK (VALUE >= 0);
+CREATE DOMAIN non_negative_bigint AS BIGINT CHECK (VALUE >= 0);
 CREATE DOMAIN town_hall_range AS INT CHECK (VALUE BETWEEN 0 AND 12);
 CREATE DOMAIN non_negative_numeric AS NUMERIC CHECK (VALUE >= 0.0);
 

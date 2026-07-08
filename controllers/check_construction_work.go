@@ -13,9 +13,9 @@ func CheckConstructionWork(userId string, conn *websocket.Conn) error {
 		return SendError(conn, err)
 	}
 	if len(constructionTasks) > 0 {
-		var goldCapacityIncrement = 0
-		var darkElixirCapacityIncrement = 0
-		var elixirCapacityIncrement = 0
+		var goldCapacityIncrement int64 = 0
+		var darkElixirCapacityIncrement int64 = 0
+		var elixirCapacityIncrement int64 = 0
 		var levelDetails = make([]json.RawMessage, 0, len(buildings_updated))
 		for _, building := range buildings_updated {
 			if models.BuildingID_Category[building.BuildingID] == models.TownHall {
