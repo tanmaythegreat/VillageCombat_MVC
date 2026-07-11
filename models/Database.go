@@ -1235,21 +1235,15 @@ func MarkDefendedNow(userID string) error {
 }
 
 func HasTroopTrainingTask(userID string) (bool, error) {
-	var task ConstructionTask
-
+	var count int64
 	err := DB.
-		Select("id").
+		Model(&ConstructionTask{}).
 		Where("user_id = ? AND task_type = ?", userID, TroopTraining).
-		Limit(1).
-		First(&task).Error
-
-	if err == nil {
-		return true, nil
+		Count(&count).Error
+	if err != nil {
+		return false, err
 	}
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return false, nil
-	}
-	return false, err
+	return count > 0, nil
 }
 
 func CanAddTroops(userID string, count int) (bool, error) {

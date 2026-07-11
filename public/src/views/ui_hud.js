@@ -36,11 +36,11 @@ export function canAfford(level, checkGems = false, placed_building_id = null, i
         && (UserData.current_dark_elixir ?? 0) >= (level.update_dark_elixir_required  ?? 0) / div;
 }
 
-export function canAffordTroop(upgCost, checkGems = false, placed_building_id) {
+export function canAffordTroop(upgCost, checkGems = false, placed_building_id,isNewTrain) {
     if (!upgCost) return false;
     const notBusy = !(placed_building_id != null && ConstructionTasks.some(t => {return t.placed_building_id === placed_building_id || t.task_type===ConstructionType.TroopTraining}));
-    const capacity_check = (_troopCount+Object.values(TrainedTroopsData).reduce((acc, val) => acc + val, 0)<=UserData.total_troop_capacity)
-    console.log(capacity_check,UserData,TrainedTroopsData)
+    const coo = isNewTrain?_troopCount:0;
+    const capacity_check = (coo+Object.values(TrainedTroopsData).reduce((acc, val) => acc + val, 0)<=UserData.total_troop_capacity)
     const thOk    = UserData.town_hall_level >= upgCost.town_hall_level_required;
     const n       = _troopCount;
     if (checkGems) return capacity_check && notBusy && thOk && (UserData.current_gems ?? 0) >= (upgCost.or_gem_required ?? 0) * n;
@@ -590,21 +590,23 @@ function refreshTroopDetailPane(troopId, placed_building_id) {
 
     trainBtn.onclick = (e) => {
         e.stopPropagation();
-        if (!canAffordTroop(upgCost, false)) return;
+        if (!canAffordTroop(upgCost, false,placed_building_id,isNewTrain)) return;
         closeTroopOverlay();
         TrainTroop(troopId, _troopCount, placed_building_id, lv, false);
         UserData.current_gold        -= upgCost.gold_required;
         UserData.current_elixir      -= upgCost.elxir_required;
         UserData.current_dark_elixir -= upgCost.dark_elixir_required;
-        if (lv !== 1) TrainedTroopsData[[troop, lv-1]] -= _troopCount;
+        if (lv !== 1) TrainedTroopsData[[troopId, lv-1]] -= _troopCount;
     };
     gemBtn.onclick = (e) => {
         e.stopPropagation();
-        if (!canAffordTroop(upgCost, true)) return;
+        if (!canAffordTroop(upgCost, true,placed_building_id,isNewTrain)) return;
         closeTroopOverlay();
         TrainTroop(troopId, _troopCount, placed_building_id, lv, true);
         UserData.current_gems -= upgCost.or_gem_required;
-        if (lv !== 1) TrainedTroopsData[[troop, lv-1]] -= _troopCount;
+
+        const key = [troopId, lv-1];
+        if (lv !== 1) TrainedTroopsData[key] -= _troopCount;
     };
 
     updateTroopCosts(troopId, placed_building_id);
@@ -644,8 +646,8 @@ function updateTroopCosts(troopId, placed_building_id) {
 
     const prevOwned    = isNewTrain ? Infinity : (TrainedTroopsData[[troopId, lv - 1]] ?? 0);
     const enoughTroops = isNewTrain || n <= prevOwned;
-    setAffordability(trainBtn, canAffordTroop(upgCost, false, placed_building_id) && enoughTroops);
-    const aff_gem = canAffordTroop(upgCost, true,  placed_building_id)
+    setAffordability(trainBtn, canAffordTroop(upgCost, false, placed_building_id,isNewTrain) && enoughTroops);
+    const aff_gem = canAffordTroop(upgCost, true,  placed_building_id,isNewTrain)
     console.log(aff_gem)
     setAffordability(gemBtn,   aff_gem && enoughTroops);
 }
