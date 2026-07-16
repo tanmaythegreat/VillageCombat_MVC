@@ -1,10 +1,40 @@
 version: '3.8'
 services:
-  DB_Server:
+  db:
     image: postgres:15
+    container_name: village_combat_db
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: admin_tentellam
-      POSTGRES_PASSWORD: i_wont_tell_you
-      POSTGRES_DB: VillageGameDB
+      POSTGRES_USER: ${DB_USER:-admin_tentellam}
+      POSTGRES_PASSWORD: ${DB_PASS:-i_wont_tell_you}
+      POSTGRES_DB: ${DB_NAME:-VillageGameDB}
     ports:
       - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin_tentellam} -d ${DB_NAME:-VillageGameDB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: village_combat_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-admin_tentellam}:${DB_PASS:-i_wont_tell_you}@db:5432/${DB_NAME:-VillageGameDB}?sslmode=disable
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  db_data:

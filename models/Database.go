@@ -165,7 +165,6 @@ func LoadStaticBuildingIDsAndCategory() error {
 	log.Println("Static building IDs successfully loaded into memory.")
 	return nil
 }
-
 func RegisterUser(username string, passwordHash string, email string) (*User, *UserData, error) {
 
 	tx := DB.Begin()
@@ -221,7 +220,6 @@ func RegisterUser(username string, passwordHash string, email string) (*User, *U
 
 	return &user, &userData, nil
 }
-
 func GetUserByName(username string) (*User, error) {
 	var user User
 	err := DB.Where("username = ?", username).First(&user).Error
@@ -233,7 +231,6 @@ func GetUserByName(username string) (*User, error) {
 	}
 	return &user, nil
 }
-
 func GetUserByEmail(email string) (*User, error) {
 	var user User
 	err := DB.Where("email = ?", email).First(&user).Error
@@ -292,7 +289,6 @@ func GetRefreshTokenByUserID(userID string) (*RefreshToken, error) {
 	}
 	return &token, nil
 }
-
 func GetAllBuildingConfigsJSON() (json.RawMessage, error) {
 	var configs []BuildingConfigBase
 	err := DB.Find(&configs).Error
@@ -609,7 +605,6 @@ func GetConstructionCost(building_id string, upgrade_to int) (UpgradeCost, error
 		First(&cost).Error
 	return cost, err
 }
-
 func UserPurchase(userId string, cost UpgradeCost, useGem bool) (*gorm.DB, error) {
 
 	tx := DB.Begin()
@@ -718,7 +713,6 @@ func IsConstructionUnderProgress(userId string, placed_building_id string) (bool
 	err := DB.Table(ConstructionTask{}.TableName()).Where("user_id = ? AND placed_building_id = ?", userId, placed_building_id).Count(&n).Error
 	return n > 0, err
 }
-
 func GetUserTrainedTroops(userId string) (json.RawMessage, error) {
 	var troops []TrainedTroop
 	err := DB.Where("user_id = ?", userId).Find(&troops).Error
@@ -756,13 +750,7 @@ func AddTroopsToUser(userId string, troopId string, level int, count int, tx *go
 		"last_updated_at": time.Now(),
 	}).Error
 }
-func SubtractTroopsOfUser(
-	userId string,
-	troopId string,
-	level int,
-	count int,
-	tx *gorm.DB,
-) (bool, error) {
+func SubtractTroopsOfUser(userId string, troopId string, level int, count int, tx *gorm.DB) (bool, error) {
 	if count < 0 {
 		return false, errors.New("cannot subtract a negative amount of troops")
 	}
@@ -908,7 +896,6 @@ func AddUserDarkElixir(userId string, darkElixir int64) (UserData, error) {
 		}).Error
 	return updatedUser, err
 }
-
 func AddUserGoldGetRemaining(userId string, gold int64) (UserData, error, int64) {
 	var updatedUser UserData
 	var extraGold int64
@@ -987,7 +974,6 @@ func AddUserDarkElixirGetRemaining(userId string, darkElixir int64) (UserData, e
 
 	return updatedUser, err, extraDarkElixir
 }
-
 func AddUserGems(userId string, gems int64) (UserData, error) {
 	var updatedUser UserData
 	err := DB.Model(&updatedUser).
@@ -1022,7 +1008,6 @@ func GetGenerationRate(resourceBuildingId string, level int) (float64, error) {
 		First(&stats).Error
 	return stats.GenerationRatePerHour, err
 }
-
 func SetUserBattleStatus(userID string, inBattle bool) error {
 	return DB.Model(&UserStatus{}).
 		Where("user_id = ?", userID).
@@ -1108,7 +1093,6 @@ func InsertBattleHistory(history BattleHistory) (string, error) {
 	result := DB.Create(&history)
 	return history.BattleID, result.Error
 }
-
 func InsertBrokenBuildingBattleHistory(battleId, buildingId string, count int) error {
 	record := BuildingsBroken{
 		BattleID:   battleId,
@@ -1219,21 +1203,18 @@ func AdjustAttackPower(userID string, delta int) error {
 		Update("attack_power", gorm.Expr("attack_power + ?", delta)).
 		Error
 }
-
 func AdjustDefencePower(userID string, delta int) error {
 	return DB.Model(&UserStatus{}).
 		Where("user_id = ?", userID).
 		Update("defence_power", gorm.Expr("defence_power + ?", delta)).
 		Error
 }
-
 func MarkDefendedNow(userID string) error {
 	return DB.Model(&UserStatus{}).
 		Where("user_id = ?", userID).
 		Update("last_defended", time.Now()).
 		Error
 }
-
 func HasTroopTrainingTask(userID string) (bool, error) {
 	var count int64
 	err := DB.
@@ -1245,7 +1226,6 @@ func HasTroopTrainingTask(userID string) (bool, error) {
 	}
 	return count > 0, nil
 }
-
 func CanAddTroops(userID string, count int) (bool, error) {
 	var canAdd bool
 

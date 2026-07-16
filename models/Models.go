@@ -299,7 +299,6 @@ type TroopSpawn struct {
 	SpawnedAt_Y       int     `gorm:"column:spawned_at_y" json:"spawnedAt_Y"`
 	SpawnTime         float64 `gorm:"column:spawn_time" json:"spawn_time"`
 }
-
 type InitialBattleBuilding struct {
 	BuildingID string `gorm:"column:building_id"` // Maps to UUID in building_configs_base
 	Grid_X     int    `gorm:"column:grid_x"`
@@ -307,10 +306,8 @@ type InitialBattleBuilding struct {
 	Level      int    `gorm:"column:level"`
 	IsBroken   bool   `gorm:"column:is_broken"`
 }
-
 type TroopSpawnArray []TroopSpawn
 type InitialBuildingArray []InitialBattleBuilding
-
 type BattleRecord struct {
 	BattleID         string               `gorm:"column:battle_id;primaryKey;type:uuid"`
 	TroopSpawns      TroopSpawnArray      `gorm:"column:troop_spawns;type:troop_spawn[]"`
@@ -324,7 +321,6 @@ func (BattleRecord) TableName() string {
 // ---------------------------------------------------------------------------
 // Shared helpers for Postgres composite-type / array-of-composite encoding
 // ---------------------------------------------------------------------------
-
 // pgQuote wraps s in double quotes and backslash-escapes any embedded
 // double quotes or backslashes, per Postgres text-format rules. It is used
 // both for quoting individual composite fields and for quoting a whole
@@ -342,14 +338,12 @@ func pgQuote(s string) string {
 	b.WriteByte('"')
 	return b.String()
 }
-
 func pgBool(v bool) string {
 	if v {
 		return "t"
 	}
 	return "f"
 }
-
 func toScanString(value interface{}) (string, error) {
 	switch v := value.(type) {
 	case string:
@@ -376,7 +370,6 @@ func parsePgArrayElements(src string) ([]*string, error) {
 	if n == 0 {
 		return nil, nil
 	}
-
 	var elements []*string
 	i := 0
 	for i < n {
@@ -386,7 +379,6 @@ func parsePgArrayElements(src string) ([]*string, error) {
 		if i >= n {
 			break
 		}
-
 		if inner[i] == '"' {
 			var sb strings.Builder
 			i++ // skip opening quote
@@ -419,7 +411,6 @@ func parsePgArrayElements(src string) ([]*string, error) {
 				elements = append(elements, &v)
 			}
 		}
-
 		// advance to next element
 		for i < n && inner[i] != ',' {
 			i++
@@ -443,7 +434,6 @@ func parseCompositeFields(tuple string) ([]string, error) {
 	}
 	inner := tuple[1 : len(tuple)-1]
 	n := len(inner)
-
 	var fields []string
 	i := 0
 	for {
@@ -476,7 +466,6 @@ func parseCompositeFields(tuple string) ([]string, error) {
 			}
 			fields = append(fields, inner[start:i])
 		}
-
 		if i < n && inner[i] == ',' {
 			i++
 			continue
@@ -503,7 +492,6 @@ func (a TroopSpawnArray) Value() (driver.Value, error) {
 	}
 	return "{" + strings.Join(elements, ",") + "}", nil
 }
-
 func (a *TroopSpawnArray) Scan(value interface{}) error {
 	if value == nil {
 		*a = nil
@@ -513,12 +501,10 @@ func (a *TroopSpawnArray) Scan(value interface{}) error {
 	if err != nil {
 		return fmt.Errorf("TroopSpawnArray.Scan: %w", err)
 	}
-
 	elements, err := parsePgArrayElements(str)
 	if err != nil {
 		return fmt.Errorf("TroopSpawnArray.Scan: %w", err)
 	}
-
 	res := make([]TroopSpawn, 0, len(elements))
 	for idx, el := range elements {
 		if el == nil {
@@ -531,7 +517,6 @@ func (a *TroopSpawnArray) Scan(value interface{}) error {
 		if len(fields) != 6 {
 			return fmt.Errorf("TroopSpawnArray.Scan: element %d: expected 6 fields, got %d (%q)", idx, len(fields), *el)
 		}
-
 		level, err := strconv.Atoi(fields[1])
 		if err != nil {
 			return fmt.Errorf("TroopSpawnArray.Scan: element %d: invalid troop_level %q: %w", idx, fields[1], err)
@@ -548,7 +533,6 @@ func (a *TroopSpawnArray) Scan(value interface{}) error {
 		if err != nil {
 			return fmt.Errorf("TroopSpawnArray.Scan: element %d: invalid spawn_time %q: %w", idx, fields[5], err)
 		}
-
 		res = append(res, TroopSpawn{
 			TroopID:           fields[0],
 			TroopLevel:        level,
@@ -561,7 +545,6 @@ func (a *TroopSpawnArray) Scan(value interface{}) error {
 	*a = res
 	return nil
 }
-
 func (a InitialBuildingArray) Value() (driver.Value, error) {
 	if len(a) == 0 {
 		return "{}", nil
@@ -579,7 +562,6 @@ func (a InitialBuildingArray) Value() (driver.Value, error) {
 	}
 	return "{" + strings.Join(elements, ",") + "}", nil
 }
-
 func (a *InitialBuildingArray) Scan(value interface{}) error {
 	if value == nil {
 		*a = nil
@@ -589,12 +571,10 @@ func (a *InitialBuildingArray) Scan(value interface{}) error {
 	if err != nil {
 		return fmt.Errorf("InitialBuildingArray.Scan: %w", err)
 	}
-
 	elements, err := parsePgArrayElements(str)
 	if err != nil {
 		return fmt.Errorf("InitialBuildingArray.Scan: %w", err)
 	}
-
 	res := make([]InitialBattleBuilding, 0, len(elements))
 	for idx, el := range elements {
 		if el == nil {
@@ -607,7 +587,6 @@ func (a *InitialBuildingArray) Scan(value interface{}) error {
 		if len(fields) != 5 {
 			return fmt.Errorf("InitialBuildingArray.Scan: element %d: expected 5 fields, got %d (%q)", idx, len(fields), *el)
 		}
-
 		x, err := strconv.Atoi(fields[1])
 		if err != nil {
 			return fmt.Errorf("InitialBuildingArray.Scan: element %d: invalid grid_x %q: %w", idx, fields[1], err)
@@ -620,7 +599,6 @@ func (a *InitialBuildingArray) Scan(value interface{}) error {
 		if err != nil {
 			return fmt.Errorf("InitialBuildingArray.Scan: element %d: invalid level %q: %w", idx, fields[3], err)
 		}
-
 		res = append(res, InitialBattleBuilding{
 			BuildingID: fields[0],
 			Grid_X:     x,
