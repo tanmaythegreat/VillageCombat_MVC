@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -30,12 +31,16 @@ type JWT_Token struct {
 }
 
 var jwtSecretKey []byte
+var jwtSecretKeyOnce sync.Once
 
-func init() {
-	jwtSecretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
-	if len(jwtSecretKey) == 0 {
-		panic("JWT_SECRET_KEY environment variable is not set")
-	}
+func getJWTSecretKey() []byte {
+	jwtSecretKeyOnce.Do(func() {
+		jwtSecretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
+		if len(jwtSecretKey) == 0 {
+			panic("JWT_SECRET_KEY environment variable is not set")
+		}
+	})
+	return jwtSecretKey
 }
 
 func createAccessToken(userID string, duration time.Duration) (string, time.Time, error) {
@@ -57,7 +62,7 @@ func createAccessToken(userID string, duration time.Duration) (string, time.Time
 
 	unsignedToken := headerB64 + "." + payloadB64
 
-	mac := hmac.New(sha256.New, jwtSecretKey)
+	mac := hmac.New(sha256.New, getJWTSecretKey())
 	mac.Write([]byte(unsignedToken))
 	signatureBytes := mac.Sum(nil)
 
@@ -123,7 +128,7 @@ func VerifyJWT_Token(token string) (string, bool) {
 	}
 	headerB64, payloadB64, signatureB64 := splited[0], splited[1], splited[2]
 	signingInput := headerB64 + "." + payloadB64
-	mac := hmac.New(sha256.New, jwtSecretKey)
+	mac := hmac.New(sha256.New, getJWTSecretKey())
 	mac.Write([]byte(signingInput))
 	expectedSignature := mac.Sum(nil)
 	actualSignature, err := base64.RawURLEncoding.DecodeString(signatureB64)

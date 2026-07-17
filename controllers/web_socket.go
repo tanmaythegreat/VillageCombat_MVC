@@ -27,7 +27,7 @@ func SendError(conn *websocket.Conn, err error) error {
 		"status":  "error",
 		"message": "Internal Server Error",
 	}
-	log.Printf(err.Error())
+	log.Print(err.Error())
 	return conn.WriteJSON(errPayload)
 }
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -132,10 +132,6 @@ Loop:
 			}
 		case "ALL_BUILDING_TROOP_DATA":
 			if AllBuildingDataLoad(userId, conn) != nil {
-				break Loop
-			}
-		case "BUILDING_LEVEL_DETAIL":
-			if BuildingLevelDetails(userId, payload.Message, conn) != nil {
 				break Loop
 			}
 		case "CREATE_BUILDING":
