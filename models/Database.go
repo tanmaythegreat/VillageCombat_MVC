@@ -685,15 +685,16 @@ func CheckIsConstructionComplete(userId string) ([]ConstructionTask, []PlacedBui
 			buildingIDs = append(buildingIDs, task.PlacedBuildingID)
 		}
 	}
-	err = tx.Clauses(clause.Returning{}).
-		Model(&PlacedBuilding{}).
-		Where("id IN ?", buildingIDs).
-		Update("level", gorm.Expr("level + 1")).
-		Scan(&updatedBuildings).Error
+	if len(buildingIDs) > 0 {
+		err = tx.Clauses(clause.Returning{}).
+			Model(&updatedBuildings).
+			Where("id IN ?", buildingIDs).
+			Update("level", gorm.Expr("level + 1")).Error
 
-	if err != nil {
-		log.Printf("Error updating building levels for user %s: %v\n", userId, err)
-		return nil, nil, err
+		if err != nil {
+			log.Printf("Error updating building levels for user %s: %v\n", userId, err)
+			return nil, nil, err
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -856,7 +857,7 @@ func GetTroopCapacityDifference(level1 int, level2 int) (int, error) {
 
 	if !found1 || !found2 {
 		log.Printf(
-			"Warning: Missing army building stats for building %s (level1 found: %v, level2 found: %v)\n",
+			"Warning: Missing troop (level1 found: %v, level2 found: %v)\n",
 			found1, found2,
 		)
 	}
