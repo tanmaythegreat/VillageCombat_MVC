@@ -1,6 +1,7 @@
-package controllers
+package buildings
 
 import (
+	"Village_combat/services"
 	"errors"
 	"testing"
 
@@ -8,9 +9,9 @@ import (
 )
 
 func TestInitialLoad_Success(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "trained_troops"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "troop_id", "level", "count"}))
@@ -46,13 +47,13 @@ func TestInitialLoad_Success(t *testing.T) {
 	if msg.User.Username != "alice" {
 		t.Errorf("expected username alice, got %q", msg.User.Username)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestInitialLoad_PropagatesEarlyError(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "trained_troops"`).
 		WillReturnError(errors.New("connection lost"))
@@ -72,5 +73,5 @@ func TestInitialLoad_PropagatesEarlyError(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatalf("InitialLoad (SendError path) returned error: %v", err)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }

@@ -1,6 +1,7 @@
-package controllers
+package authentication
 
 import (
+	"Village_combat/services"
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
@@ -44,7 +45,7 @@ func TestRefreshHandler_InvalidJSON(t *testing.T) {
 }
 
 func TestRefreshHandler_NoStoredToken(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
 	mock.ExpectQuery(`FROM "refresh_tokens"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id"}))
@@ -57,11 +58,11 @@ func TestRefreshHandler_NoStoredToken(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("expected 401, got %d, body=%s", rec.Code, rec.Body.String())
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestRefreshHandler_ExpiredToken(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
 	mock.ExpectQuery(`FROM "refresh_tokens"`).
 		WillReturnRows(sqlmock.NewRows([]string{
@@ -76,11 +77,11 @@ func TestRefreshHandler_ExpiredToken(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("expected 401 for expired token, got %d, body=%s", rec.Code, rec.Body.String())
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestRefreshHandler_WrongUserAgent(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
 	mock.ExpectQuery(`FROM "refresh_tokens"`).
 		WillReturnRows(sqlmock.NewRows([]string{
@@ -95,11 +96,11 @@ func TestRefreshHandler_WrongUserAgent(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("expected 401 for user-agent mismatch, got %d, body=%s", rec.Code, rec.Body.String())
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestRefreshHandler_InvalidTokenEncoding(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
 	mock.ExpectQuery(`FROM "refresh_tokens"`).
 		WillReturnRows(sqlmock.NewRows([]string{
@@ -114,11 +115,11 @@ func TestRefreshHandler_InvalidTokenEncoding(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("expected 401 for undecodable refresh token, got %d, body=%s", rec.Code, rec.Body.String())
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestRefreshHandler_TokenDoesNotMatchHash(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
 	storedPlain := []byte("the-real-refresh-token-bytes")
 	storedHash, err := bcrypt.GenerateFromPassword(storedPlain, bcrypt.DefaultCost)
@@ -140,11 +141,11 @@ func TestRefreshHandler_TokenDoesNotMatchHash(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("expected 401 for non-matching token, got %d, body=%s", rec.Code, rec.Body.String())
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestRefreshHandler_Success(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
 	storedPlain := []byte("the-real-refresh-token-bytes")
 	storedHash, err := bcrypt.GenerateFromPassword(storedPlain, bcrypt.DefaultCost)
@@ -184,5 +185,5 @@ func TestRefreshHandler_Success(t *testing.T) {
 	if resp.AccessToken == "" {
 		t.Error("expected non-empty access token")
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }

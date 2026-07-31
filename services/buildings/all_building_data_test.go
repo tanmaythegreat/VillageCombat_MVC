@@ -1,16 +1,27 @@
-package controllers
+package buildings
 
 import (
+	"Village_combat/services"
+	"os"
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 )
 
+// TestMain makes sure the JWT secret required by the auth package (which
+// this package calls into for login/register/refresh) is present before any
+// test runs. auth.getJWTSecretKey panics if JWT_SECRET_KEY is unset.
+func TestMain(m *testing.M) {
+	if os.Getenv("JWT_SECRET_KEY") == "" {
+		os.Setenv("JWT_SECRET_KEY", "test-secret-key-for-controllers-package")
+	}
+	os.Exit(m.Run())
+}
 func TestAllBuildingDataLoad_Success(t *testing.T) {
-	mock := newMockDB(t)
-	resetBuildingStaticState(t) // empty models.BuildingSize -> no per-building level-0 lookups
+	mock := services.NewMockDB(t)
+	services.ResetBuildingStaticState(t) // empty models.BuildingSize -> no per-building level-0 lookups
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "building_configs_base"`).
 		WillReturnRows(sqlmock.NewRows([]string{"building_id", "name"}))
@@ -45,5 +56,5 @@ func TestAllBuildingDataLoad_Success(t *testing.T) {
 	if msg.MsgType != "building_troop" {
 		t.Errorf("expected msg_type building_troop, got %q", msg.MsgType)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }

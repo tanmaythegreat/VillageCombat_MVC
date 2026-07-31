@@ -1,6 +1,7 @@
-package controllers
+package troops
 
 import (
+	"Village_combat/services"
 	"testing"
 
 	"Village_combat/models"
@@ -25,9 +26,9 @@ func trainTroopData(barrackID, troopID string, levelFrom, count int, useGems boo
 }
 
 func TestTrainTroop_ConstructionUnderProgress(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "construction_tasks"`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
@@ -47,13 +48,13 @@ func TestTrainTroop_ConstructionUnderProgress(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatalf("TrainTroop returned error: %v", err)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestTrainTroop_AlreadyTraining(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "construction_tasks"`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
@@ -75,15 +76,15 @@ func TestTrainTroop_AlreadyTraining(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatalf("TrainTroop returned error: %v", err)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestTrainTroop_WrongBuildingType(t *testing.T) {
-	mock := newMockDB(t)
-	resetBuildingStaticState(t)
+	mock := services.NewMockDB(t)
+	services.ResetBuildingStaticState(t)
 	models.Barracks_ID = "barracks-config-id"
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "construction_tasks"`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
@@ -108,15 +109,15 @@ func TestTrainTroop_WrongBuildingType(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatalf("TrainTroop returned error: %v", err)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestTrainTroop_BrokenBarracks(t *testing.T) {
-	mock := newMockDB(t)
-	resetBuildingStaticState(t)
+	mock := services.NewMockDB(t)
+	services.ResetBuildingStaticState(t)
 	models.Barracks_ID = "barracks-config-id"
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "construction_tasks"`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
@@ -143,5 +144,5 @@ func TestTrainTroop_BrokenBarracks(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatalf("TrainTroop returned error: %v", err)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }

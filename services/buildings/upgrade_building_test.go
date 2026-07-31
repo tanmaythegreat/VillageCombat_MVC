@@ -1,6 +1,7 @@
-package controllers
+package buildings
 
 import (
+	"Village_combat/services"
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
@@ -17,9 +18,9 @@ func upgradeBuildingData(id string, useGems bool) struct {
 }
 
 func TestUpgradeBuilding_ConstructionUnderProgress(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "construction_tasks"`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
@@ -39,13 +40,13 @@ func TestUpgradeBuilding_ConstructionUnderProgress(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatalf("UpgradeBuilding returned error: %v", err)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestUpgradeBuilding_Broken(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "construction_tasks"`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
@@ -67,13 +68,13 @@ func TestUpgradeBuilding_Broken(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatalf("UpgradeBuilding returned error: %v", err)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestUpgradeBuilding_InsufficientTownHallLevel(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "construction_tasks"`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
@@ -103,5 +104,5 @@ func TestUpgradeBuilding_InsufficientTownHallLevel(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatalf("UpgradeBuilding returned error: %v", err)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }

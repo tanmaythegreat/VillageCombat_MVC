@@ -1,6 +1,7 @@
-package controllers
+package buildings
 
 import (
+	"Village_combat/services"
 	"testing"
 
 	"Village_combat/models"
@@ -23,10 +24,10 @@ func createBuildingData(buildingID string, x, y int, useGems bool) struct {
 }
 
 func TestCreateBuilding_UnknownBuilding(t *testing.T) {
-	mock := newMockDB(t)
-	resetBuildingStaticState(t)
+	mock := services.NewMockDB(t)
+	services.ResetBuildingStaticState(t)
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "placed_buildings"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "building_id", "grid_x", "grid_y", "level", "is_broken"}))
@@ -52,18 +53,18 @@ func TestCreateBuilding_UnknownBuilding(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatalf("CreateBuilding returned error: %v", err)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestCreateBuilding_Collision(t *testing.T) {
-	mock := newMockDB(t)
-	resetBuildingStaticState(t)
+	mock := services.NewMockDB(t)
+	services.ResetBuildingStaticState(t)
 	models.BuildingSize["wall-1"] = struct {
 		X int
 		Y int
 	}{X: 1, Y: 1}
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "placed_buildings"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "building_id", "grid_x", "grid_y", "level", "is_broken"}).
@@ -90,18 +91,18 @@ func TestCreateBuilding_Collision(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatalf("CreateBuilding returned error: %v", err)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestCreateBuilding_InsufficientTownHallLevel(t *testing.T) {
-	mock := newMockDB(t)
-	resetBuildingStaticState(t)
+	mock := services.NewMockDB(t)
+	services.ResetBuildingStaticState(t)
 	models.BuildingSize["wall-1"] = struct {
 		X int
 		Y int
 	}{X: 1, Y: 1}
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "placed_buildings"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "building_id", "grid_x", "grid_y", "level", "is_broken"}))
@@ -130,18 +131,18 @@ func TestCreateBuilding_InsufficientTownHallLevel(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatalf("CreateBuilding returned error: %v", err)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestCreateBuilding_Success(t *testing.T) {
-	mock := newMockDB(t)
-	resetBuildingStaticState(t)
+	mock := services.NewMockDB(t)
+	services.ResetBuildingStaticState(t)
 	models.BuildingSize["wall-1"] = struct {
 		X int
 		Y int
 	}{X: 1, Y: 1}
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "placed_buildings"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "building_id", "grid_x", "grid_y", "level", "is_broken"}))
@@ -180,5 +181,5 @@ func TestCreateBuilding_Success(t *testing.T) {
 	if msg.MsgType != "construction_started" {
 		t.Errorf("expected msg_type construction_started, got %q", msg.MsgType)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }

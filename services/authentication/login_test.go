@@ -1,10 +1,12 @@
-package controllers
+package authentication
 
 import (
+	"Village_combat/services"
 	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -12,6 +14,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// TestMain makes sure the JWT secret required by the auth package (which
+// this package calls into for login/register/refresh) is present before any
+// test runs. auth.getJWTSecretKey panics if JWT_SECRET_KEY is unset.
+func TestMain(m *testing.M) {
+	if os.Getenv("JWT_SECRET_KEY") == "" {
+		os.Setenv("JWT_SECRET_KEY", "test-secret-key-for-controllers-package")
+	}
+	os.Exit(m.Run())
+}
 func doLoginRequest(t *testing.T, method string, body interface{}) *httptest.ResponseRecorder {
 	t.Helper()
 	var buf bytes.Buffer
@@ -53,7 +64,7 @@ func TestLoginHandler_MissingFields(t *testing.T) {
 }
 
 func TestLoginHandler_UserNotFound(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
 	mock.ExpectQuery(`FROM "users"`).
 		WillReturnRows(sqlmock.NewRows([]string{"user_id", "username", "email", "password_hash"}))
@@ -66,11 +77,11 @@ func TestLoginHandler_UserNotFound(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("expected 401, got %d, body=%s", rec.Code, rec.Body.String())
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestLoginHandler_WrongPassword(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
 	correctHash, err := bcrypt.GenerateFromPassword([]byte("Correct!Passw0rd"), bcrypt.DefaultCost)
 	if err != nil {
@@ -89,11 +100,11 @@ func TestLoginHandler_WrongPassword(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("expected 401, got %d, body=%s", rec.Code, rec.Body.String())
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestLoginHandler_Success(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
 	password := "Str0ng!Passw0rd"
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -132,11 +143,11 @@ func TestLoginHandler_Success(t *testing.T) {
 	if !resp.ExpiresAt.After(time.Now()) {
 		t.Error("expected expires_at to be in the future")
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestLoginHandler_ByEmail(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
 	password := "Str0ng!Passw0rd"
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -160,5 +171,5 @@ func TestLoginHandler_ByEmail(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d, body=%s", rec.Code, rec.Body.String())
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }

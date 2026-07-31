@@ -1,6 +1,7 @@
-package controllers
+package buildings
 
 import (
+	"Village_combat/services"
 	"testing"
 	"time"
 
@@ -10,9 +11,9 @@ import (
 )
 
 func TestCheckConstructionWork_NothingComplete(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`DELETE FROM "construction_tasks"`).
@@ -29,15 +30,15 @@ func TestCheckConstructionWork_NothingComplete(t *testing.T) {
 	if _, _, err := client.ReadMessage(); err == nil {
 		t.Error("expected no message to be sent when no construction is complete")
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestCheckConstructionWork_BuildingUpgradeCompletes(t *testing.T) {
-	mock := newMockDB(t)
-	resetBuildingStaticState(t)
+	mock := services.NewMockDB(t)
+	services.ResetBuildingStaticState(t)
 	models.BuildingID_Category["wall-1"] = models.Wall
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`DELETE FROM "construction_tasks"`).
@@ -75,5 +76,5 @@ func TestCheckConstructionWork_BuildingUpgradeCompletes(t *testing.T) {
 	if msg.MsgType != "construction_completed" {
 		t.Errorf("expected msg_type construction_completed, got %q", msg.MsgType)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }

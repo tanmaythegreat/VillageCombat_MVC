@@ -1,6 +1,7 @@
-package controllers
+package buildings
 
 import (
+	"Village_combat/services"
 	"testing"
 
 	"Village_combat/models"
@@ -21,14 +22,14 @@ func moveBuildingData(id string, x, y int) struct {
 }
 
 func TestMoveBuilding_Success(t *testing.T) {
-	mock := newMockDB(t)
-	resetBuildingStaticState(t)
+	mock := services.NewMockDB(t)
+	services.ResetBuildingStaticState(t)
 	models.BuildingSize["cannon"] = struct {
 		X int
 		Y int
 	}{X: 3, Y: 3}
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "placed_buildings"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "building_id", "grid_x", "grid_y", "level", "is_broken"}))
@@ -61,18 +62,18 @@ func TestMoveBuilding_Success(t *testing.T) {
 	if msg.MsgType != "moved" || msg.GridX != 5 || msg.GridY != 5 {
 		t.Errorf("unexpected moved payload: %+v", msg)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestMoveBuilding_Collision(t *testing.T) {
-	mock := newMockDB(t)
-	resetBuildingStaticState(t)
+	mock := services.NewMockDB(t)
+	services.ResetBuildingStaticState(t)
 	models.BuildingSize["cannon"] = struct {
 		X int
 		Y int
 	}{X: 3, Y: 3}
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "placed_buildings"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "building_id", "grid_x", "grid_y", "level", "is_broken"}).
@@ -109,5 +110,5 @@ func TestMoveBuilding_Collision(t *testing.T) {
 	if msg.GridX != 0 || msg.GridY != 0 {
 		t.Errorf("expected building to report its original position on collision, got (%d,%d)", msg.GridX, msg.GridY)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }

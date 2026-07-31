@@ -1,7 +1,8 @@
-package controllers
+package buildings
 
 import (
 	"Village_combat/models"
+	"Village_combat/services"
 
 	"github.com/gorilla/websocket"
 )
@@ -14,11 +15,11 @@ func MoveBuilding(userId string, data struct {
 
 	nearByBuildings, err := models.GetNearByBuildings(userId, data.GridX, data.GridY)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	placedBuilding, err := models.GetPlacedBuilding(userId, data.PlacedBuildingID)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	newSize, exists := models.BuildingSize[placedBuilding.BuildingID]
 	if !exists {
@@ -40,7 +41,7 @@ func MoveBuilding(userId string, data struct {
 		errPayload := []byte(`{"status": "error", "message": "Can't Place Here."}`)
 		err := conn.WriteMessage(websocket.TextMessage, errPayload)
 		if err != nil {
-			return SendError(conn, err)
+			return services.SendError(conn, err)
 		}
 		return conn.WriteJSON(map[string]interface{}{
 			"msg_type":           "moved",
@@ -52,7 +53,7 @@ func MoveBuilding(userId string, data struct {
 	}
 	_, err = models.UpdatePlacedBuildingPosition(userId, data.PlacedBuildingID, data.GridX, data.GridY)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	return conn.WriteJSON(map[string]interface{}{
 		"msg_type":           "moved",

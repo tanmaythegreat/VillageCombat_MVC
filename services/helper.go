@@ -1,4 +1,4 @@
-package controllers
+package services
 
 import (
 	"net/http"
@@ -18,17 +18,17 @@ import (
 // TestMain makes sure the JWT secret required by the auth package (which
 // this package calls into for login/register/refresh) is present before any
 // test runs. auth.getJWTSecretKey panics if JWT_SECRET_KEY is unset.
-func TestMain(m *testing.M) {
+func testMain(m *testing.M) {
 	if os.Getenv("JWT_SECRET_KEY") == "" {
 		os.Setenv("JWT_SECRET_KEY", "test-secret-key-for-controllers-package")
 	}
 	os.Exit(m.Run())
 }
 
-// newMockDB installs a sqlmock-backed *gorm.DB as models.DB for the
+// NewMockDB installs a sqlmock-backed *gorm.DB as models.DB for the
 // duration of the test and restores the previous value afterwards. Mirrors
 // the convention already used in models.Util_test.go / auth.JWT_Auth_test.go.
-func newMockDB(t *testing.T) sqlmock.Sqlmock {
+func NewMockDB(t *testing.T) sqlmock.Sqlmock {
 	t.Helper()
 
 	sqlDB, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
@@ -57,21 +57,21 @@ func newMockDB(t *testing.T) sqlmock.Sqlmock {
 	return mock
 }
 
-// requireMet fails the test with full detail if any mocked expectation
+// RequireMet fails the test with full detail if any mocked expectation
 // wasn't satisfied (missing calls, calls in the wrong order, etc).
-func requireMet(t *testing.T, mock sqlmock.Sqlmock) {
+func RequireMet(t *testing.T, mock sqlmock.Sqlmock) {
 	t.Helper()
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet sqlmock expectations: %v", err)
 	}
 }
 
-// newTestConnPair spins up a real client/server websocket connection pair
+// NewTestConnPair spins up a real client/server websocket connection pair
 // backed by an httptest.Server. Most controller functions take a concrete
 // *websocket.Conn (not an interface), so this is the simplest reliable way
 // to exercise them end-to-end: pass `server` into the function under test,
 // then read the resulting message(s) off `client`.
-func newTestConnPair(t *testing.T) (server *websocket.Conn, client *websocket.Conn) {
+func NewTestConnPair(t *testing.T) (server *websocket.Conn, client *websocket.Conn) {
 	t.Helper()
 
 	upgrader := websocket.Upgrader{}
@@ -102,12 +102,12 @@ func newTestConnPair(t *testing.T) (server *websocket.Conn, client *websocket.Co
 	return sc, cc
 }
 
-// resetBuildingStaticState snapshots the models package-level static caches
+// ResetBuildingStaticState snapshots the models package-level static caches
 // that several controller functions read directly (models.BuildingSize,
 // models.BuildingID_Category, the *_ID globals, models.ResourceLevelDetails)
 // and restores them after the test. Individual tests populate whichever
 // subset their code path touches.
-func resetBuildingStaticState(t *testing.T) {
+func ResetBuildingStaticState(t *testing.T) {
 	t.Helper()
 	oldSize := models.BuildingSize
 	oldCat := models.BuildingID_Category

@@ -4,6 +4,9 @@ import (
 	"Village_combat/auth"
 	"Village_combat/battle"
 	"Village_combat/models"
+	"Village_combat/services/buildings"
+	"Village_combat/services/resources"
+	"Village_combat/services/troops"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -22,14 +25,6 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func SendError(conn *websocket.Conn, err error) error {
-	errPayload := map[string]string{
-		"status":  "error",
-		"message": "Internal Server Error",
-	}
-	log.Print(err.Error())
-	return conn.WriteJSON(errPayload)
-}
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -127,11 +122,11 @@ Loop:
 	Switch:
 		switch payload.Action {
 		case "INITIAL_LOAD":
-			if InitialLoad(userId, conn) != nil {
+			if buildings.InitialLoad(userId, conn) != nil {
 				break Loop
 			}
 		case "ALL_BUILDING_TROOP_DATA":
-			if AllBuildingDataLoad(userId, conn) != nil {
+			if buildings.AllBuildingDataLoad(userId, conn) != nil {
 				break Loop
 			}
 		case "CREATE_BUILDING":
@@ -151,11 +146,11 @@ Loop:
 				}
 				break Switch
 			}
-			if CreateBuilding(userId, data, conn) != nil {
+			if buildings.CreateBuilding(userId, data, conn) != nil {
 				break Loop
 			}
 		case "CHECK_CONSTRUCTION_WORK":
-			if CheckConstructionWork(userid, conn) != nil {
+			if buildings.CheckConstructionWork(userid, conn) != nil {
 				break Loop
 			}
 		case "UPGRADE_BUILDING":
@@ -173,7 +168,7 @@ Loop:
 				}
 				break Switch
 			}
-			if UpgradeBuilding(userId, data, conn) != nil {
+			if buildings.UpgradeBuilding(userId, data, conn) != nil {
 				break Loop
 			}
 		case "TRAIN_TROOP":
@@ -194,7 +189,7 @@ Loop:
 				}
 				break Switch
 			}
-			if TrainTroop(userId, data, conn) != nil {
+			if troops.TrainTroop(userId, data, conn) != nil {
 				break Loop
 			}
 		case "COLLECT_RESOURCE":
@@ -211,7 +206,7 @@ Loop:
 				}
 				break Switch
 			}
-			if CollectResource(userId, data, conn) != nil {
+			if resources.CollectResource(userId, data, conn) != nil {
 				break Loop
 			}
 		case "ATTACK":
@@ -277,7 +272,7 @@ Loop:
 				}
 				break Switch
 			}
-			if RepairBuilding(userId, data, conn) != nil {
+			if buildings.RepairBuilding(userId, data, conn) != nil {
 				break Loop
 			}
 		case "REPLAY":
@@ -322,14 +317,14 @@ Loop:
 				}
 				break Switch
 			}
-			if MoveBuilding(userId, data, conn) != nil {
+			if buildings.MoveBuilding(userId, data, conn) != nil {
 				break Loop
 			}
 		case "LOGOUT":
 			_ = models.RemoveRefreshToken(userId)
 			break Loop
 		case "COLLECT_ALL":
-			if CollectAllResource(userId, conn) != nil {
+			if resources.CollectAllResource(userId, conn) != nil {
 				break Loop
 			}
 		default:

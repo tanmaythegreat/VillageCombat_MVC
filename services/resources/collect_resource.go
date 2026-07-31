@@ -1,7 +1,8 @@
-package controllers
+package resources
 
 import (
 	"Village_combat/models"
+	"Village_combat/services"
 	"math"
 	"time"
 
@@ -13,7 +14,7 @@ func CollectResource(userId string, data struct {
 }, conn *websocket.Conn) error {
 	isBroken, err := models.IsBuildingBroken(userId, data.PlacedBuildingId)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	if isBroken {
 		errPayload := []byte(`{"status": "error", "message": "Cannot collect from broken building."}`)
@@ -21,7 +22,7 @@ func CollectResource(userId string, data struct {
 	}
 	placedBuilding, err := models.UpdatePlacedBuilding(userId, data.PlacedBuildingId)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	var dt = time.Now().Sub(placedBuilding.LastUpdatedAt).Hours()
 
@@ -41,11 +42,11 @@ func CollectResource(userId string, data struct {
 		user, err, extra = models.AddUserDarkElixirGetRemaining(userId, int64(amount))
 	}
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	err = models.DecreaseUpdateTime(userId, data.PlacedBuildingId, float64(extra)/generationRate)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	return conn.WriteJSON(map[string]interface{}{
 		"msg_type":  "resource_collected",

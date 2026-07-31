@@ -1,19 +1,20 @@
-package controllers
+package buildings
 
 import (
 	"Village_combat/models"
+	"Village_combat/services"
 	"errors"
 
 	"github.com/gorilla/websocket"
 )
 
-func UpgradeBuilding(userId string, data struct {
+func RepairBuilding(userId string, data struct {
 	PlacedBuildingID string `json:"placed_building_id"`
 	UseGems          bool   `json:"use_gems"`
 }, conn *websocket.Conn) error {
 	constructionUnderProgress, err := models.IsConstructionUnderProgress(userId, data.PlacedBuildingID)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	if constructionUnderProgress {
 		errPayload := []byte(`{"status": "error", "message": "Building already under construction."}`)
@@ -21,49 +22,47 @@ func UpgradeBuilding(userId string, data struct {
 	}
 	isBroken, err := models.IsBuildingBroken(userId, data.PlacedBuildingID)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
-	if isBroken {
-		errPayload := []byte(`{"status": "error", "message": "Cannot upgrade broken building."}`)
+	if !isBroken {
+		errPayload := []byte(`{"status": "error", "message": "Cannot Repair unbroken building."}`)
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}
 	building, err := models.GetPlacedBuilding(userId, data.PlacedBuildingID)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	cost, err := models.GetConstructionCost(building.BuildingID, building.Level+1)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
-	userData, err := models.GetUserData(userId)
-	if err != nil {
-		return SendError(conn, err)
-	}
-	if userData.TownHallLevel < cost.TownHallLevelRequired {
-		errPayload := []byte(`{"status": "error", "message": "Town Hall Level_from not sufficient."}`)
-		return conn.WriteMessage(websocket.TextMessage, errPayload)
-	}
+	cost.TimeRequiredSeconds /= 10
+	cost.OrGemRequired /= 10
+	cost.OrGemRequired += 1
+	cost.GoldRequired /= 10
+	cost.ElixirRequired /= 10
+	cost.DarkElixirRequired /= 10
 	tx, err := models.UserPurchase(userId, cost, data.UseGems)
 	if errors.Is(err, errors.New("insufficient resources")) {
 		errPayload := []byte(`{"status": "error", "message": "Insufficient Resources."}`)
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	var time_req int = cost.TimeRequiredSeconds
 	if data.UseGems {
 		time_req = 1
 	}
-	task, err := models.UpgradeBuilding(userId, data.PlacedBuildingID, tx, time_req)
+	task, err := models.StartConstruction_Building(userId, models.BuildingRepair, data.PlacedBuildingID, time_req, tx)
 	if err != nil {
 		tx.Rollback()
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	tx.Commit()
-	userData, err = models.GetUserData(userId)
+	userData, err := models.GetUserData(userId)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	return conn.WriteJSON(map[string]interface{}{
 		"msg_type":  "construction_started",

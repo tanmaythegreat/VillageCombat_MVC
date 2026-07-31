@@ -3,6 +3,7 @@ package main
 import (
 	"Village_combat/controllers"
 	"Village_combat/models"
+	"Village_combat/services/authentication"
 	"log"
 	"net/http"
 	"os"
@@ -32,10 +33,10 @@ func main() {
 
 	models.InitDB(dbURL)
 
-	http.HandleFunc("/register", controllers.RegisterHandler)
-	http.HandleFunc("/login", controllers.LoginHandler)
+	http.HandleFunc("/register", authentication.RegisterHandler)
+	http.HandleFunc("/login", authentication.LoginHandler)
 	http.HandleFunc("/ws", controllers.HandleWebSocket)
-	http.HandleFunc("/refresh", controllers.RefreshHandler)
+	http.HandleFunc("/refresh", authentication.RefreshHandler)
 
 	fs := http.FileServer(http.Dir("./public"))
 	http.Handle("/", fs)

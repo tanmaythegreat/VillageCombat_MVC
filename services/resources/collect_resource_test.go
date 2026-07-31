@@ -1,6 +1,7 @@
-package controllers
+package resources
 
 import (
+	"Village_combat/services"
 	"testing"
 	"time"
 
@@ -18,9 +19,9 @@ func collectResourceData(placedBuildingID string) struct {
 }
 
 func TestCollectResource_BrokenBuilding(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`is_broken`).
 		WillReturnRows(sqlmock.NewRows([]string{"is_broken"}).AddRow(true))
@@ -40,12 +41,12 @@ func TestCollectResource_BrokenBuilding(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatalf("CollectResource returned error: %v", err)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestCollectResource_Success_GoldMine(t *testing.T) {
-	mock := newMockDB(t)
-	resetBuildingStaticState(t)
+	mock := services.NewMockDB(t)
+	services.ResetBuildingStaticState(t)
 	models.GoldMine_ID = "gold-mine"
 	models.ResourceLevelDetails = map[struct {
 		ID    string
@@ -59,7 +60,7 @@ func TestCollectResource_Success_GoldMine(t *testing.T) {
 		},
 	}
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	// IsBuildingBroken
 	mock.ExpectQuery(`is_broken`).
@@ -102,5 +103,5 @@ func TestCollectResource_Success_GoldMine(t *testing.T) {
 	if msg.MsgType != "resource_collected" {
 		t.Errorf("expected msg_type resource_collected, got %q", msg.MsgType)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }

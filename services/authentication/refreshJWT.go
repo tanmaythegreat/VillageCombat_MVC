@@ -1,4 +1,4 @@
-package controllers
+package authentication
 
 import (
 	"Village_combat/auth"

@@ -1,7 +1,8 @@
-package controllers
+package buildings
 
 import (
 	"Village_combat/models"
+	"Village_combat/services"
 	"encoding/json"
 
 	"github.com/gorilla/websocket"
@@ -10,7 +11,7 @@ import (
 func CheckConstructionWork(userId string, conn *websocket.Conn) error {
 	constructionTasks, buildings_updated, err := models.CheckIsConstructionComplete(userId)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	if len(constructionTasks) > 0 {
 		var goldCapacityIncrement int64 = 0
@@ -22,44 +23,44 @@ func CheckConstructionWork(userId string, conn *websocket.Conn) error {
 			if models.BuildingID_Category[building.BuildingID] == models.TownHall {
 				err = models.IncrementUserTownHallLevel(userId)
 				if err != nil {
-					return SendError(conn, err)
+					return services.SendError(conn, err)
 				}
 			} else if models.BuildingID_Category[building.BuildingID] == models.Resource {
 				if building.BuildingID == models.ElixirStorage_ID {
 					difference, err := models.GetCapacityDifference(building.BuildingID, building.Level-1, building.Level)
 					if err != nil {
-						return SendError(conn, err)
+						return services.SendError(conn, err)
 					}
 					elixirCapacityIncrement += difference
 				} else if building.BuildingID == models.GoldStorage_ID {
 					difference, err := models.GetCapacityDifference(building.BuildingID, building.Level-1, building.Level)
 					if err != nil {
-						return SendError(conn, err)
+						return services.SendError(conn, err)
 					}
 					goldCapacityIncrement += difference
 				} else if building.BuildingID == models.DarkElixirStorage_ID {
 					difference, err := models.GetCapacityDifference(building.BuildingID, building.Level-1, building.Level)
 					if err != nil {
-						return SendError(conn, err)
+						return services.SendError(conn, err)
 					}
 					darkElixirCapacityIncrement += difference
 				}
 			} else if models.BuildingID_Category[building.BuildingID] == models.Army {
 				difference, err := models.GetTroopCapacityDifference(building.Level-1, building.Level)
 				if err != nil {
-					return SendError(conn, err)
+					return services.SendError(conn, err)
 				}
 				troopCapacityIncrement += difference
 			}
 			levelJSON, err := models.GetBuildingDataOfLevelJSON(building.BuildingID, building.Level)
 			if err != nil {
-				return SendError(conn, err)
+				return services.SendError(conn, err)
 			}
 			levelDetails = append(levelDetails, levelJSON)
 		}
 		userData, err := models.AddUserCapacity(userId, goldCapacityIncrement, elixirCapacityIncrement, darkElixirCapacityIncrement, troopCapacityIncrement)
 		if err != nil {
-			return SendError(conn, err)
+			return services.SendError(conn, err)
 		}
 		return conn.WriteJSON(map[string]interface{}{
 			"msg_type":                "construction_completed",

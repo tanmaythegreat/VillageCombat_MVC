@@ -1,6 +1,8 @@
-package controllers
+package resources
 
 import (
+	"Village_combat/services"
+	"os"
 	"testing"
 	"time"
 
@@ -9,10 +11,19 @@ import (
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 )
 
+// TestMain makes sure the JWT secret required by the auth package (which
+// this package calls into for login/register/refresh) is present before any
+// test runs. auth.getJWTSecretKey panics if JWT_SECRET_KEY is unset.
+func TestMain(m *testing.M) {
+	if os.Getenv("JWT_SECRET_KEY") == "" {
+		os.Setenv("JWT_SECRET_KEY", "test-secret-key-for-controllers-package")
+	}
+	os.Exit(m.Run())
+}
 func TestCollectAllResource_NoBuildings(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	mock.ExpectQuery(`FROM "placed_buildings"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "building_id", "grid_x", "grid_y", "level", "is_broken"}))
@@ -38,12 +49,12 @@ func TestCollectAllResource_NoBuildings(t *testing.T) {
 	if msg.MsgType != "resource_collected" {
 		t.Errorf("expected msg_type resource_collected, got %q", msg.MsgType)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestCollectAllResource_OneGoldMine(t *testing.T) {
-	mock := newMockDB(t)
-	resetBuildingStaticState(t)
+	mock := services.NewMockDB(t)
+	services.ResetBuildingStaticState(t)
 	models.GoldMine_ID = "gold-mine"
 	models.BuildingID_Category["gold-mine"] = models.Resource
 	models.ResourceLevelDetails = map[struct {
@@ -58,7 +69,7 @@ func TestCollectAllResource_OneGoldMine(t *testing.T) {
 		},
 	}
 
-	server, client := newTestConnPair(t)
+	server, client := services.NewTestConnPair(t)
 
 	// GetPlacedBuildings
 	mock.ExpectQuery(`FROM "placed_buildings"`).
@@ -107,5 +118,5 @@ func TestCollectAllResource_OneGoldMine(t *testing.T) {
 	if msg.MsgType != "resource_collected" {
 		t.Errorf("expected msg_type resource_collected, got %q", msg.MsgType)
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }

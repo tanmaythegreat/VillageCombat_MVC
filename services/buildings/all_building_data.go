@@ -1,7 +1,8 @@
-package controllers
+package buildings
 
 import (
 	"Village_combat/models"
+	"Village_combat/services"
 	"encoding/json"
 	"fmt"
 
@@ -11,29 +12,29 @@ import (
 func AllBuildingDataLoad(userId string, conn *websocket.Conn) error {
 	buildings, err := models.GetAllBuildingConfigsJSON()
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	troops, err := models.GetAllTroopsDataJSON()
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	defence, err := models.GetAllDefenceBuildingConfigsJSON()
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	army, err := models.GetAllArmyBuildingConfigsJSON()
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	resource, err := models.GetAllResourceBuildingConfigsJSON()
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	id_level, err := models.GetPlacedBuilding_ID_Level(userId)
 
 	configMap := make(map[string]json.RawMessage)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 	for _, il := range id_level {
 		key := fmt.Sprintf("%s:%d", il.BuildingID, il.Level)
@@ -42,7 +43,7 @@ func AllBuildingDataLoad(userId string, conn *websocket.Conn) error {
 		}
 		jsonData, err := models.GetBuildingDataOfLevelJSON(il.BuildingID, il.Level)
 		if err != nil {
-			return SendError(conn, err)
+			return services.SendError(conn, err)
 		}
 		configMap[key] = jsonData
 	}
@@ -53,7 +54,7 @@ func AllBuildingDataLoad(userId string, conn *websocket.Conn) error {
 		}
 		jsonData, err := models.GetBuildingDataOfLevelJSON(id, 0)
 		if err != nil {
-			return SendError(conn, err)
+			return services.SendError(conn, err)
 		}
 		configMap[key] = jsonData
 	}

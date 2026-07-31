@@ -1,6 +1,7 @@
-package controllers
+package authentication
 
 import (
+	"Village_combat/services"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -63,7 +64,7 @@ func TestRegisterHandler_WeakPassword(t *testing.T) {
 }
 
 func TestRegisterHandler_DuplicateUser(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "users"`).
@@ -79,11 +80,11 @@ func TestRegisterHandler_DuplicateUser(t *testing.T) {
 	if rec.Code != http.StatusConflict {
 		t.Errorf("expected 409, got %d, body=%s", rec.Code, rec.Body.String())
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }
 
 func TestRegisterHandler_Success(t *testing.T) {
-	mock := newMockDB(t)
+	mock := services.NewMockDB(t)
 
 	// RegisterUser's transaction: user -> user_data -> townhall placed_building -> user_status
 	mock.ExpectBegin()
@@ -121,5 +122,5 @@ func TestRegisterHandler_Success(t *testing.T) {
 	if resp.AccessToken == "" {
 		t.Error("expected non-empty access token in response")
 	}
-	requireMet(t, mock)
+	services.RequireMet(t, mock)
 }

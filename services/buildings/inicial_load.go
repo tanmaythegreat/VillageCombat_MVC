@@ -1,7 +1,8 @@
-package controllers
+package buildings
 
 import (
 	"Village_combat/models"
+	"Village_combat/services"
 	"encoding/json"
 
 	"github.com/gorilla/websocket"
@@ -11,22 +12,22 @@ func InitialLoad(userId string, conn *websocket.Conn) error {
 
 	troops, err := models.GetUserTrainedTroops(userId)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 
 	building, err := models.GetPlacedBuildingJSON(userId)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 
 	constructionTasks, err := models.GetConstructionTasks(userId)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 
 	userData, err := models.GetUserData(userId)
 	if err != nil {
-		return SendError(conn, err)
+		return services.SendError(conn, err)
 	}
 
 	user, err := models.GetUser(userId)
