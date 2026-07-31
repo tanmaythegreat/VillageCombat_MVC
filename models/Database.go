@@ -1052,12 +1052,22 @@ func FindOpponent(attackerID string, powerRange int) (*UserStatus, error) {
 		return nil, fmt.Errorf("no opponent found: %w", err)
 	}
 
+	logErr("StartMatch: could not clear attacker battle status", SetUserBattleStatus(attackerID, true))
+	logErr("StartMatch: could not clear defender battle status", SetUserBattleStatus(opponent.UserID, true))
+
 	if err = tx.Commit().Error; err != nil {
 		return nil, fmt.Errorf("failed to commit: %w", err)
 	}
 
 	return &opponent, nil
 }
+
+func logErr(context string, err error) {
+	if err != nil {
+		log.Printf("%s: %v", context, err)
+	}
+}
+
 func SetBrokenBuilding(userID string, placedBuildingID string, isBroken bool, tx *gorm.DB) error {
 	result := tx.Model(&PlacedBuilding{}).
 		Where("id = ? AND user_id = ?", placedBuildingID, userID).

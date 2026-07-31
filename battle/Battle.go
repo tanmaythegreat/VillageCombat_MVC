@@ -201,9 +201,6 @@ func StartMatch(attackerID string, defenderID string) {
 	defer cancel()
 	WriteMU := sync.Mutex{} // this is write lock for connections only for these 3 functions
 
-	logErr("StartMatch: could not clear attacker battle status", models.SetUserBattleStatus(attackerID, true))
-	logErr("StartMatch: could not clear defender battle status", models.SetUserBattleStatus(defenderID, true))
-
 	if attackerOnline {
 		attackerConn.Mu.Lock()
 		go readPlayerMessages(ctx, attackerConn, state, true, attackerID, defenderID, defenderOnline, defenderConn.Conn, &WriteMU, cancel)
