@@ -156,11 +156,11 @@ function _onTroopBtnClick(troopId, level) {
 function _showDeployBar() {
     deployRetreatBtn.style.display = IsAttacker ? '' : 'none';
     deployBar.style.display = 'flex'; void deployBar.offsetHeight; deployBar.classList.add('is-active');
-    deployRetreatBtn.addEventListener('click', (e) => {
+    deployRetreatBtn.onclick = (e) => {
         e.stopPropagation();
         if (!inBattle || !IsAttacker) return;
         import('./network.js').then(m => m.SendToServer({ action: 'retreat', message: '' }));
-    });
+    };
 
 }
 export function _hideDeployBar() {

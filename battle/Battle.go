@@ -570,7 +570,8 @@ Loop:
 					log.Println("readPlayerMessages: failed to echo spawn_troop to sender:", err)
 				}
 				WriteMU.Unlock()
-			} else if (msg.Action == "" || msg.Action == "retreat") && isAttacker {
+			} else if (msg.Action == "retreat") && isAttacker {
+				log.Print(msg)
 				cancel()
 				return
 			}

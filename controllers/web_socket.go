@@ -97,7 +97,7 @@ Loop:
 			}
 			continue
 		}
-		fmt.Printf("Received from player: %s\n", string(p))
+		//fmt.Printf("Received from player: %s\n", string(p))
 		var payload struct {
 			Action      string `json:"action"`
 			Message     string `json:"message"`
@@ -337,8 +337,9 @@ Loop:
 		default:
 			err = conn.WriteJSON(map[string]interface{}{
 				"status":  "error",
-				"message": payload,
+				"message": payload.Action,
 			})
+			log.Println("Unknown action:", payload)
 			if err != nil {
 				break Loop
 			}
