@@ -21,7 +21,9 @@ func main() {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		dbURL = "postgres://admin_tentellam:i_wont_tell_you@localhost:5432/VillageGameDB?sslmode=disable"
+		log.Println("DATABASE_URL env variable not set")
 	}
+	log.Println("Using database URL:", dbURL)
 
 	log.Println("Checking for pending database migrations...")
 	m, err := migrate.New("file://db/migrations", dbURL)

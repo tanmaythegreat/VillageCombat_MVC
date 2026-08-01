@@ -409,7 +409,7 @@ func TestLogErr_NoopWhenNil(t *testing.T) {
 	log.SetOutput(&buf)
 	defer log.SetOutput(orig)
 
-	logErr("some-context", nil)
+	LogErr("some-context", nil)
 
 	if buf.Len() != 0 {
 		t.Errorf("expected no log output for a nil error, got: %q", buf.String())
@@ -422,7 +422,7 @@ func TestLogErr_LogsWhenErrorPresent(t *testing.T) {
 	log.SetOutput(&buf)
 	defer log.SetOutput(orig)
 
-	logErr("my-context", errors.New("boom"))
+	LogErr("my-context", errors.New("boom"))
 
 	out := buf.String()
 	if !strings.Contains(out, "my-context") || !strings.Contains(out, "boom") {

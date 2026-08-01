@@ -216,13 +216,16 @@ Loop:
 		case "ATTACK":
 			opponent, err := models.FindOpponent(userId, 10)
 			if err != nil || opponent == nil {
-				conn.WriteJSON(map[string]interface{}{
+				conn.WriteJSON(map[string]any{
 					"msg_type": "un_attack",
 				})
-				conn.WriteJSON(map[string]interface{}{
+				conn.WriteJSON(map[string]any{
 					"status":  "error",
 					"message": "could not find opponent",
 				})
+				battle.LogErr("StartMatch: could not clear attacker battle status", models.SetUserBattleStatus(userId, false))
+				battle.LogErr("StartMatch: could not clear defender battle status", models.SetUserBattleStatus(opponent.UserID, false))
+
 			} else {
 				battle.StartMatch(userId, opponent.UserID)
 			}

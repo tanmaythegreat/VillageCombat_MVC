@@ -1052,12 +1052,12 @@ func FindOpponent(attackerID string, powerRange int) (*UserStatus, error) {
 		return nil, fmt.Errorf("no opponent found: %w", err)
 	}
 
-	logErr("StartMatch: could not clear attacker battle status", SetUserBattleStatus(attackerID, true))
-	logErr("StartMatch: could not clear defender battle status", SetUserBattleStatus(opponent.UserID, true))
-
 	if err = tx.Commit().Error; err != nil {
 		return nil, fmt.Errorf("failed to commit: %w", err)
 	}
+
+	logErr("StartMatch: could not clear attacker battle status", SetUserBattleStatus(attackerID, true))
+	logErr("StartMatch: could not clear defender battle status", SetUserBattleStatus(opponent.UserID, true))
 
 	return &opponent, nil
 }

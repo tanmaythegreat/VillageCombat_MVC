@@ -61,8 +61,8 @@ type BattleState struct {
 	StartTime time.Time
 }
 
-// logErr logs a non-fatal error with context, and is a no-op if err is nil.
-func logErr(context string, err error) {
+// LogErr logs a non-fatal error with context, and is a no-op if err is nil.
+func LogErr(context string, err error) {
 	if err != nil {
 		log.Printf("%s: %v", context, err)
 	}
@@ -85,8 +85,8 @@ func notifyBattleFailed(attackerConn Connection, attackerOnline bool, defenderCo
 			log.Println("notifyBattleFailed: failed to notify defender:", err)
 		}
 	}
-	logErr("StartMatch: could not clear attacker battle status", models.SetUserBattleStatus(attackerID, false))
-	logErr("StartMatch: could not clear defender battle status", models.SetUserBattleStatus(defenderID, false))
+	LogErr("StartMatch: could not clear attacker battle status", models.SetUserBattleStatus(attackerID, false))
+	LogErr("StartMatch: could not clear defender battle status", models.SetUserBattleStatus(defenderID, false))
 }
 
 func StartMatch(attackerID string, defenderID string) {
@@ -213,8 +213,8 @@ func StartMatch(attackerID string, defenderID string) {
 	runSimulation(ctx, state, attackerConn.Conn, defenderConn.Conn, attackerOnline, defenderOnline, &WriteMU, 1, cancel)
 
 	var duration = int(time.Since(startTime).Seconds())
-	logErr("StartMatch: could not clear attacker battle status (post-battle)", models.SetUserBattleStatus(attackerID, false))
-	logErr("StartMatch: could not clear defender battle status (post-battle)", models.SetUserBattleStatus(defenderID, false))
+	LogErr("StartMatch: could not clear attacker battle status (post-battle)", models.SetUserBattleStatus(attackerID, false))
+	LogErr("StartMatch: could not clear defender battle status (post-battle)", models.SetUserBattleStatus(defenderID, false))
 
 	tx := models.DB.Begin()
 	for _, troopAtkr := range state.AliveTroopAttacker {
@@ -312,11 +312,11 @@ func StartMatch(attackerID string, defenderID string) {
 	}
 
 	if exist {
-		logErr("StartMatch: failed to adjust attacker power", models.AdjustAttackPower(attackerID, 1))
-		logErr("StartMatch: failed to adjust defender power", models.AdjustDefencePower(defenderID, -1))
+		LogErr("StartMatch: failed to adjust attacker power", models.AdjustAttackPower(attackerID, 1))
+		LogErr("StartMatch: failed to adjust defender power", models.AdjustDefencePower(defenderID, -1))
 	} else {
-		logErr("StartMatch: failed to adjust attacker power", models.AdjustAttackPower(attackerID, -1))
-		logErr("StartMatch: failed to adjust defender power", models.AdjustDefencePower(defenderID, 1))
+		LogErr("StartMatch: failed to adjust attacker power", models.AdjustAttackPower(attackerID, -1))
+		LogErr("StartMatch: failed to adjust defender power", models.AdjustDefencePower(defenderID, 1))
 	}
 	battleId, err := models.InsertBattleHistory(battleHistory)
 	battleHistorySaved := err == nil
@@ -462,8 +462,10 @@ Loop:
 		case p := <-conn.Ch:
 			err := json.Unmarshal(p, &msg)
 			if err != nil {
-
 				log.Println("Connection lost with client:", err)
+				if isAttacker {
+					cancel()
+				}
 				break Loop
 			}
 			if msg.Action == "spawn_troop" {

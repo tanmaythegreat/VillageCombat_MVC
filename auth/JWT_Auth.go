@@ -139,7 +139,7 @@ func VerifyJWT_Token(token string) (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	var payload map[string]interface{}
+	var payload map[string]any
 	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
 		return "", false
 	}
