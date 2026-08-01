@@ -2,11 +2,13 @@ package main
 
 import (
 	"Village_combat/controllers"
+	"Village_combat/middleware"
 	"Village_combat/models"
 	"Village_combat/services/authentication"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -32,11 +34,17 @@ func main() {
 	log.Println("controllers migrations applied successfully!")
 
 	models.InitDB(dbURL)
-
-	http.HandleFunc("/register", authentication.RegisterHandler)
-	http.HandleFunc("/login", authentication.LoginHandler)
-	http.HandleFunc("/ws", controllers.HandleWebSocket)
-	http.HandleFunc("/refresh", authentication.RefreshHandler)
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			middleware.Cleanup()
+		}
+	}()
+	http.HandleFunc("/register", middleware.RateLimit(authentication.RegisterHandler))
+	http.HandleFunc("/login", middleware.RateLimit(authentication.LoginHandler))
+	http.HandleFunc("/ws", middleware.RateLimit(controllers.HandleWebSocket))
+	http.HandleFunc("/refresh", middleware.RateLimit(authentication.RefreshHandler))
 
 	fs := http.FileServer(http.Dir("./public"))
 	http.Handle("/", fs)
