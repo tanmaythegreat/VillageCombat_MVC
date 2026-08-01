@@ -20,11 +20,17 @@ export function connectToGameServer() {
     const socketUrl = `${protocol}//${window.location.host}/ws`;
 
     socket = new WebSocket(socketUrl);
-
-    socket.addEventListener('open', () => SendToServer({action:"auth",message:''}));
+    let retry_count = 0;
+    socket.addEventListener('open', () => {retry_count = 0;SendToServer({action:"auth",message:''})});
     socket.addEventListener('error', (err) => console.error('WebSocket Error:', err));
     socket.addEventListener('close', () => {
         console.warn('Disconnected. Reconnecting…');
+        retry_count+=1;
+        if (!access_token || retry_count>=10){
+            localStorage.clear()
+            window.location.href = '../../index.html';
+            access_token = ""
+        }
         connectToGameServer();
     });
     socket.addEventListener('message', (event) => {
@@ -33,9 +39,14 @@ export function connectToGameServer() {
         if (inBattle) handleBattleMessage(data);
         if (data.status === 'error') {
             showToast(data.message);
-            console.log(data);
+            if (data.message===" Unauthorized."){
+                localStorage.clear();
+                window.location.href = '../../index.html';
+                access_token = "";
+            }
         }
     });
+
 }
 
 export function CreateBuilding(building_id, x, y, use_gems = false) {
@@ -68,7 +79,7 @@ export function getBattleHistory(fought_at, to_load) {
 export function Logout() {
     localStorage.clear();
     SendToServer({ action: 'LOGOUT', message: '' });
-    window.location.href = './Login.html';
+    window.location.href = './index.html';
 }
 
 export function CollectAll() {

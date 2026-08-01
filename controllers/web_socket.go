@@ -48,10 +48,10 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	var token = payload.AccessToken
 	userId, verified := auth.VerifyJWT_Token(token)
 	if !verified {
-		http.Error(w, "Invalid Token.", http.StatusUnauthorized)
+		conn.WriteJSON(map[string]any{"status": "error", "message": "Unauthorized."})
 		return
 	}
-	err = conn.WriteJSON(map[string]interface{}{
+	err = conn.WriteJSON(map[string]any{
 		"msg_type": "authorised",
 	})
 	if err != nil {
