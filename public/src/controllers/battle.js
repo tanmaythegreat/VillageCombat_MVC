@@ -27,7 +27,10 @@ export function setInBattle(v) {
 }
 export function setIsAttacker(v) { IsAttacker = v; }
 export function setReplay(v)     { replay     = v; }
-export function setState(v)      { state      = v; }
+export function setState(v) {
+    state = v;
+    if (state) _initBuildingHealthBars();
+}
 
 const attackBtn          = document.getElementById('attack-btn');
 const incomingWarning    = document.getElementById('incoming-warning');
@@ -191,10 +194,77 @@ function _spawnTroop(troopId, level, gridX, gridY) {
 const PooledArmy = {};
 let LoadedArmy = {};
 
+/* ---------------- Health bar helpers ---------------- */
+
+function _createHealthBar(model) {
+    model.updateWorldMatrix(true, false);
+    const box = new THREE.Box3().setFromObject(model);
+    const modelHeight = Math.max(box.max.y - box.min.y, size_scaling);
+    const modelWidth  = Math.max(box.max.x - box.min.x, box.max.z - box.min.z, size_scaling * 0.6);
+
+    const barWidth  = modelWidth * 0.85;
+    const barHeight = Math.max(barWidth * 0.12, 2);
+    const yOffset   = (box.max.y - model.position.y) + modelHeight * 0.18;
+
+    const bgGeo = new THREE.PlaneGeometry(barWidth, barHeight);
+    const bgMat = new THREE.MeshBasicMaterial({
+        color: 0x1a1a1a, transparent: true, opacity: 0.85,
+        depthTest: false, depthWrite: false
+    });
+    const bg = new THREE.Mesh(bgGeo, bgMat);
+    bg.renderOrder = 20;
+
+    // fillGeo is translated so its local origin (x=0) sits at the LEFT edge,
+    // so scaling fill.scale.x shrinks the bar from the right, anchored on the left.
+    const fillGeo = new THREE.PlaneGeometry(barWidth, barHeight * 0.65);
+    fillGeo.translate(barWidth / 2, 0, 0);
+    const fillMat = new THREE.MeshBasicMaterial({
+        color: 0x2ecc71, depthTest: false, depthWrite: false
+    });
+    const fill = new THREE.Mesh(fillGeo, fillMat);
+    fill.position.x = -barWidth / 2;
+    fill.renderOrder = 21;
+
+    const group = new THREE.Group();
+    group.add(bg);
+    group.add(fill);
+    group.position.y = yOffset;
+    model.add(group);
+
+    return { group, fill };
+}
+
+function _updateHealthBar(healthBar, ratio) {
+    if (!healthBar) return;
+    ratio = Math.max(0, Math.min(1, ratio));
+    healthBar.fill.scale.x = ratio;
+    healthBar.fill.material.color.setHex(
+        ratio > 0.5 ? 0x2ecc71 : ratio > 0.25 ? 0xf1c40f : 0xe74c3c
+    );
+}
+
+function _initBuildingHealthBars() {
+    if (!state) return;
+    const { AliveBuildings: aliveB, Buildings: buildings } = state;
+    for (const b of aliveB) {
+        const pb = buildings[b.BuildingIndex];
+        const bModel = pb?.Model;
+        if (!bModel || bModel.userData.healthBar) continue;
+        bModel.userData.healthBar = _createHealthBar(bModel);
+        const bData = AllBuildingData[pb.building_id];
+        const maxHealth = bData.levels[pb.level].health; // NOTE: assumes pb.level exists
+        _updateHealthBar(bModel.userData.healthBar, Math.max(0, b.HealthRemaining) / maxHealth);
+    }
+}
+
+/* ------------------------------------------------------ */
+
 export function SpawnTroop(datafromServer){
 
     const troopId = datafromServer.troop_id
     const level = datafromServer.troop_level
+    const maxHealth = AllTroopsData[troopId].level_stats[level].health
+
     if (!replay && datafromServer.spawned_by_attacker===IsAttacker) {
         const entry = _troopButtons[[troopId, level]];
         entry.count--;
@@ -211,10 +281,7 @@ export function SpawnTroop(datafromServer){
                 _deployMode = false;
             }
         }
-        const anyLeft = Object.values(_troopButtons).some(e => e.count > 0);
-        if (!anyLeft) {
-            _hideDeployBar();
-        }
+        // deploy bar intentionally stays open even when all troops are used
     }
 
     if ((PooledArmy[troopId]??[]).length>0){
@@ -223,6 +290,10 @@ export function SpawnTroop(datafromServer){
         Model.position.x = datafromServer.spawnedAt_X*position_scaling
         Model.position.z = datafromServer.spawnedAt_Y*position_scaling
         Model.userData.troopId = troopId
+        Model.userData.HealthRemaining = maxHealth
+        Model.userData.MaxHealth = maxHealth
+        if (Model.userData.healthBar) _updateHealthBar(Model.userData.healthBar, 1)
+        else Model.userData.healthBar = _createHealthBar(Model)
         if (datafromServer.spawned_by_attacker)
             state.AliveTroopAttacker.push(Model)
         else
@@ -261,7 +332,10 @@ export function SpawnTroop(datafromServer){
 
                 Model.renderOrder=10
                 Model.userData.troopId = troopId
+                Model.userData.HealthRemaining = maxHealth
+                Model.userData.MaxHealth = maxHealth
                 scene.add(Model);
+                Model.userData.healthBar = _createHealthBar(Model)
                 if (datafromServer.spawned_by_attacker)
                     state.AliveTroopAttacker.push(Model)
                 else
@@ -403,20 +477,35 @@ export function DealDamage(building_damage, attacker_troop_damage, defender_troo
     }
 
     aliveB.forEach((b, i) => {
+        const pb = buildings[b.BuildingIndex];
+        const bModel = pb.Model;
+        if (!bModel.userData.healthBar) bModel.userData.healthBar = _createHealthBar(bModel);
+        const bData = AllBuildingData[pb.building_id];
+        const maxHealth = bData.levels[pb.level].health; // NOTE: assumes pb.level exists
+        _updateHealthBar(bModel.userData.healthBar, Math.max(0, b.HealthRemaining) / maxHealth);
+
         const dmg = building_damage[i]; if (!dmg || dmg <= 0) return;
-        spawnLabel(...Object.values(worldToScreen(buildings[b.BuildingIndex].Model.position)), `-${dmg}`, building_died.includes(i) ? 'died' : '');
+        spawnLabel(...Object.values(worldToScreen(bModel.position)), `-${dmg}`, building_died.includes(i) ? 'died' : '');
     });
     att.forEach((troop, i) => {
-        const dmg = attacker_troop_damage[i]; if (!dmg || dmg <= 0) return;
+        const dmg = attacker_troop_damage[i];
+        if (dmg) troop.userData.HealthRemaining = Math.max(0, troop.userData.HealthRemaining - dmg);
+        if (troop.userData.healthBar) _updateHealthBar(troop.userData.healthBar, troop.userData.HealthRemaining / troop.userData.MaxHealth);
+        if (!dmg || dmg <= 0) return;
         spawnLabel(...Object.values(worldToScreen(troop.position)), `-${dmg}`, attacker_troop_died.includes(i) ? 'troop died' : 'troop');
     });
     def.forEach((troop, i) => {
-        const dmg = defender_troop_damage[i]; if (!dmg || dmg <= 0) return;
+        const dmg = defender_troop_damage[i];
+        if (dmg) troop.userData.HealthRemaining = Math.max(0, troop.userData.HealthRemaining - dmg);
+        if (troop.userData.healthBar) _updateHealthBar(troop.userData.healthBar, troop.userData.HealthRemaining / troop.userData.MaxHealth);
+        if (!dmg || dmg <= 0) return;
         spawnLabel(...Object.values(worldToScreen(troop.position)), `-${dmg}`, defender_troop_died.includes(i) ? 'troop died' : 'troop');
     });
 
     for (const idx of building_died.toReversed()) {
-        state.Buildings[aliveB[idx].BuildingIndex].Model.userData.is_broken = true;
+        const dead = state.Buildings[aliveB[idx].BuildingIndex];
+        dead.Model.userData.is_broken = true;
+        if (dead.Model.userData.healthBar) dead.Model.userData.healthBar.group.visible = false;
         state.AliveBuildings.splice(idx, 1);
     }
     const pool = (arr, died) => {
