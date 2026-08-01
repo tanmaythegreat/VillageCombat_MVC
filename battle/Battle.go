@@ -71,7 +71,7 @@ func logErr(context string, err error) {
 // notifyBattleFailed informs any online participant that the battle could not
 // proceed, so a client never sits waiting on a battle that silently died server-side.
 func notifyBattleFailed(attackerConn Connection, attackerOnline bool, defenderConn Connection, defenderOnline bool, reason string, attackerID, defenderID string) {
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"msg_type": "error",
 		"message":  reason,
 	}
@@ -172,7 +172,7 @@ func StartMatch(attackerID string, defenderID string) {
 		}
 	}
 	if attackerOnline {
-		if err := attackerConn.Conn.WriteJSON(map[string]interface{}{
+		if err := attackerConn.Conn.WriteJSON(map[string]any{
 			"msg_type":          "battle_start",
 			"defender_building": ToSend,
 			"defender_id":       defenderID,
@@ -185,7 +185,7 @@ func StartMatch(attackerID string, defenderID string) {
 		log.Printf("sent message to attacker %s\n", attackerID)
 	}
 	if defenderOnline {
-		if err := defenderConn.Conn.WriteJSON(map[string]interface{}{
+		if err := defenderConn.Conn.WriteJSON(map[string]any{
 			"msg_type":          "incoming_attack",
 			"defender_building": ToSend,
 			"defender_id":       defenderID,
@@ -389,7 +389,7 @@ func StartMatch(attackerID string, defenderID string) {
 	}
 
 	if attackerOnline {
-		if err := attackerConn.Conn.WriteJSON(map[string]interface{}{
+		if err := attackerConn.Conn.WriteJSON(map[string]any{
 			"msg_type":            "battle_over",
 			"battle_id":           battleId,
 			"battle_outcome":      battleHistory,
@@ -406,7 +406,7 @@ func StartMatch(attackerID string, defenderID string) {
 		log.Printf("BATTLE unlocked mutex of attacker user : %s\n", attackerID)
 	}
 	if defenderOnline {
-		if err := defenderConn.Conn.WriteJSON(map[string]interface{}{
+		if err := defenderConn.Conn.WriteJSON(map[string]any{
 			"msg_type":            "battle_over",
 			"battle_id":           battleId,
 			"battle_outcome":      battleHistory,
@@ -554,14 +554,14 @@ Loop:
 				state.mu.Unlock()
 				WriteMU.Lock()
 				if otherOnline {
-					if err := otherConn.WriteJSON(map[string]interface{}{
+					if err := otherConn.WriteJSON(map[string]any{
 						"msg_type": "spawn_troop",
 						"troop":    troop,
 					}); err != nil {
 						log.Println("readPlayerMessages: failed to relay spawn_troop to opponent:", err)
 					}
 				}
-				if err := conn.Conn.WriteJSON(map[string]interface{}{
+				if err := conn.Conn.WriteJSON(map[string]any{
 					"msg_type": "spawn_troop",
 					"troop":    troop,
 				}); err != nil {
@@ -615,7 +615,7 @@ func runSimulation(
 	}
 
 }
-func simulate(state *BattleState) map[string]interface{} {
+func simulate(state *BattleState) map[string]any {
 
 	buildingDmgDone := make([]int64, len(state.AliveBuildings))
 	AttackertroopDmgDone := make([]int64, len(state.AliveTroopAttacker))
@@ -875,7 +875,7 @@ func simulate(state *BattleState) map[string]interface{} {
 	}
 	state.AliveTroopDefender = state.AliveTroopDefender[:aliveDefTCount]
 
-	return map[string]interface{}{
+	return map[string]any{
 		"msg_type":              "battle_update",
 		"building_damage":       buildingDmgDone,
 		"attacker_troop_damage": AttackertroopDmgDone,

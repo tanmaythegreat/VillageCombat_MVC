@@ -65,7 +65,11 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	battle.Manager.Mu.Unlock()
 	log.Printf("user joined Manager state:%v\n", battle.Manager)
 
-	defer delete(battle.Manager.Connections, userId)
+	defer func() {
+		battle.Manager.Mu.Lock()
+		delete(battle.Manager.Connections, userId)
+		battle.Manager.Mu.Unlock()
+	}()
 	fmt.Printf("Client successfully connected to WebSocket server!, client : %s\n", userId)
 
 	go func() {
