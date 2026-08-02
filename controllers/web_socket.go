@@ -17,11 +17,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var allowedOrigins = map[string]bool{
+	"http://localhost:8080":                       true,
+	"https://villagecombat-mvc-ykep.onrender.com": true,
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true
+		origin := r.Header.Get("Origin")
+		_, ok := allowedOrigins[origin]
+		return ok
 	},
 }
 
