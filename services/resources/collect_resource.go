@@ -3,6 +3,7 @@ package resources
 import (
 	"Village_combat/models"
 	"Village_combat/services"
+	"errors"
 	"math"
 	"time"
 
@@ -20,16 +21,20 @@ func CollectResource(userId string, data struct {
 		errPayload := []byte(`{"status": "error", "message": "Cannot collect from broken building."}`)
 		return conn.WriteMessage(websocket.TextMessage, errPayload)
 	}
-	placedBuilding, err := models.UpdatePlacedBuilding(userId, data.PlacedBuildingId)
+	placedBuilding, err := models.GetPlacedBuilding(userId, data.PlacedBuildingId)
 	if err != nil {
 		return services.SendError(conn, err)
 	}
-	var dt = time.Now().Sub(placedBuilding.LastUpdatedAt).Hours()
+	now := time.Now()
+	var dt = now.Sub(placedBuilding.LastUpdatedAt).Hours()
 
-	leveldat := models.ResourceLevelDetails[struct {
+	leveldat, ok := models.ResourceLevelDetails[struct {
 		ID    string
 		Level int
 	}{ID: placedBuilding.BuildingID, Level: placedBuilding.Level}]
+	if !ok {
+		return services.SendError(conn, errors.New("unknown resource"))
+	}
 	generationRate := leveldat.GenerationRatePerHour
 	var amount = math.Min(dt*generationRate, float64(leveldat.StorageCapacity))
 	var user models.UserData
@@ -44,11 +49,19 @@ func CollectResource(userId string, data struct {
 	if err != nil {
 		return services.SendError(conn, err)
 	}
-	err = models.DecreaseUpdateTime(userId, data.PlacedBuildingId, float64(extra)/generationRate)
-	if err != nil {
-		return services.SendError(conn, err)
+	if generationRate != 0 {
+		err = models.DecreaseUpdateTime(userId, data.PlacedBuildingId, float64(extra)/generationRate, now)
+		if err != nil {
+			return services.SendError(conn, err)
+		}
+	} else {
+		// ideally this should never happen
+		err = models.DecreaseUpdateTime(userId, data.PlacedBuildingId, 0, now)
+		if err != nil {
+			return services.SendError(conn, err)
+		}
 	}
-	return conn.WriteJSON(map[string]interface{}{
+	return conn.WriteJSON(map[string]any{
 		"msg_type":  "resource_collected",
 		"user_data": user,
 	})

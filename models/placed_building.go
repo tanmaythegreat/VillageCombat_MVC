@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -41,15 +42,33 @@ func UpdatePlacedBuilding(userId string, placedBuildingID string) (PlacedBuildin
 		Update("last_updated_at", time.Now()).Error
 	return oldBuilding, err
 }
-func DecreaseUpdateTime(userId string, placedBuildingID string, hours float64) error {
-	var updatedBuilding PlacedBuilding
-	secondsToSubtract := hours * 3600
-	err := DB.Model(&updatedBuilding).
-		Clauses(clause.Returning{}).
+func DecreaseUpdateTime(userId string, placedBuildingID string, hours float64, now time.Time) error {
+	newTime := now.Add(-time.Duration(hours * float64(time.Hour)))
+	err := DB.Model(&PlacedBuilding{}).
 		Where("id = ? AND user_id = ?", placedBuildingID, userId).
-		Update("last_updated_at", gorm.Expr("last_updated_at - ? * INTERVAL '1 second'", secondsToSubtract)).
+		Update("last_updated_at", newTime).
 		Error
 	return err
+}
+func DecreaseUpdateTimeALL(userId string, ids []string, hrs []float64, now time.Time) error {
+	if len(ids) != len(hrs) {
+		return fmt.Errorf("DecreaseUpdateTimeALL: ids and hrs length mismatch (%d != %d)", len(ids), len(hrs))
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+
+	return DB.Transaction(func(tx *gorm.DB) error {
+		for i, id := range ids {
+			newTime := now.Add(-time.Duration(hrs[i] * float64(time.Hour)))
+			if err := tx.Model(&PlacedBuilding{}).
+				Where("id = ? AND user_id = ?", id, userId).
+				Update("last_updated_at", newTime).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 func GetPlacedBuilding_ID_Level(userID string) ([]PlacedBuilding, error) {
 	var placedBuildings []PlacedBuilding
